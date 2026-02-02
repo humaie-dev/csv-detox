@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import {
   sanitizeFilename,
@@ -62,5 +62,31 @@ export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Get an upload by ID
+ */
+export const getUpload = query({
+  args: {
+    uploadId: v.id("uploads"),
+  },
+  handler: async (ctx, args) => {
+    const upload = await ctx.db.get(args.uploadId);
+    return upload;
+  },
+});
+
+/**
+ * Internal query to get upload (avoids circular reference)
+ */
+export const getUploadInternal = internalQuery({
+  args: {
+    uploadId: v.id("uploads"),
+  },
+  handler: async (ctx, args) => {
+    const upload = await ctx.db.get(args.uploadId);
+    return upload;
   },
 });

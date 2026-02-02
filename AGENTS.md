@@ -100,10 +100,23 @@ npm start            # Start production server
 
 ## Architecture & Patterns
 
+### Technical Stack
+- **Frontend**: Next.js 15 (App Router), React, TypeScript
+- **Backend**: Convex (database, storage, serverless functions)
+- **UI Components**: shadcn/ui (Tailwind CSS-based component library)
+  - Use shadcn/ui components as the foundation for all UI elements
+  - Install components via CLI: `npx shadcn@latest add <component>`
+  - Customize components in `src/components/ui/` as needed
+  - Follow shadcn/ui patterns and conventions
+- **Testing**: Node.js test runner with tsx
+- **Styling**: Tailwind CSS (via shadcn/ui)
+
 ### Folder Conventions
 - `src/lib/**` → Pure logic, utilities, core business logic
 - `src/app/**` → Next.js App Router (pages, layouts, API routes)
 - `src/app/api/**` → Route handlers (thin, delegate to `src/lib/**`)
+- `src/components/ui/**` → shadcn/ui components (auto-generated, customizable)
+- `src/components/**` → Application-specific React components
 - `convex/**` → Convex backend code (schema, mutations, queries)
 - Keep route handlers thin; never put business logic in routes
 

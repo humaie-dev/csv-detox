@@ -177,6 +177,22 @@ export default function HomePage() {
             <div><strong>Type:</strong> {uploadResult.mimeType}</div>
             <div><strong>Uploaded:</strong> {new Date(uploadResult.uploadedAt).toLocaleString()}</div>
           </div>
+          <div style={{ marginTop: 16 }}>
+            <a
+              href={`/preview/${uploadResult.fileId}`}
+              style={{
+                display: "inline-block",
+                padding: "8px 16px",
+                backgroundColor: "#060",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: 4,
+                fontWeight: "bold",
+              }}
+            >
+              Transform Data →
+            </a>
+          </div>
         </div>
       )}
     </main>

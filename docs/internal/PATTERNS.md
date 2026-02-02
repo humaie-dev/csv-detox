@@ -6,8 +6,10 @@ Update only after asking and receiving approval for new patterns/libraries.
 ## Current patterns
 
 ### Folder conventions
-- `src/lib/**` contains pure logic
+- `src/lib/**` contains pure logic (parsers, validators, utilities, business logic)
 - `src/app/**` contains Next.js App Router pages and layouts
+- `src/components/ui/**` contains shadcn/ui components (auto-generated, customizable)
+- `src/components/**` contains application-specific React components
 - `convex/**` contains Convex backend code (schema, mutations, queries)
 
 ### Backend: Convex + Postgres
@@ -28,6 +30,22 @@ Update only after asking and receiving approval for new patterns/libraries.
 - `ConvexProvider` wraps the app in `layout.tsx`
 - Pages use `useMutation` and `useQuery` hooks from `convex/react`
 - All Convex functions are strongly typed via generated API (`convex/_generated/api`)
+
+### UI Components: shadcn/ui
+- **Component library**: shadcn/ui (Tailwind CSS-based, copy-paste components)
+- **Installation**: `npx shadcn@latest add <component>` - components are copied to `src/components/ui/`
+- **Customization**: Edit components in `src/components/ui/` after installation as needed
+- **Styling**: Uses Tailwind CSS utility classes
+- **Philosophy**: Components are owned by the project (not npm dependencies), allowing full customization
+- **Common components**:
+  - `button` - Buttons with variants (default, destructive, outline, ghost, link)
+  - `card` - Cards with header, content, footer
+  - `table` - Data tables with sorting, filtering
+  - `dialog` - Modal dialogs
+  - `select` - Dropdown selects
+  - `input` - Form inputs
+- **Pattern**: Use shadcn/ui as the base, compose application-specific components in `src/components/`
+- **Documentation**: https://ui.shadcn.com/docs
 
 ### Testing Patterns
 - **Framework**: Node.js built-in test runner with tsx for TypeScript support

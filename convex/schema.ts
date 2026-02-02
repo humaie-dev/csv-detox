@@ -10,4 +10,18 @@ export default defineSchema({
     convexStorageId: v.id("_storage"),
     uploadedAt: v.string(),
   }).index("by_uploadedAt", ["uploadedAt"]),
+
+  pipelines: defineTable({
+    uploadId: v.id("uploads"),
+    sheetName: v.optional(v.string()),
+    steps: v.array(
+      v.object({
+        id: v.string(),
+        type: v.string(),
+        config: v.any(),
+      })
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_upload", ["uploadId"]),
 });
