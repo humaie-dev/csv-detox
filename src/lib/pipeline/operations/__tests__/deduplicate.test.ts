@@ -29,7 +29,7 @@ describe("deduplicate operation", () => {
       type: "deduplicate",
     };
 
-    const result = deduplicate(table, config);
+    const { table: result } = deduplicate(table, config);
 
     assert.equal(result.rowCount, 3);
     assert.equal(result.rows.length, 3);
@@ -59,7 +59,7 @@ describe("deduplicate operation", () => {
       columns: ["name"], // Only deduplicate by name
     };
 
-    const result = deduplicate(table, config);
+    const { table: result } = deduplicate(table, config);
 
     assert.equal(result.rowCount, 2);
     assert.equal(result.rows.length, 2);
@@ -89,7 +89,7 @@ describe("deduplicate operation", () => {
       type: "deduplicate",
     };
 
-    const result = deduplicate(table, config);
+    const { table: result } = deduplicate(table, config);
 
     assert.equal(result.rowCount, 3);
     assert.equal(result.rows[0].id, "3");
@@ -116,7 +116,7 @@ describe("deduplicate operation", () => {
       type: "deduplicate",
     };
 
-    const result = deduplicate(table, config);
+    const { table: result } = deduplicate(table, config);
 
     assert.equal(result.rowCount, 2);
     assert.equal(result.rows.length, 2);
@@ -156,7 +156,7 @@ describe("deduplicate operation", () => {
       type: "deduplicate",
     };
 
-    const result = deduplicate(table, config);
+    const { table: result } = deduplicate(table, config);
 
     assert.equal(result.rowCount, 0);
     assert.equal(result.rows.length, 0);

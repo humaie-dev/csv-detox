@@ -10,6 +10,14 @@ import { deduplicate } from "./deduplicate";
 import { filter } from "./filter";
 import { renameColumn } from "./rename-column";
 import { removeColumn } from "./remove-column";
+import { unpivot } from "./unpivot";
+import { pivot } from "./pivot";
+import { splitColumn } from "./split-column";
+import { mergeColumns } from "./merge-columns";
+import { castColumn } from "./cast-column";
+import { fillDown } from "./fill-down";
+import { fillAcross } from "./fill-across";
+import { sort } from "./sort";
 
 /**
  * Registry of all available operations
@@ -22,6 +30,14 @@ export const operations: Record<TransformationType, OperationFn> = {
   filter,
   rename_column: renameColumn,
   remove_column: removeColumn,
+  unpivot,
+  pivot,
+  split_column: splitColumn,
+  merge_columns: mergeColumns,
+  cast_column: castColumn,
+  fill_down: fillDown,
+  fill_across: fillAcross,
+  sort,
 };
 
 /**
@@ -36,4 +52,20 @@ export function getOperation(type: TransformationType): OperationFn {
 }
 
 // Re-export all operations
-export { trim, uppercase, lowercase, deduplicate, filter, renameColumn, removeColumn };
+export {
+  trim,
+  uppercase,
+  lowercase,
+  deduplicate,
+  filter,
+  renameColumn,
+  removeColumn,
+  unpivot,
+  pivot,
+  splitColumn,
+  mergeColumns,
+  castColumn,
+  fillDown,
+  fillAcross,
+  sort,
+};

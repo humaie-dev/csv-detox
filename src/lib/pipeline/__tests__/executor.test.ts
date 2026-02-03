@@ -22,6 +22,8 @@ describe("executePipeline", () => {
     assert.equal(result.table.rowCount, 1);
     assert.equal(result.table.rows[0].name, "Alice");
     assert.equal(result.stepResults.length, 0);
+    assert.equal(result.typeEvolution.length, 1); // Original columns only
+    assert.equal(result.typeEvolution[0].length, 2); // name and age columns
   });
 
   it("should execute single step successfully", () => {
@@ -52,6 +54,8 @@ describe("executePipeline", () => {
     assert.equal(result.stepResults[0].stepId, "step-1");
     assert.equal(result.stepResults[0].success, true);
     assert.equal(result.stepResults[0].rowsAffected, 0);
+    assert.equal(result.stepResults[0].columnsAfter.length, 1); // Track columns after step
+    assert.equal(result.typeEvolution.length, 2); // Original + after step 1
   });
 
   it("should execute multiple steps in sequence", () => {
@@ -105,6 +109,8 @@ describe("executePipeline", () => {
     assert.equal(result.stepResults[0].success, true);
     assert.equal(result.stepResults[1].success, true);
     assert.equal(result.stepResults[2].success, true);
+    assert.equal(result.typeEvolution.length, 4); // Original + 3 steps
+    assert.equal(result.stepResults[2].columnsAfter.length, 1); // Only name column after remove
   });
 
   it("should track rowsAffected for filter operations", () => {
@@ -280,6 +286,7 @@ describe("executeUntilStep", () => {
 
     assert.equal(result.table.rows[0].name, "  Alice  ");
     assert.equal(result.stepResults.length, 0);
+    assert.equal(result.typeEvolution.length, 1); // Original columns only
   });
 
   it("should execute only first step when stopAtIndex is 0", () => {

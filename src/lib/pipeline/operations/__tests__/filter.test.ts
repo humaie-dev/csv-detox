@@ -32,7 +32,7 @@ describe("filter operation", () => {
         value: "30",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 2);
       assert.equal(result.rows.length, 2);
@@ -64,7 +64,7 @@ describe("filter operation", () => {
         value: "30",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 1);
       assert.equal(result.rows[0].name, "Jane");
@@ -93,7 +93,7 @@ describe("filter operation", () => {
         value: "John",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 2);
       assert.equal(result.rows[0].name, "John Doe");
@@ -120,7 +120,7 @@ describe("filter operation", () => {
         value: "3",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 0);
     });
@@ -148,7 +148,7 @@ describe("filter operation", () => {
         value: "John",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 1);
       assert.equal(result.rows[0].name, "Jane Smith");
@@ -178,7 +178,7 @@ describe("filter operation", () => {
         value: 28,
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 2);
       assert.equal(result.rows[0].name, "John");
@@ -206,7 +206,7 @@ describe("filter operation", () => {
         value: "Bob",
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 1);
       assert.equal(result.rows[0].name, "Charlie");
@@ -236,7 +236,7 @@ describe("filter operation", () => {
         value: 30,
       };
 
-      const result = filter(table, config);
+      const { table: result } = filter(table, config);
 
       assert.equal(result.rowCount, 1);
       assert.equal(result.rows[0].name, "Jane");
@@ -285,7 +285,7 @@ describe("filter operation", () => {
       value: "Bob",
     };
 
-    const result = filter(table, config);
+    const { table: result } = filter(table, config);
 
     assert.equal(result.rowCount, 0);
     assert.equal(result.rows.length, 0);

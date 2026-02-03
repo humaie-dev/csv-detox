@@ -47,8 +47,20 @@ export interface ParseOptions {
   inferTypes?: boolean;
   /** CSV delimiter (default: auto-detect) */
   delimiter?: string;
-  /** Sheet name or index for Excel files (default: first sheet) */
-  sheet?: string | number;
+  /** Excel: Sheet name to parse */
+  sheetName?: string;
+  /** Excel: Sheet index to parse (0-based, fallback if name unavailable) */
+  sheetIndex?: number;
+  /** First row to parse (1-based, default: 1) */
+  startRow?: number;
+  /** Last row to parse (1-based, default: undefined = all rows) */
+  endRow?: number;
+  /** First column to parse (1-based, default: 1) */
+  startColumn?: number;
+  /** Last column to parse (1-based, default: undefined = all columns) */
+  endColumn?: number;
+  /** Whether first row (after startRow) contains headers (default: true) */
+  hasHeaders?: boolean;
 }
 
 /**

@@ -25,7 +25,7 @@ describe("renameColumn", () => {
       newName: "full_name",
     };
 
-    const result = renameColumn(table, config);
+    const { table: result } = renameColumn(table, config);
 
     assert.equal(result.columns.length, 2);
     assert.equal(result.columns[0].name, "full_name");
@@ -96,7 +96,7 @@ describe("renameColumn", () => {
       newName: "name",
     };
 
-    const result = renameColumn(table, config);
+    const { table: result } = renameColumn(table, config);
 
     assert.equal(result.columns[0].name, "name");
     assert.equal(result.rows[0].name, "Alice");

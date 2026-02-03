@@ -2,13 +2,13 @@
  * Convert string columns to lowercase
  */
 
-import type { ParseResult } from "@/lib/parsers/types";
+import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
 import type { LowercaseConfig } from "../types";
 
 export function lowercase(
   table: ParseResult,
   config: LowercaseConfig
-): ParseResult {
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
   const invalidColumns = config.columns.filter(
@@ -39,8 +39,13 @@ export function lowercase(
     return newRow;
   });
 
-  return {
+  const result = {
     ...table,
     rows: newRows,
+  };
+  
+  return {
+    table: result,
+    columns: result.columns,
   };
 }

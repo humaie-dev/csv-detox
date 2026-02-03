@@ -29,3 +29,6 @@ build/
 # Logs
 *.log
 npm-debug.log*
+
+# DuckDB-WASM files (copied from node_modules by postinstall script)
+public/duckdb/

@@ -48,3 +48,47 @@ If you encounter this error:
 rm -rf node_modules package-lock.json
 npm install
 ```
+
+---
+
+## Convex Memory Limits (64MB)
+
+### Issue
+Convex actions have a **64MB memory limit** per execution. When working with large CSV/Excel files:
+- Files with >10,000 rows can cause OOM (Out of Memory) errors
+- Error message: `JavaScript execution ran out of memory (maximum memory usage: 64 MB)`
+
+### Our Solutions
+
+#### 1. Preview Page (`parseFile` action)
+- ✅ **Limited to 5000 rows** for preview
+- Shows warning when capped: "Preview limited to 5000 rows..."
+- Sufficient for most data exploration needs
+
+#### 2. Validation Preview (`validateCast` action)
+- ✅ **Limited to 500 rows** for validation
+- UI shows: "Validates first 500 rows"
+- 500-row sample provides reliable statistics
+
+#### 3. Full Data Processing
+- **Pipeline execution**: Processes full files (uses Convex's streaming capabilities)
+- **Export**: Gets complete data (not limited)
+
+### Best Practices
+- Use preview page to explore data structure (first 5000 rows)
+- Use validation preview to check cast compatibility (first 500 rows)
+- Run pipeline transformations for full data processing
+- Export to get complete results
+
+### Why Not Parse Entire File?
+- Convex's 64MB limit is hard (cannot be increased)
+- Large files (50MB+) with many columns can exceed this
+- Streaming isn't available for parse actions (file must be loaded)
+- 5000-row preview is a good balance between usability and memory
+
+### Alternative Approaches Considered
+1. **Client-side parsing** - Would require downloading entire file to browser (slow)
+2. **DuckDB in Convex** - Not available/supported yet
+3. **Chunked parsing** - Complex and doesn't work well with type inference
+
+Current approach is best for Convex's constraints.

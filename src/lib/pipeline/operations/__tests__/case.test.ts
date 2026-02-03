@@ -29,7 +29,7 @@ describe("uppercase operation", () => {
       columns: ["name", "city"],
     };
 
-    const result = uppercase(table, config);
+    const { table: result } = uppercase(table, config);
 
     assert.equal(result.rows[0].name, "JOHN");
     assert.equal(result.rows[0].city, "NEW YORK");
@@ -55,7 +55,7 @@ describe("uppercase operation", () => {
       columns: ["name", "age"],
     };
 
-    const result = uppercase(table, config);
+    const { table: result } = uppercase(table, config);
 
     assert.equal(result.rows[0].name, "JOHN");
     assert.equal(result.rows[0].age, 30);
@@ -102,7 +102,7 @@ describe("lowercase operation", () => {
       columns: ["name", "city"],
     };
 
-    const result = lowercase(table, config);
+    const { table: result } = lowercase(table, config);
 
     assert.equal(result.rows[0].name, "john");
     assert.equal(result.rows[0].city, "new york");
@@ -128,7 +128,7 @@ describe("lowercase operation", () => {
       columns: ["name", "age"],
     };
 
-    const result = lowercase(table, config);
+    const { table: result } = lowercase(table, config);
 
     assert.equal(result.rows[0].name, "john");
     assert.equal(result.rows[0].age, 30);
@@ -151,7 +151,7 @@ describe("lowercase operation", () => {
       columns: ["name"],
     };
 
-    const result = lowercase(table, config);
+    const { table: result } = lowercase(table, config);
 
     assert.equal(result.rows[0].name, "john doe");
   });

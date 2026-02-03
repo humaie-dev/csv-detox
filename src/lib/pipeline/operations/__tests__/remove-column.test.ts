@@ -25,7 +25,7 @@ describe("removeColumn", () => {
       columns: ["age"],
     };
 
-    const result = removeColumn(table, config);
+    const { table: result } = removeColumn(table, config);
 
     assert.equal(result.columns.length, 2);
     assert.equal(result.columns[0].name, "name");
@@ -55,7 +55,7 @@ describe("removeColumn", () => {
       columns: ["age", "country"],
     };
 
-    const result = removeColumn(table, config);
+    const { table: result } = removeColumn(table, config);
 
     assert.equal(result.columns.length, 2);
     assert.equal(result.columns[0].name, "name");
@@ -125,7 +125,7 @@ describe("removeColumn", () => {
       columns: ["age"],
     };
 
-    const result = removeColumn(table, config);
+    const { table: result } = removeColumn(table, config);
 
     assert.equal(result.columns.length, 1);
     assert.equal(result.columns[0].name, "name");

@@ -51,6 +51,37 @@ export function PipelineSteps({
       case "remove_column":
         return `Remove: ${config.columns.join(", ")}`;
       
+      case "cast_column":
+        return `${config.column} → ${config.targetType} (on error: ${config.onError})`;
+      
+      case "unpivot":
+        return `ID: ${config.idColumns.join(", ")} | Values: ${config.valueColumns.join(", ")} → ${config.variableColumnName}, ${config.valueColumnName}`;
+      
+      case "pivot":
+        return `Index: ${config.indexColumns.join(", ")} | ${config.columnSource} → columns | ${config.valueSource} as values`;
+      
+      case "split_column":
+        return `${config.column} (${config.method}) → ${config.newColumns.join(", ")}`;
+      
+      case "merge_columns":
+        return `${config.columns.join(` ${config.separator} `)} → ${config.newColumn}`;
+      
+      case "fill_down":
+        const fillDownSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
+        return `Columns: ${config.columns.join(", ")}${fillDownSuffix}`;
+      
+      case "fill_across":
+        const fillAcrossSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
+        return `Columns: ${config.columns.join(" → ")}${fillAcrossSuffix}`;
+      
+      case "sort": {
+        const sortDesc = config.columns
+          .map(col => `${col.name} (${col.direction === "desc" ? "↓" : "↑"})`)
+          .join(", ");
+        const nulls = config.nullsPosition === "first" ? "nulls first" : "nulls last";
+        return `Sort by: ${sortDesc} (${nulls})`;
+      }
+      
       default:
         return "";
     }
@@ -66,6 +97,14 @@ export function PipelineSteps({
       filter: "Filter Rows",
       rename_column: "Rename Column",
       remove_column: "Remove Columns",
+      cast_column: "Cast Column Type",
+      unpivot: "Unpivot (Wide → Long)",
+      pivot: "Pivot (Long → Wide)",
+      split_column: "Split Column",
+      merge_columns: "Merge Columns",
+      fill_down: "Fill Down",
+      fill_across: "Fill Across",
+      sort: "Sort",
     };
     return names[type] || type;
   };

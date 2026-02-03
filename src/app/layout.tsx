@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -11,10 +12,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <ConvexProvider client={convex}>
+        <ConvexAuthProvider client={convex}>
           {children}
           <Toaster />
-        </ConvexProvider>
+        </ConvexAuthProvider>
       </body>
     </html>
   );

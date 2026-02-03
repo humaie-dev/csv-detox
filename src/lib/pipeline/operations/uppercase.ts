@@ -2,13 +2,13 @@
  * Convert string columns to uppercase
  */
 
-import type { ParseResult } from "@/lib/parsers/types";
+import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
 import type { UppercaseConfig } from "../types";
 
 export function uppercase(
   table: ParseResult,
   config: UppercaseConfig
-): ParseResult {
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
   const invalidColumns = config.columns.filter(
@@ -39,8 +39,13 @@ export function uppercase(
     return newRow;
   });
 
-  return {
+  const result = {
     ...table,
     rows: newRows,
+  };
+  
+  return {
+    table: result,
+    columns: result.columns,
   };
 }

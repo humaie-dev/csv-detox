@@ -90,6 +90,11 @@ export function parseCSV(
     maxRows = Infinity,
     inferTypes = true,
     delimiter: userDelimiter,
+    startRow = 1,
+    endRow,
+    startColumn = 1,
+    endColumn,
+    hasHeaders = true,
   } = options;
 
   try {
@@ -97,18 +102,63 @@ export function parseCSV(
     const delimiter = userDelimiter || detectDelimiter(content);
 
     // Split into lines
-    const lines = content.split(/\r?\n/).filter((line) => line.trim());
+    const allLines = content.split(/\r?\n/).filter((line) => line.trim());
 
-    if (lines.length === 0) {
+    if (allLines.length === 0) {
       throw new ParseError("File is empty", "EMPTY_FILE");
     }
 
-    // Parse header
-    const headerLine = lines[0];
-    const headers = parseCSVLine(headerLine, delimiter);
+    // Validate row range
+    if (startRow < 1) {
+      throw new ParseError("startRow must be >= 1", "INVALID_RANGE");
+    }
+    if (endRow !== undefined && endRow < startRow) {
+      throw new ParseError("endRow must be >= startRow", "INVALID_RANGE");
+    }
+
+    // Validate column range
+    if (startColumn < 1) {
+      throw new ParseError("startColumn must be >= 1", "INVALID_RANGE");
+    }
+    if (endColumn !== undefined && endColumn < startColumn) {
+      throw new ParseError("endColumn must be >= startColumn", "INVALID_RANGE");
+    }
+
+    // Extract lines in the specified row range (convert to 0-based indexing)
+    const firstLineIndex = startRow - 1;
+    const lastLineIndex = endRow !== undefined ? endRow : allLines.length;
+    const lines = allLines.slice(firstLineIndex, lastLineIndex);
+
+    if (lines.length === 0) {
+      throw new ParseError("No data in specified row range", "EMPTY_RANGE");
+    }
+
+    // Determine headers
+    let headers: string[];
+    let dataStartIndex: number;
+
+    if (hasHeaders) {
+      // First line is headers
+      const headerLine = lines[0];
+      const allHeaders = parseCSVLine(headerLine, delimiter);
+      
+      // Apply column range to headers
+      headers = applyColumnRange(allHeaders, startColumn, endColumn);
+      dataStartIndex = 1;
+    } else {
+      // Generate column headers: Column1, Column2, etc.
+      const firstLine = lines[0];
+      const allValues = parseCSVLine(firstLine, delimiter);
+      const columnCount = endColumn !== undefined 
+        ? Math.min(endColumn, allValues.length) - (startColumn - 1)
+        : allValues.length - (startColumn - 1);
+      
+      headers = Array.from({ length: columnCount }, (_, i) => `Column${i + 1}`);
+      dataStartIndex = 0;
+    }
 
     if (headers.length === 0) {
-      throw new ParseError("No columns found in header", "NO_COLUMNS");
+      throw new ParseError("No columns found in specified range", "NO_COLUMNS");
     }
 
     // Check for duplicate headers
@@ -131,15 +181,18 @@ export function parseCSV(
 
     // Parse data rows
     const rows: Record<string, unknown>[] = [];
-    const dataLines = lines.slice(1, Math.min(lines.length, maxRows + 1));
+    const dataLines = lines.slice(dataStartIndex, Math.min(lines.length, dataStartIndex + maxRows));
 
     for (let i = 0; i < dataLines.length; i++) {
       const line = dataLines[i];
-      const values = parseCSVLine(line, delimiter);
+      const allValues = parseCSVLine(line, delimiter);
+      
+      // Apply column range to values
+      const values = applyColumnRange(allValues, startColumn, endColumn);
 
       if (values.length !== headers.length) {
         warnings.push(
-          `Row ${i + 2} has ${values.length} columns but header has ${headers.length}. ` +
+          `Row ${firstLineIndex + dataStartIndex + i + 1} has ${values.length} columns in range but expected ${headers.length}. ` +
             `This row may be malformed.`
         );
       }
@@ -179,4 +232,13 @@ export function parseCSV(
       error
     );
   }
+}
+
+/**
+ * Apply column range to an array of values
+ */
+function applyColumnRange<T>(values: T[], startColumn: number, endColumn?: number): T[] {
+  const startIndex = startColumn - 1; // Convert to 0-based
+  const endIndex = endColumn !== undefined ? endColumn : values.length;
+  return values.slice(startIndex, endIndex);
 }

@@ -2,13 +2,13 @@
  * Rename a column
  */
 
-import type { ParseResult } from "@/lib/parsers/types";
+import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
 import type { RenameColumnConfig } from "../types";
 
 export function renameColumn(
   table: ParseResult,
   config: RenameColumnConfig
-): ParseResult {
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate old column exists
   const columnNames = table.columns.map((c) => c.name);
   if (!columnNames.includes(config.oldName)) {
@@ -35,9 +35,14 @@ export function renameColumn(
     return newRow;
   });
 
-  return {
+  const result = {
     ...table,
     columns: newColumns,
     rows: newRows,
+  };
+  
+  return {
+    table: result,
+    columns: newColumns,
   };
 }

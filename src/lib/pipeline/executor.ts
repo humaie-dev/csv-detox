@@ -2,7 +2,7 @@
  * Pipeline execution engine
  */
 
-import type { ParseResult } from "@/lib/parsers/types";
+import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
 import type {
   TransformationStep,
   ExecutionResult,
@@ -20,18 +20,28 @@ export function executePipeline(
 ): ExecutionResult {
   let currentTable = table;
   const stepResults: StepResult[] = [];
+  const typeEvolution: ColumnMetadata[][] = [table.columns]; // Start with original columns
 
   for (const step of steps) {
     try {
       const operation = getOperation(step.type);
       const previousRowCount = currentTable.rowCount;
-      currentTable = operation(currentTable, step.config);
+      
+      // Operations now return { table, columns }
+      const result = operation(currentTable, step.config);
+      currentTable = result.table;
+      const columnsAfter = result.columns;
+      
       const rowsAffected = Math.abs(currentTable.rowCount - previousRowCount);
+
+      // Track column metadata after this step
+      typeEvolution.push(columnsAfter);
 
       stepResults.push({
         stepId: step.id,
         success: true,
         rowsAffected,
+        columnsAfter,
       });
     } catch (error) {
       const errorMessage =
@@ -40,6 +50,7 @@ export function executePipeline(
       stepResults.push({
         stepId: step.id,
         success: false,
+        columnsAfter: currentTable.columns, // Use current columns on error
         error: errorMessage,
       });
 
@@ -51,6 +62,7 @@ export function executePipeline(
   return {
     table: currentTable,
     stepResults,
+    typeEvolution,
   };
 }
 
@@ -67,6 +79,7 @@ export function executeUntilStep(
     return {
       table,
       stepResults: [],
+      typeEvolution: [table.columns],
     };
   }
 

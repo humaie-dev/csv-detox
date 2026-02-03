@@ -28,7 +28,7 @@ describe("trim operation", () => {
       columns: ["name", "age"],
     };
 
-    const result = trim(table, config);
+    const { table: result } = trim(table, config);
 
     assert.equal(result.rows[0].name, "John");
     assert.equal(result.rows[1].name, "Jane");
@@ -55,7 +55,7 @@ describe("trim operation", () => {
       columns: ["name", "age", "active"],
     };
 
-    const result = trim(table, config);
+    const { table: result } = trim(table, config);
 
     assert.equal(result.rows[0].name, "John");
     assert.equal(result.rows[0].age, 30); // Not trimmed (number)
@@ -80,7 +80,7 @@ describe("trim operation", () => {
       columns: ["name", "value"],
     };
 
-    const result = trim(table, config);
+    const { table: result } = trim(table, config);
 
     assert.equal(result.rows[0].name, "");
     assert.equal(result.rows[0].value, "");
@@ -124,7 +124,7 @@ describe("trim operation", () => {
       columns: ["name"],
     };
 
-    const result = trim(table, config);
+    const { table: result } = trim(table, config);
 
     assert.equal(result.rows[0].name, "John");
     assert.equal(result.rows[1].name, null);

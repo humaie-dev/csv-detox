@@ -1,51 +1,112 @@
 /**
  * Export Button Component
- * Allows users to download transformed data as CSV
+ * Uses DuckDB-WASM for client-side export of full files (not limited to preview)
  */
 
 "use client";
 
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { generateCSV, sanitizeExportFilename } from "@/lib/export/csv";
-import type { ParseResult } from "@/lib/parsers/types";
+import { exportWithDuckDB } from "@/lib/duckdb";
+import { ExportProgressModal } from "@/components/export/ExportProgressModal";
+import type { ExportProgress } from "@/lib/duckdb/types";
+import type { TransformationStep } from "@/lib/pipeline/types";
+import type { ParseOptions } from "@/lib/parsers/types";
 
 interface ExportButtonProps {
-  data: ParseResult | null;
+  /** Upload ID from database */
+  uploadId: string;
+  /** URL to download file from Convex storage */
+  fileUrl: string;
+  /** MIME type of the file */
+  mimeType: string;
+  /** Original filename */
   originalFilename: string;
+  /** Pipeline transformation steps */
+  steps: TransformationStep[];
+  /** Parse configuration (row/column ranges, sheet selection) */
+  parseConfig?: ParseOptions;
+  /** Disabled state */
   disabled?: boolean;
 }
 
-export function ExportButton({ data, originalFilename, disabled }: ExportButtonProps) {
+export function ExportButton({
+  uploadId,
+  fileUrl,
+  mimeType,
+  originalFilename,
+  steps,
+  parseConfig,
+  disabled,
+}: ExportButtonProps) {
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
+  const [progress, setProgress] = useState<ExportProgress>({
+    stage: "initializing",
+    message: "Starting export...",
+  });
+  const [exportResult, setExportResult] = useState<{ blob: Blob; fileName: string } | null>(null);
 
-  const handleExport = () => {
-    if (!data) {
+  const handleExport = async () => {
+    // Prevent concurrent exports
+    if (isExporting) {
       toast({
         variant: "destructive",
-        title: "Export Failed",
-        description: "No data available to export.",
+        title: "Export Already in Progress",
+        description: "Please wait for the current export to complete.",
       });
       return;
     }
 
+    setIsExporting(true);
+    setExportResult(null);
+
     try {
-      // Generate CSV content
-      const csvContent = generateCSV(data);
+      const result = await exportWithDuckDB({
+        uploadId,
+        fileUrl,
+        mimeType,
+        fileName: originalFilename,
+        steps,
+        parseConfig,
+        onProgress: (prog) => {
+          setProgress(prog);
+        },
+      });
 
-      // Create blob
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
+      // Store result for download
+      setExportResult({
+        blob: result.blob,
+        fileName: result.fileName,
+      });
 
-      // Create download link
-      const sanitizedFilename = sanitizeExportFilename(originalFilename);
-      const filename = `${sanitizedFilename}.csv`;
+      toast({
+        title: "Export Complete",
+        description: `Processed ${result.rowCount.toLocaleString()} rows`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+
+      // Error already shown in progress modal
+      // Just log to console for debugging
+    }
+  };
+
+  const handleDownload = () => {
+    if (!exportResult) {
+      return;
+    }
+
+    try {
+      // Create blob URL
+      const url = URL.createObjectURL(exportResult.blob);
 
       // Trigger download
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename;
+      link.download = exportResult.fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -53,30 +114,48 @@ export function ExportButton({ data, originalFilename, disabled }: ExportButtonP
       // Clean up blob URL
       URL.revokeObjectURL(url);
 
-      // Show success toast
+      // Close modal
+      setIsExporting(false);
+      setExportResult(null);
+
       toast({
-        title: "Export Successful",
-        description: `Downloaded ${filename}`,
+        title: "Download Started",
+        description: `Saving ${exportResult.fileName}`,
       });
     } catch (error) {
-      console.error("Export error:", error);
+      console.error("Download error:", error);
       toast({
         variant: "destructive",
-        title: "Export Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        title: "Download Failed",
+        description: error instanceof Error ? error.message : "Failed to download file",
       });
     }
   };
 
+  const handleCancel = () => {
+    setIsExporting(false);
+    setExportResult(null);
+  };
+
   return (
-    <Button
-      onClick={handleExport}
-      disabled={disabled || !data}
-      variant="default"
-      size="default"
-    >
-      <Download className="mr-2 h-4 w-4" />
-      Export CSV
-    </Button>
+    <>
+      <Button
+        onClick={handleExport}
+        disabled={disabled || isExporting}
+        variant="default"
+        size="default"
+        title="Export full file using DuckDB in your browser"
+      >
+        <Download className="mr-2 h-4 w-4" />
+        {isExporting ? "Exporting..." : "Export CSV"}
+      </Button>
+
+      <ExportProgressModal
+        isOpen={isExporting}
+        progress={progress}
+        onDownload={handleDownload}
+        onCancel={handleCancel}
+      />
+    </>
   );
 }

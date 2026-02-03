@@ -2,13 +2,13 @@
  * Remove duplicate rows
  */
 
-import type { ParseResult } from "@/lib/parsers/types";
+import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
 import type { DeduplicateConfig } from "../types";
 
 export function deduplicate(
   table: ParseResult,
   config: DeduplicateConfig
-): ParseResult {
+): { table: ParseResult; columns: ColumnMetadata[] } {
   const columnsToCheck = config.columns || table.columns.map((c) => c.name);
 
   // Validate columns exist
@@ -43,9 +43,14 @@ export function deduplicate(
     }
   }
 
-  return {
+  const result = {
     ...table,
     rows: uniqueRows,
     rowCount: uniqueRows.length,
+  };
+  
+  return {
+    table: result,
+    columns: result.columns,
   };
 }

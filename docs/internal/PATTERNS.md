@@ -59,6 +59,98 @@ Update only after asking and receiving approval for new patterns/libraries.
 - **Test structure**: Use `describe` for grouping, `it` for individual tests
 - **Assertions**: Use Node's built-in `assert` module
 
+### DuckDB-WASM Export Patterns
+
+**Overview**: Client-side full-file export using DuckDB-WASM to overcome Convex's 64MB memory limit.
+
+**When to Use**:
+- Export functionality that needs to process files larger than 5000 rows
+- Preview stays server-side (fast, 5000-row limit)
+- Export uses DuckDB-WASM (unlimited rows, browser-side)
+
+**Key Files**:
+- `src/lib/duckdb/exporter.ts` - Main orchestration
+- `src/lib/duckdb/sql-translator.ts` - Pipeline → SQL conversion
+- `src/lib/duckdb/init.ts` - DuckDB-WASM initialization with caching
+- `src/lib/duckdb/loader.ts` - File loading into DuckDB
+
+**SQL Translation Pattern**:
+All transformation operations translate to DuckDB SQL:
+
+```typescript
+// Example: Trim operation
+const steps: TransformationStep[] = [
+  { id: "1", type: "trim", config: { type: "trim", columns: ["name"] } }
+];
+
+const sql = translatePipeline(steps);
+// Returns: ['UPDATE data SET "name" = TRIM("name")']
+```
+
+**Important SQL rules**:
+- Identifiers (columns): Double quotes `"column_name"`
+- String literals: Single quotes `'value'`
+- Escape by doubling: `"col""name"` for identifiers, `'val''ue'` for literals
+- Table name is always `data`
+- Use ROWID for ordering (DuckDB built-in)
+
+**Progress Tracking Pattern**:
+```typescript
+await exportWithDuckDB({
+  uploadId,
+  fileUrl,
+  mimeType,
+  fileName,
+  steps,
+  parseConfig,
+  onProgress: (progress) => {
+    // progress.stage: 'initializing' | 'downloading' | 'loading' | 'transforming' | 'generating' | 'ready' | 'error'
+    // progress.message: Human-readable status
+    // progress.bytesDownloaded, totalBytes (for downloading stage)
+    // progress.currentStep, totalSteps (for transforming stage)
+  },
+});
+```
+
+**Memory Optimization**:
+- DuckDB instance cached globally (instant subsequent exports)
+- In-place UPDATEs instead of creating new tables
+- File streaming during download
+- Memory cleanup on errors
+
+**Error Handling**:
+```typescript
+try {
+  const result = await exportWithDuckDB(options);
+} catch (error) {
+  if (error instanceof BrowserOOMError) {
+    // Show "Try exporting smaller file" message
+  } else if (error instanceof DuckDBExecutionError) {
+    // SQL execution failed, show error.sql and error.message
+  } else if (error instanceof SQLTranslationError) {
+    // Pipeline → SQL translation failed
+  }
+}
+```
+
+**Testing Pattern**:
+SQL translator tests use pure TypeScript (no DuckDB required):
+
+```typescript
+it("should generate UPDATE statement for trim", () => {
+  const steps: TransformationStep[] = [
+    { id: "1", type: "trim", config: { type: "trim", columns: ["name"] } }
+  ];
+  const sql = translatePipeline(steps);
+  assert.strictEqual(sql[0], 'UPDATE data SET "name" = TRIM("name")');
+});
+```
+
+**Browser Compatibility**:
+- Chrome, Firefox, Safari, Edge: Full support
+- Mobile: Limited to ~50MB files
+- Requires Web Worker support
+- WASM memory limit: 4GB
+
 ### Planned
-- DuckDB for preview/export execution patterns (to be documented when implemented)
 - Authorization approach (to be documented when introduced)
