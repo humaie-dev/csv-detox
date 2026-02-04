@@ -59,6 +59,16 @@ See `AGENTS.md` for complete development guidelines including:
 - Testing requirements
 - Quality gates
 
+## GitHub Automation
+
+CSV Detox includes an automated PR agent powered by OpenCode:
+
+- **Auto-triage**: Reviews new PRs, runs tests, provides feedback
+- **Auto-implement**: Implements features when PRs are assigned
+- **Interactive**: Comment `@opencode <instruction>` on any PR for help
+
+See `.github/workflows/README.md` for setup instructions and usage examples.
+
 ## Agent rules (OpenCode)
 - Repo rules: `AGENTS.md`
 - Project memory: `MEMORY.md`
