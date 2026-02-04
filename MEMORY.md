@@ -3,10 +3,39 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: None (ready for new tasks)
-- Status: **Authentication Removed - Ready for Vercel Auth Integration**
-- Next action: Ready for user to integrate Vercel authentication
-- Note: All 15 transformation operations working, 466 tests passing, build successful, no authentication in place
+- Active spec: `specs/2026-02-05_011_github-issue-pr-automation.md`
+- Status: **Draft - Planning GitHub Issue and PR Automation**
+- Next action: Begin implementing Phase 1 (Issue Detection)
+- Note: Extending OpenCode workflow to handle GitHub issues and contribute to existing PRs
+
+## Recent changes
+
+### 2026-02-05: Created Spec 011 - GitHub Issue and PR Automation (Draft)
+- ✅ Created comprehensive spec for extending OpenCode workflow
+- **Objective**: Enable OpenCode to create PRs from GitHub issues and contribute to existing PRs
+- **Key Features**:
+  - Issue handling: @opencode mention → plan → approval → PR creation
+  - PR contribution: Work on any PR (not just OpenCode-created)
+  - Smart branch naming based on issue labels (feature/, bugfix/, enhancement/, docs/)
+  - Spec-driven development for all issue implementations
+  - Status communication via GitHub reactions (👀, ✅, ❌)
+  - Proper issue-to-PR linking
+- **7 Implementation Phases**:
+  1. GitHub Issue Detection (1-2 hours)
+  2. Issue Analysis and Plan Generation (2-3 hours)
+  3. Branch Creation and PR Setup (1-2 hours)
+  4. Spec-Driven Implementation (2-3 hours)
+  5. PR Contribution Enhancement (1-2 hours)
+  6. Status Communication (1 hour)
+  7. Testing and Documentation (2 hours)
+- **Design Decisions**:
+  - Two-step approval for issues (plan first, implement after confirmation)
+  - Reactions instead of verbose comments (reduces noise)
+  - Always create specs (maintains consistency with spec-driven development)
+  - Label-based branch naming (matches Git conventions)
+  - Use GitHub CLI (`gh`) for API operations (simpler than actions/github-script)
+- **10 Acceptance Criteria** defined
+- **Status**: Draft spec created, ready to begin implementation
 
 ## Recent changes
 
