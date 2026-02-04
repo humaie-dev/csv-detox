@@ -4,13 +4,38 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: None (ready for new tasks)
-- Status: **Authentication Complete**
-- Next action: Ready for user to test authentication and full app functionality
-- Note: All 15 transformation operations working, 466 tests passing, build successful, authentication with anonymous provider implemented
+- Status: **Authentication Removed - Ready for Vercel Auth Integration**
+- Next action: Ready for user to integrate Vercel authentication
+- Note: All 15 transformation operations working, 466 tests passing, build successful, no authentication in place
 
 ## Recent changes
 
-### 2026-02-03: Authentication Implementation (Complete)
+### 2026-02-04: Removed Convex Authentication (Complete)
+- ✅ **Removed all Convex authentication**:
+  - User requested removal of Convex auth to use Vercel authentication instead
+  - Uninstalled `@convex-dev/auth` package
+  - Removed auth tables from Convex schema
+  - Deleted auth configuration files and middleware
+  - Removed all authentication guards from pages
+  - Deleted SignInForm and UserMenu components
+- ✅ **Backend Changes**:
+  - Removed `...authTables` from `convex/schema.ts`
+  - Deleted `convex/auth.ts` and `convex/auth.config.ts`
+  - Deleted `convex/http.ts` (no longer needed without auth routes)
+  - Deleted `src/middleware.ts` (Convex auth middleware)
+- ✅ **Frontend Changes**:
+  - Updated `src/app/layout.tsx` - removed `ConvexAuthNextjsServerProvider`
+  - Updated `src/app/providers.tsx` - changed from `ConvexAuthNextjsProvider` to `ConvexProvider`
+  - Updated `src/app/page.tsx` - removed `Authenticated/Unauthenticated` guards
+  - Updated `src/app/create-pipeline/page.tsx` - removed auth guards and UserMenu
+  - Updated `src/app/pipeline/[pipelineId]/page.tsx` - removed auth guards and UserMenu
+  - Deleted `src/components/SignInForm.tsx`
+  - Deleted `src/components/UserMenu.tsx`
+- ✅ **All 466 tests passing** (no regressions)
+- ✅ **Build succeeds** with no errors (only known DuckDB and @next/swc warnings)
+- **Status**: Authentication fully removed, app is open without auth, ready for Vercel auth integration
+
+### 2026-02-03: Authentication Implementation (Previously Removed)
 - ✅ **Implemented Authentication using Convex Auth**:
   - Added anonymous authentication (no username/password required)
   - All authenticated users can view and create all pipelines (shared workspace model)

@@ -2,7 +2,7 @@
 
 import { useState, type DragEvent, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, Authenticated, Unauthenticated } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Upload, ArrowLeft } from "lucide-react";
-import { SignInForm } from "@/components/SignInForm";
-import { UserMenu } from "@/components/UserMenu";
 
-function CreatePipelinePageContent() {
+export default function CreatePipelinePage() {
   const router = useRouter();
   const [pipelineName, setPipelineName] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -137,7 +135,6 @@ function CreatePipelinePageContent() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <UserMenu />
       </div>
 
       <Card>
@@ -251,18 +248,5 @@ function CreatePipelinePageContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function CreatePipelinePage() {
-  return (
-    <>
-      <Unauthenticated>
-        <SignInForm />
-      </Unauthenticated>
-      <Authenticated>
-        <CreatePipelinePageContent />
-      </Authenticated>
-    </>
   );
 }

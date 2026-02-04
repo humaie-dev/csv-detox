@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { useQuery, useMutation, useAction, Authenticated, Unauthenticated } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
@@ -15,10 +15,8 @@ import { ExportButton } from "@/components/ExportButton";
 import { PipelineSidebar } from "@/components/PipelineSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { SignInForm } from "@/components/SignInForm";
-import { UserMenu } from "@/components/UserMenu";
 
-function PipelinePageContent({ params }: { params: Promise<{ pipelineId: string }> }) {
+export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
   const { pipelineId: pipelineIdString } = use(params);
   const pipelineId = pipelineIdString as Id<"pipelines">;
   
@@ -259,7 +257,6 @@ function PipelinePageContent({ params }: { params: Promise<{ pipelineId: string 
               parseConfig={upload.parseConfig}
               disabled={loading || !!error || !fileUrl}
             />
-            <UserMenu />
           </div>
         </div>
 
@@ -349,18 +346,5 @@ function PipelinePageContent({ params }: { params: Promise<{ pipelineId: string 
         uploadId={upload._id}
       />
     </div>
-  );
-}
-
-export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
-  return (
-    <>
-      <Unauthenticated>
-        <SignInForm />
-      </Unauthenticated>
-      <Authenticated>
-        <PipelinePageContent params={params} />
-      </Authenticated>
-    </>
   );
 }

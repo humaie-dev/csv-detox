@@ -2,17 +2,14 @@
 
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
-import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Plus } from "lucide-react";
-import { SignInForm } from "@/components/SignInForm";
-import { UserMenu } from "@/components/UserMenu";
 
-function HomePageContent() {
+export default function HomePage() {
   const router = useRouter();
   const pipelines = useQuery(api.pipelines.listAll);
 
@@ -49,61 +46,25 @@ function HomePageContent() {
 
   // No pipelines exist - show create button
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header with UserMenu */}
-      <div className="flex-shrink-0 border-b px-8 py-4">
-        <div className="flex justify-end">
-          <UserMenu />
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex items-center justify-center flex-1 p-8">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle>Welcome to CSV Detox</CardTitle>
-            <CardDescription>
-              Create your first pipeline to start transforming data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => router.push("/create-pipeline")}
-              size="lg"
-              className="w-full"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Create Pipeline
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="flex items-center justify-center min-h-screen p-8">
+      <Card className="max-w-md w-full">
+        <CardHeader>
+          <CardTitle>Welcome to CSV Detox</CardTitle>
+          <CardDescription>
+            Create your first pipeline to start transforming data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => router.push("/create-pipeline")}
+            size="lg"
+            className="w-full"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Create Pipeline
+          </Button>
+        </CardContent>
+      </Card>
     </div>
-  );
-}
-
-export default function HomePage() {
-  const { isLoading } = useConvexAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex items-center gap-2">
-          <Spinner className="size-5" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <Unauthenticated>
-        <SignInForm />
-      </Unauthenticated>
-      <Authenticated>
-        <HomePageContent />
-      </Authenticated>
-    </>
   );
 }
