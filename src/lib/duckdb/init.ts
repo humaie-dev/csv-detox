@@ -2,7 +2,6 @@
  * DuckDB-WASM initialization and caching
  */
 
-import * as duckdb from "@duckdb/duckdb-wasm";
 import type { DuckDBInstance } from "./types";
 
 // Global cache for DuckDB instance
@@ -14,6 +13,8 @@ let initializationPromise: Promise<DuckDBInstance> | null = null;
  * 
  * First initialization takes 5-10 seconds to download WASM bundle.
  * Subsequent calls return cached instance immediately.
+ * 
+ * Uses dynamic import to lazy-load DuckDB only when needed (client-side only).
  */
 export async function initDuckDB(): Promise<DuckDBInstance> {
   // Return cached instance if available
@@ -29,9 +30,12 @@ export async function initDuckDB(): Promise<DuckDBInstance> {
   // Start new initialization
   initializationPromise = (async () => {
     try {
+      // Lazy load DuckDB-WASM only when needed
+      const duckdb = await import("@duckdb/duckdb-wasm");
+
       // Use local DuckDB bundles from public directory
       // This avoids CORS issues with CDN-served worker files
-      const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
+      const MANUAL_BUNDLES = {
         mvp: {
           mainModule: "/duckdb/duckdb-mvp.wasm",
           mainWorker: "/duckdb/duckdb-browser-mvp.worker.js",
@@ -40,7 +44,7 @@ export async function initDuckDB(): Promise<DuckDBInstance> {
           mainModule: "/duckdb/duckdb-eh.wasm",
           mainWorker: "/duckdb/duckdb-browser-eh.worker.js",
         },
-      };
+      } satisfies Parameters<typeof duckdb.selectBundle>[0];
 
       // Select best bundle for the browser
       const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);

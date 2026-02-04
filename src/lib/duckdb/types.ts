@@ -2,15 +2,15 @@
  * Type definitions for DuckDB-WASM export functionality
  */
 
-import type { AsyncDuckDB, AsyncDuckDBConnection } from "@duckdb/duckdb-wasm";
 import type { TransformationStep } from "@/lib/pipeline/types";
 import type { ParseOptions } from "@/lib/parsers/types";
 
 /**
  * DuckDB instance wrapper
+ * Uses dynamic type import to avoid bundling DuckDB-WASM at build time
  */
 export interface DuckDBInstance {
-  db: AsyncDuckDB;
+  db: import("@duckdb/duckdb-wasm").AsyncDuckDB;
   version: string;
 }
 

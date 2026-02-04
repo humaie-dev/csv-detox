@@ -2,7 +2,6 @@
  * File loading into DuckDB-WASM
  */
 
-import type { AsyncDuckDB } from "@duckdb/duckdb-wasm";
 import type { ParseOptions } from "@/lib/parsers/types";
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
@@ -63,7 +62,7 @@ export async function downloadFile(
  * Applies parseOptions for row/column ranges
  */
 export async function loadFileIntoDuckDB(
-  db: AsyncDuckDB,
+  db: import("@duckdb/duckdb-wasm").AsyncDuckDB,
   fileBuffer: ArrayBuffer,
   fileName: string,
   mimeType: string,
