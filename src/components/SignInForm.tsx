@@ -65,23 +65,6 @@ export function SignInForm() {
               {step === "signIn" ? "Sign up instead" : "Sign in instead"}
             </Button>
           </form>
-
-          <Button
-            onClick={handleSignIn}
-            disabled={isLoading}
-            size="lg"
-            className="w-full"
-            type="button"
-          >
-            {isLoading ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
-            )}
-          </Button>
         </CardContent>
       </Card>
     </div>
