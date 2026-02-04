@@ -24,6 +24,9 @@ export function SignInForm() {
     }
   };
 
+  const [step, setStep] = useState<"signUp" | "signIn">("signIn");
+
+
   return (
     <div className="flex items-center justify-center min-h-screen p-8">
       <Card className="max-w-md w-full">
@@ -39,7 +42,30 @@ export function SignInForm() {
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
-          
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const formData = new FormData(event.currentTarget);
+              void signIn("password", formData);
+            }}
+          >
+            <input name="email" placeholder="Email" type="text" />
+            <input name="password" placeholder="Password" type="password" />
+            <input name="flow" type="hidden" value={step} />
+            <Button
+              type="submit"
+              onClick={() => {
+                setStep(step === "signIn" ? "signUp" : "signIn");
+              }}
+            >
+
+              {isLoading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+
+              {step === "signIn" ? "Sign up instead" : "Sign in instead"}
+            </Button>
+          </form>
+
           <Button
             onClick={handleSignIn}
             disabled={isLoading}
