@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_011_github-issue-pr-automation.md`
-- Status: **Draft - Planning GitHub Issue and PR Automation**
-- Next action: Begin implementing Phase 1 (Issue Detection)
-- Note: Extending OpenCode workflow to handle GitHub issues and contribute to existing PRs
+- Active spec: `specs/2026-02-05_012_pr-automated-checks.md`
+- Status: **Done - PR Checks CI added**
+- Next action: Observe first PR run; adjust as needed
+- Note: Added `.github/workflows/ci.yml` to run `npm ci`, tests, and build on PRs and protected branches
 
 ## Recent changes
 
@@ -36,6 +36,14 @@ Single source of truth for project state. Update after every meaningful change.
   - Use GitHub CLI (`gh`) for API operations (simpler than actions/github-script)
 - **10 Acceptance Criteria** defined
 - **Status**: Draft spec created, ready to begin implementation
+
+### 2026-02-05: Spec 012 - Automated PR Checks (Complete)
+- ✅ Added CI workflow at `.github/workflows/ci.yml`
+- ✅ Triggers on PR updates and pushes to `main`/`master`
+- ✅ Uses Node 20 with npm cache
+- ✅ Steps: install (`npm ci`), test (`npm test`), build (`npm run build`)
+- ✅ Concurrency enabled to cancel in-progress runs per ref
+- **Status**: Complete; monitor run times and adjust caching if needed
 
 ## Recent changes
 
