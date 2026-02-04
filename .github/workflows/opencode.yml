@@ -31,4 +31,4 @@ jobs:
           AZURE_RESOURCE_NAME: ${{ secrets.AZURE_RESOURCE_NAME }}
           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
         with:
-          model: azure/gpt-5
+          model: azure/gpt-5-global
