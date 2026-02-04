@@ -54,15 +54,20 @@ export function SignInForm() {
             <input name="password" placeholder="Password" type="password" />
             <input name="flow" type="hidden" value={step} />
             <Button
-              type="submit"
+              type="button"
               onClick={() => {
                 setStep(step === "signIn" ? "signUp" : "signIn");
               }}
             >
 
-              {isLoading ? <Spinner className="mr-2 h-4 w-4" /> : null}
 
               {step === "signIn" ? "Sign up instead" : "Sign in instead"}
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+
+
+              {isLoading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+              {step === "signIn" ? "Sign In" : "Sign Up"}
             </Button>
           </form>
         </CardContent>
