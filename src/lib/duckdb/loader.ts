@@ -71,6 +71,11 @@ export async function loadFileIntoDuckDB(
   const conn = await db.connect();
 
   try {
+    // Ensure a clean slate for the target tables on re-runs
+    // DuckDB keeps state across connections; dropping avoids "table already exists" errors
+    await conn.query("DROP TABLE IF EXISTS data");
+    await conn.query("DROP TABLE IF EXISTS data_filtered");
+
     // For Excel files, we need to parse and convert to CSV first
     // DuckDB-WASM doesn't have native Excel support
     if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
@@ -84,7 +89,7 @@ export async function loadFileIntoDuckDB(
       await db.registerFileText("data.csv", csvContent);
 
       // Load into DuckDB
-      await conn.query(`CREATE TABLE data AS SELECT * FROM read_csv_auto('data.csv')`);
+      await conn.query(`CREATE OR REPLACE TABLE data AS SELECT * FROM read_csv_auto('data.csv')`);
     } else {
       // CSV files can be loaded directly
       // Register file in virtual filesystem
@@ -92,7 +97,7 @@ export async function loadFileIntoDuckDB(
 
       // Load into DuckDB with read_csv_auto
       // Apply row/column range filtering if specified
-      let sql = "CREATE TABLE data AS SELECT * FROM read_csv_auto('data.csv'";
+      let sql = "CREATE OR REPLACE TABLE data AS SELECT * FROM read_csv_auto('data.csv'";
 
       // Apply parseConfig options
       if (parseConfig) {
@@ -115,7 +120,7 @@ export async function loadFileIntoDuckDB(
 
       sql += ")";
 
-      // Create table
+      // Create/replace table
       await conn.query(sql);
 
       // Apply row range filtering if specified
@@ -148,7 +153,7 @@ export async function loadFileIntoDuckDB(
 
         // Replace table with filtered columns
         await conn.query(
-          `CREATE TABLE data_filtered AS SELECT ${columnsToKeepEscaped} FROM data`
+          `CREATE OR REPLACE TABLE data_filtered AS SELECT ${columnsToKeepEscaped} FROM data`
         );
         await conn.query("DROP TABLE data");
         await conn.query("ALTER TABLE data_filtered RENAME TO data");

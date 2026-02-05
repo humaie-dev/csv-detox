@@ -39,11 +39,8 @@ export const parseFile = action({
       const arrayBuffer = await file.arrayBuffer();
 
       // Build parse options from upload's parseConfig
-      // IMPORTANT: Limit to 5000 rows for preview to prevent OOM in Convex (64MB limit)
-      // Users can export full data via pipeline execution which uses streaming
       const options: ParseOptions = {
         inferTypes: true, // Always infer types
-        maxRows: 5000, // Limit for memory efficiency in Convex
       };
 
       // Apply parseConfig if it exists
@@ -59,15 +56,6 @@ export const parseFile = action({
         }
         if (upload.parseConfig.endRow !== undefined) {
           options.endRow = upload.parseConfig.endRow;
-          
-          // Cap the row range to 5000 rows max to prevent OOM
-          if (upload.parseConfig.startRow !== undefined) {
-            const requestedRows = upload.parseConfig.endRow - upload.parseConfig.startRow + 1;
-            if (requestedRows > 5000) {
-              options.endRow = upload.parseConfig.startRow + 5000 - 1;
-              // Add warning to result later
-            }
-          }
         }
         if (upload.parseConfig.startColumn !== undefined) {
           options.startColumn = upload.parseConfig.startColumn;
@@ -98,13 +86,6 @@ export const parseFile = action({
         throw new ParseError(
           `Unsupported file type: ${upload.mimeType}`,
           "UNSUPPORTED_TYPE"
-        );
-      }
-
-      // Add warning if we capped the preview to 5000 rows
-      if (result.rowCount === 5000) {
-        result.warnings.push(
-          "Preview limited to 5000 rows due to memory constraints. Full data available in pipeline execution and export."
         );
       }
 
@@ -281,6 +262,8 @@ export const validateCast = action({
       if (!upload) {
         throw new Error("Upload not found");
       }
+
+      // Removed server-side size guards to keep behavior consistent with client-side flows
 
       // Build parse options from upload's parseConfig
       // Use VERY conservative limits to prevent OOM in Convex (64MB limit)

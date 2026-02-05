@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery } from "convex/react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
 import type { ParseResult } from "@/lib/parsers/types";
 import { executeUntilStep } from "@/lib/pipeline/executor";
+import { loadPreviewWithDuckDB } from "@/lib/duckdb/previewer";
+import { downloadFile } from "@/lib/duckdb/loader";
+import { listSheets as listSheetsFromExcel } from "@/lib/parsers/excel";
 import { DataTable } from "@/components/DataTable";
 import { PipelineSteps } from "@/components/PipelineSteps";
 import { AddStepDialog } from "@/components/AddStepDialog";
@@ -28,8 +31,7 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     api.uploads.getFileUrl,
     upload ? { storageId: upload.convexStorageId } : "skip"
   );
-  const parseFile = useAction(api.parsers.parseFile);
-  const listSheets = useAction(api.parsers.listSheets);
+  // No longer use server-side parse for preview or sheet listing
 
   // Local state
   const [steps, setSteps] = useState<TransformationStep[]>([]);
@@ -42,30 +44,35 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
   const [error, setError] = useState<string>("");
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
 
-  // Load original data when upload is available
+  // Load original data and sheet names when upload and fileUrl are available
   useEffect(() => {
-    if (upload && !originalData) {
+    if (upload && fileUrl && !originalData) {
       loadOriginalData();
       loadSheetNames();
     }
-  }, [upload]);
+  }, [upload, fileUrl]);
 
-  // Execute preview when steps or selected index changes
+  // Execute preview when steps, selected index, upload, or fileUrl change
   useEffect(() => {
-    if (originalData) {
+    if (upload && fileUrl) {
       executePreview();
     }
-  }, [steps, selectedStepIndex, originalData]);
+  }, [steps, selectedStepIndex, upload, fileUrl]);
 
   const loadOriginalData = async () => {
-    if (!upload) return;
+    if (!upload || !fileUrl) return;
 
     setLoading(true);
     setError("");
 
     try {
-      const result = await parseFile({
-        uploadId: uploadId,
+      const result = await loadPreviewWithDuckDB({
+        fileUrl,
+        mimeType: upload.mimeType,
+        fileName: upload.originalName,
+        steps: [],
+        parseConfig: upload.parseConfig || undefined,
+        maxRows: 1000,
       });
       setOriginalData(result);
       setPreviewData(result);
@@ -77,7 +84,7 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
   };
 
   const loadSheetNames = async () => {
-    if (!upload) return;
+    if (!upload || !fileUrl) return;
 
     // Only load sheets for Excel files
     const isExcel =
@@ -88,7 +95,8 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     if (!isExcel) return;
 
     try {
-      const sheets = await listSheets({ uploadId });
+      const buf = await downloadFile(fileUrl);
+      const sheets = listSheetsFromExcel(buf);
       setAvailableSheets(sheets);
     } catch (err) {
       console.error("Failed to load sheet names:", err);
@@ -102,25 +110,27 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     await loadOriginalData();
   };
 
-  const executePreview = () => {
-    if (!originalData) return;
+  const executePreview = async () => {
+    if (!upload || !fileUrl) return;
 
     setLoading(true);
     setError("");
 
     try {
-      // Execute pipeline client-side
       const stopIndex = selectedStepIndex >= 0 ? selectedStepIndex : steps.length - 1;
-      
-      if (steps.length === 0 || stopIndex < 0) {
-        setPreviewData(originalData);
-      } else {
-        const result = executeUntilStep(originalData, steps, stopIndex);
-        setPreviewData(result.table);
-      }
+      const result = await loadPreviewWithDuckDB({
+        fileUrl,
+        mimeType: upload.mimeType,
+        fileName: upload.originalName,
+        steps,
+        stopAtStep: stopIndex,
+        parseConfig: upload.parseConfig || undefined,
+        maxRows: 1000,
+      });
+      setPreviewData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to execute pipeline");
-      setPreviewData(originalData); // Fallback to original
+      // Do not fall back to stale data here to preserve correctness
     } finally {
       setLoading(false);
     }
