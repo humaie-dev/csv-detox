@@ -4,10 +4,35 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
-- Status: **Complete - All Debug Code Removed, Ready for Production**
-- Note: Excel sheet detection working correctly with clean code
+- Status: **Complete - Moved Excel Sheet Parsing to Client Side**
+- Note: Fixed Convex OOM error by running Excel parsing in browser
 
 ## Recent changes
+
+### 2026-02-06: Moved Excel Sheet Listing to Client Side (Critical Fix) ✅
+- ✅ **Fixed Convex OOM Error**:
+  - **Problem**: `listSheets` Convex action was hitting 64MB memory limit with large Excel files
+  - **Solution**: Move Excel file download and parsing to client side (browser has no memory limit)
+  - Excel files now parsed in browser instead of Convex backend
+- ✅ **Created Client-Side Utility** (`src/lib/parsers/client-list-sheets.ts`):
+  - New function: `listSheetsFromUrl(fileUrl: string)`
+  - Downloads Excel file from Convex Storage URL
+  - Parses file in browser using existing `listSheets()` utility
+  - No Convex action needed - avoids memory limits
+- ✅ **Updated Pipeline Page** (`src/app/pipeline/[pipelineId]/page.tsx`):
+  - Removed `listSheets` Convex action import
+  - Added import for `listSheetsFromUrl` client utility
+  - Updated `loadSheetNames()` to use client-side function
+  - Now depends on `fileUrl` query result (waits for storage URL)
+  - Updated useEffect dependencies to wait for both upload and fileUrl
+- ✅ **Build succeeds** with no errors
+- **Benefits**:
+  - No 64MB memory limit in browser
+  - Works with Excel files of any size
+  - Faster (no server round-trip for parsing)
+  - Simpler architecture (fewer Convex actions)
+- **Note**: `convex/parsers.ts` still has `listSheets` action but it's no longer used
+- **Status**: OOM error fixed; Excel sheet listing works for large files
 
 ### 2026-02-06: Cleaned Up Debug Code (Production Ready) ✅
 - ✅ **Removed All Debug Logging**:

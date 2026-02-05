@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AssistantPanel } from "@/components/AssistantPanel";
 import type { Proposal, AddStepProposal, RemoveStepProposal, EditStepProposal, ReorderStepsProposal, UpdateParseConfigProposal } from "@/lib/assistant/intent";
+import { listSheetsFromUrl } from "@/lib/parsers/client-list-sheets";
 
 export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
   const { pipelineId: pipelineIdString } = use(params);
@@ -36,7 +37,6 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   const updatePipeline = useMutation(api.pipelines.update);
   const updateParseConfigMutation = useMutation(api.uploads.updateParseConfig);
   const parseFile = useAction(api.parsers.parseFile);
-  const listSheets = useAction(api.parsers.listSheets);
 
   // Local state
   const [steps, setSteps] = useState<TransformationStep[]>([]);
@@ -58,13 +58,15 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     }
   }, [pipeline]);
 
-  // Load original data when upload is available
+  // Load original data and sheets when upload is available
   useEffect(() => {
     if (upload && !originalData) {
       loadOriginalData();
+    }
+    if (upload && fileUrl && availableSheets.length === 0) {
       loadSheetNames();
     }
-  }, [upload]);
+  }, [upload, fileUrl]);
 
   // Execute preview when steps or selected index changes
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   };
 
   const loadSheetNames = async () => {
-    if (!upload) return;
+    if (!upload || !fileUrl) return;
 
     // Only load sheets for Excel files
     const isExcel =
@@ -121,7 +123,8 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     }
 
     try {
-      const sheets = await listSheets({ uploadId: upload._id });
+      // Use client-side function to avoid Convex memory limits
+      const sheets = await listSheetsFromUrl(fileUrl);
       setAvailableSheets(sheets);
     } catch (err) {
       console.error("[Pipeline] Failed to load sheet names:", err);
