@@ -4,39 +4,36 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 
 export function AssistantPanel() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "m1",
-      role: "assistant",
-      content:
-        "Hi! I can help you modify this pipeline. Try: 'sort by date desc', 'remove column notes', or 'move step 3 above 1'.",
-    },
-  ]);
-  const [input, setInput] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+
+  const { messages, sendMessage, status, error } = useChat({
+    // Uses the default Next.js API route for chat (added separately)
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    messages: [
+      {
+        id: "m1",
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text:
+              "Hi! I can help you modify this pipeline. Try: 'sort by date desc', 'remove column notes', or 'move step 3 above 1'.",
+          },
+        ],
+      },
+    ],
+  });
+
+  const [input, setInput] = useState("");
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text) return;
-    const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
-
-    // Placeholder assistant response for Phase 1 scaffolding
-    const reply: Message = {
-      id: `a-${Date.now() + 1}`,
-      role: "assistant",
-      content:
-        "Thanks! I parsed your request but this prototype only scaffolds the chat. In the next iteration I'll propose a concrete step change for you to confirm.",
-    };
-    setMessages((prev) => [...prev, reply]);
+    if (!text || status !== "ready") return;
+    void sendMessage({ text });
     setInput("");
   };
 
@@ -56,9 +53,14 @@ export function AssistantPanel() {
                 <span className="font-medium mr-2 text-muted-foreground">
                   {m.role === "assistant" ? "Assistant" : "You"}:
                 </span>
-                <span>{m.content}</span>
+                <span>
+                  {m.parts
+                    ?.map((p) => (p.type === "text" ? p.text : ""))
+                    .join("")}
+                </span>
               </div>
             ))}
+            {error && <div className="text-sm text-red-600">Something went wrong.</div>}
           </CardContent>
           <div className="p-4 border-t flex gap-2">
             <Input
@@ -68,8 +70,11 @@ export function AssistantPanel() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSend();
               }}
+              disabled={status !== "ready"}
             />
-            <Button onClick={handleSend}>Send</Button>
+            <Button onClick={handleSend} disabled={status !== "ready"}>
+              Send
+            </Button>
           </div>
         </>
       )}

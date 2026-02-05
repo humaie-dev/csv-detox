@@ -13,7 +13,7 @@ Enable users to configure pipelines by chatting with an assistant on the pipelin
   - `addStep`, `removeStep`, `editStep`, `reorderSteps` on the active pipeline.
   - `updateParseConfig` for the associated upload.
   - `previewAt(stepIndex)` to view current data snapshot for context and user confirmation.
-- Phase 1: Local, rules-based intent parsing (no external LLM). No new packages.
+- Phase 1: Local, rules-based intent parsing (no external LLM). Uses AI SDK UI (`@ai-sdk/react`, `ai`) for chat state/streaming only.
 - Phase 2 (optional, requires approval): Pluggable LLM provider via Convex action with strict tool schema.
 
 ### Out of Scope
@@ -32,7 +32,7 @@ Enable users to configure pipelines by chatting with an assistant on the pipelin
 - FR8: All assistant actions must be undoable via a “Revert last change” command.
 
 ## Non-functional Requirements
-- NFR1: No new runtime dependencies in Phase 1; reuse shadcn/ui and existing app.
+- NFR1: Allow AI SDK UI as a small, isolated dependency for chat transport/state. No external LLM in Phase 1.
 - NFR2: Deterministic behavior; intent parser must fall back to asking clarifying questions when ambiguous.
 - NFR3: Never send raw row data to logs; only keep ephemeral state in-memory.
 - NFR4: Maintain performance parity with current preview (no additional Convex load beyond existing actions and small samples).
@@ -81,16 +81,16 @@ Enable users to configure pipelines by chatting with an assistant on the pipelin
   - Confirm panel renders, commands propose changes, confirmation applies, preview updates.
   - Confirm “Undo last change” works.
 
-## Acceptance Criteria
+- AC1: Chat panel appears on the pipeline page and works on desktop and mobile (collapsible).
 - AC1: Chat panel appears on the pipeline page and works on desktop and mobile (collapsible).
 - AC2: For at least 7 command types (sort, remove column, rename column, deduplicate, filter, reorder step, parse config), the assistant proposes a correct change summary before apply.
 - AC3: No changes are applied without user confirmation.
 - AC4: Preview updates immediately after apply; errors are shown in chat.
 - AC5: Undo last change works for all assistant-initiated mutations.
-- AC6: No new dependencies introduced in Phase 1; build and tests still pass.
+- AC6: Build and tests still pass with AI SDK UI dependency; no external LLMs used.
 
 ## Phased Implementation
-1. Phase 1 (this spec): UI panel + rule-based assistant + confirmation + undo + sampling. No external LLM.
+1. Phase 1 (this spec): UI panel + AI SDK UI-powered chat + rule-based assistant + confirmation + undo + sampling. No external LLM.
 2. Phase 2 (follow-up spec and approval): LLM-backed assistant (OpenAI or Vercel AI SDK) via Convex action with strict tool definitions and redaction.
 
 ## Work Items
