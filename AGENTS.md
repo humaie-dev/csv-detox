@@ -24,14 +24,28 @@ npm start            # Start production server
 
 ---
 
-## Spec-Driven Development (Required)
+## Spec-Driven Development
 
-- **NO coding without a spec.**
-- Every task begins by creating a new spec in `/specs`:
-  - Format: `YYYY-MM-DD_NNN_short-title.md` (NNN is zero-padded: 001, 002, etc.)
-  - Must include: Objective, Scope (in/out), Functional & Non-functional requirements, Testing plan, Acceptance criteria
-- `MEMORY.md` must always reference the currently **Active** spec
+### When a Spec is Required
+Create a spec in `/specs` for changes that:
+- Have **functional impact** (new features, behavior changes, bug fixes affecting logic)
+- Require **2-3+ file changes** across the codebase
+- Affect **APIs, schemas, or architecture**
+- Impact **user-facing behavior**
+
+**Spec format**: `YYYY-MM-DD_NNN_short-title.md` (NNN is zero-padded: 001, 002, etc.)
+**Must include**: Objective, Scope (in/out), Functional & Non-functional requirements, Testing plan, Acceptance criteria
+
+### When a Spec is NOT Required (Trivial Changes)
+Skip the spec for:
+- **One-liner changes** (typo fixes, style tweaks, variable renames)
+- **Minor adjustments** (formatting, comments, log messages)
+- **Single-file, non-functional changes** (refactoring within one module without behavior change)
+
+### Spec Workflow
+- `MEMORY.md` must reference the currently **Active** spec (when applicable)
 - If requirements change mid-task: update the spec **first**, then code/tests/docs
+- For trivial changes: just update `MEMORY.md` with what changed
 
 ---
 
@@ -140,7 +154,7 @@ Before considering a task complete:
 2. ✅ Lint passes (when configured)
 3. ✅ No console warnings/errors introduced
 4. ✅ `MEMORY.md` updated (what changed, decisions, next steps)
-5. ✅ Spec status updated (Draft → Active → Done)
+5. ✅ Spec status updated (Draft → Active → Done) if a spec was created
 6. ✅ Documentation updated:
    - Internal docs (`docs/internal/`) when APIs/schemas/architecture change
    - Public docs (`docs/public/`) when user-visible behavior changes
@@ -160,10 +174,10 @@ Before considering a task complete:
 ## Daily Workflow
 
 1. Read `MEMORY.md` (current state + Active spec + TODOs)
-2. If no Active spec exists for the task, create one in `/specs`
-3. Implement the smallest slice that satisfies the spec
+2. Determine if a spec is needed (see "When a Spec is Required"); create one if needed
+3. Implement the smallest slice that satisfies the requirements
 4. Fix any warnings/errors introduced
-5. Add/update tests as defined in the spec
+5. Add/update tests (as defined in spec or appropriate for the change)
 6. Update docs (internal/public as needed)
 7. Update `MEMORY.md` with changes, decisions, and next TODOs
-8. Mark spec `Status: Done` when acceptance criteria are met
+8. Mark spec `Status: Done` when acceptance criteria are met (if a spec exists)
