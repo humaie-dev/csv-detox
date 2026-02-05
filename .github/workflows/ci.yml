@@ -33,4 +33,6 @@ jobs:
         run: npm test
 
       - name: Build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://dummy.convex.cloud
         run: npm run build
