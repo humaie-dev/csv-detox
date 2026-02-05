@@ -18,6 +18,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { PipelineSidebar } from "@/components/PipelineSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { AssistantPanel } from "@/components/AssistantPanel";
 
 export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
   const { pipelineId: pipelineIdString } = use(params);
@@ -221,6 +222,15 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     setEditingStepIndex(null);
   };
 
+  const handleReorderSteps = (from: number, to: number) => {
+    if (from < 0 || from >= steps.length) return;
+    const clampedTo = Math.min(Math.max(0, to), steps.length - 1);
+    const newSteps = [...steps];
+    const [moved] = newSteps.splice(from, 1);
+    newSteps.splice(clampedTo, 0, moved);
+    setSteps(newSteps);
+  };
+
   if (!pipeline) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -287,7 +297,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
           onLoadPipeline={handleLoadPipeline}
         />
 
-        {/* Main Content Area */}
+        {/* Main Content Area + Assistant */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -315,26 +325,49 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
                 />
               </div>
 
-              {/* Right Column - Data Preview */}
-              <div className="lg:col-span-2">
+              {/* Right Columns - Data Preview + Assistant */}
+              <div className="lg:col-span-2 grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {loading ? (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <Spinner className="size-5" />
-                        <p className="text-muted-foreground">Loading...</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="xl:col-span-2">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <Spinner className="size-5" />
+                          <p className="text-muted-foreground">Loading...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 ) : previewData ? (
-                  <DataTable data={previewData} maxRows={100} />
+                  <div className="xl:col-span-2">
+                    <DataTable data={previewData} maxRows={100} />
+                  </div>
                 ) : (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-center text-muted-foreground">No data available</p>
-                    </CardContent>
-                  </Card>
+                  <div className="xl:col-span-2">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">No data available</p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 )}
+
+                {/* Assistant Panel */}
+                <div className="xl:col-span-1 h-full">
+                  <AssistantPanel
+                    steps={steps}
+                    onAddStep={handleAddStep}
+                    onReorderSteps={handleReorderSteps}
+                    onRemoveStep={handleRemove}
+                    uploadId={upload._id}
+                    mimeType={upload.mimeType}
+                    fileUrl={fileUrl || ""}
+                    fileName={upload.originalName}
+                    parseConfig={upload.parseConfig || { hasHeaders: true }}
+                    availableColumns={availableColumns}
+                    onParseConfigChanged={handleConfigSaved}
+                  />
+                </div>
               </div>
             </div>
           </div>

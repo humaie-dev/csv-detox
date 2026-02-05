@@ -3,17 +3,32 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_016_unify-preview-export.md`
-- Status: **Active - Unify Preview & Export via DuckDB-WASM**
-- Next action: Replace server-side preview with client-side DuckDB flow; remove Convex guards to prevent drift
-- Note: Preview and Export share loader and SQL translation; sheet listing moves client-side; server caps removed
+- Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
+- Status: **Active - Phase 1 (intent parser + confirm/apply/undo wired + data Q&A)**
+- Next action: Clarify flows (ambiguities), extend operators (>=, <=), and add tests for data Q&A on edge cases; optional UI polish/streaming.
+- Note: Assistant panel now parses messages locally, can answer simple data questions from the current preview (columns, row/column counts, distinct values/counts, min/max/sum/avg), proposes changes with a small dry-run sample, and applies on confirm with undo support. Parse config updates persist via Convex. AI SDK transport remains available for future streaming if needed.
 
-### 2026-02-05: Loader Idempotency Fix
-- ✅ Prevent "Table with name 'data' already exists" in repeated previews
-- **Change**: `src/lib/duckdb/loader.ts` now drops `data`/`data_filtered` if present and uses `CREATE OR REPLACE TABLE`
-- **Why**: Preview reuses a cached DuckDB instance across navigations; ensuring a clean slate avoids catalog errors
+### 2026-02-05: Build Fix — Resolve AI SDK React Peer Dependency
+- ✅ Bumped `react`/`react-dom` to `19.2.1` to satisfy `@ai-sdk/react` peer range
+- ✅ Pinned `@ai-sdk/react` and `ai` to compatible `^3.x` ranges instead of `*`
+- ✅ Regenerated `package-lock.json` (no functional code changes)
+- Impact: Fixes Vercel `npm ERESOLVE` during install; builds should pass
 
 ## Recent changes
+
+### 2026-02-05: Assistant Wiring — Confirm/Apply/Undo (Phase 1)
+- ✅ Wired AssistantPanel to pipeline state on `/pipeline/[pipelineId]`:
+  - Parses input with `parseIntent()`; summarizes a proposal using a small dry-run sample (≤20 rows × 10 cols) via DuckDB preview.
+  - Shows confirmation with Apply/Cancel; on apply, mutates steps or parse config and pushes an undo action.
+  - Supports `undo`/`revert` command to roll back the last assistant-initiated change (step removal/reorder, parse config restore).
+- ✅ Added `handleReorderSteps` to pipeline page and passed props to AssistantPanel.
+- ℹ️ Chat transport remains local/deterministic in Phase 1; AI SDK dependencies are kept for future streaming integration.
+
+### 2026-02-05: Assistant Enhancement — Data Q&A (Phase 1)
+- ✅ Added non-mutating "data_question" intent to parser (`src/lib/assistant/intent.ts`)
+- ✅ Supported queries: list columns, column/row count, distinct values/count for a column, and numeric aggregates (min/max/sum/avg)
+- ✅ Answers computed from the current preview using DuckDB (sample up to 1000 rows) and returned directly without confirmation (`src/components/AssistantPanel.tsx`)
+- ✅ Added tests for new intent patterns (`src/lib/assistant/__tests__/intent.test.ts`)
 
 ### 2026-02-05: Created Spec 011 - GitHub Issue and PR Automation (Draft)
 - ✅ Created comprehensive spec for extending OpenCode workflow
@@ -1045,3 +1060,8 @@ See `docs/internal/CONVEX_SETUP.md` for detailed setup instructions.
 - ✅ Placeholder value `https://dummy.convex.cloud` used (non-secret)
 - ✅ Avoids build-time env error from `src/app/providers.tsx`
 - **Status**: Complete; builds in CI should now succeed
+### 2026-02-05: Spec 015 - AI Assistant Pipeline Builder (Draft started)
+- ✅ Added spec file with objectives, scope, requirements, design, testing plan, ACs
+- ✅ Implemented UI scaffold: `src/components/AssistantPanel.tsx`
+- ✅ Integrated panel into `src/app/pipeline/[pipelineId]/page.tsx` alongside preview
+- 🔜 Next: `src/lib/assistant/intent.ts` rule-based parser with unit tests; wiring to pipeline state with confirm/apply/undo

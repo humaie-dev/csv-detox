@@ -47,6 +47,17 @@ Update only after asking and receiving approval for new patterns/libraries.
 - **Pattern**: Use shadcn/ui as the base, compose application-specific components in `src/components/`
 - **Documentation**: https://ui.shadcn.com/docs
 
+### AI SDK UI (Chat State/Streaming)
+- **Purpose**: Use AI SDK UI (`@ai-sdk/react`, `ai`) to manage chat state and streaming in the Assistant panel.
+- **Phase 1 Constraint**: No external LLM usage; server route returns deterministic, local responses via `createUIMessageStreamResponse`.
+- **Client Pattern**:
+  - `useChat` from `@ai-sdk/react` with `DefaultChatTransport({ api: '/api/chat' })`.
+  - Render `message.parts` of type `text` only.
+- **Server Pattern**:
+  - Next.js route `src/app/api/chat/route.ts` uses `createUIMessageStreamResponse` to stream a local, canned reply.
+  - No provider keys or external network calls.
+  - Keep handler thin; business logic remains in `src/lib/**`.
+
 ### Testing Patterns
 - **Framework**: Node.js built-in test runner with tsx for TypeScript support
 - **Test location**: `__tests__` directories next to the code being tested
