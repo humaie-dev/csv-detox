@@ -4,9 +4,336 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
-- Status: **Active - Phase 1 (intent parser)**
-- Next action: Wire confirm/apply/undo to pipeline state and sampling
-- Note: Assistant panel scaffold added; rule-based intent parser + tests implemented
+- Status: **Complete - All Debug Code Removed, Ready for Production**
+- Note: Excel sheet detection working correctly with clean code
+
+## Recent changes
+
+### 2026-02-06: Cleaned Up Debug Code (Production Ready) ✅
+- ✅ **Removed All Debug Logging**:
+  - Removed debug logs from `src/components/AssistantPanel.tsx`:
+    - Context data update logs
+    - Tool call conversion logs
+    - Message parts inspection logs
+  - Removed debug logs from `src/app/pipeline/[pipelineId]/page.tsx`:
+    - Sheet loading check logs
+    - listSheets action call logs
+    - availableSheets state change logs
+  - Kept only error logging (console.error for failures)
+- ✅ **Cleaned Up Code**:
+  - Simplified `contextData` useMemo (removed intermediate variable)
+  - Simplified `getToolCalls` (one-liner filter)
+  - Simplified `convertToolCallToProposal` (removed debug output)
+  - Removed unnecessary comments
+- ✅ **Build succeeds** with no errors
+- **Status**: All debug code removed; production-ready clean code
+
+### 2026-02-06: Refactored to Use sendMessage Options (Best Practice) ✅
+- ✅ **Implemented Correct AI SDK Pattern** (`src/components/AssistantPanel.tsx`):
+  - **Before**: Passed `body` in transport (would apply to ALL requests globally)
+  - **After**: Pass `body` in `sendMessage` options (applies per request)
+  - Uses `ChatRequestOptions.body` parameter as designed by AI SDK
+- ✅ **Implementation**:
+  ```typescript
+  // Context data updates reactively when props change
+  const contextData = useMemo(() => ({
+    columns: availableColumns,
+    currentSteps: currentSteps.map(s => s.config),
+    parseConfig,
+    previewData,
+    originalData,
+    typeEvolution,
+    availableSheets: availableSheets || [],
+  }), [...deps]);
+  
+  // Pass context in sendMessage options - fresh data every request
+  await sendMessage({ text }, { 
+    body: { data: contextData } 
+  });
+  ```
+- ✅ **Benefits**:
+  - **Correct**: Uses `sendMessage` options as intended by AI SDK
+  - **Fresh Data**: Gets latest `contextData` at send time (no stale closures)
+  - **Cleaner**: No transport recreation needed
+  - **Per-Request**: Each message gets current context automatically
+- ✅ **Build succeeds** with no errors
+- **Key Insight**: `ChatRequestOptions.body` is the right place for per-request context data
+- **Status**: Implemented correct AI SDK pattern; ready for testing
+
+### 2026-02-06: Fixed Stale Closure Bug in Custom Fetch (Critical Fix) ✅
+- ✅ **Root Cause Identified**:
+  - Sheets loaded correctly: `['Index', '1', '2', '3']`
+  - Transport body updated with sheets (4 items)
+  - BUT intercepted request showed: `sheets: [], sheetsCount: 0`
+  - **Problem**: `customFetch` callback captured stale `transportBody` from initial render
+- ✅ **Solution** (`src/components/AssistantPanel.tsx`):
+  - Added `transportBody` to `useCallback` dependency array
+  - Now `customFetch` re-creates when transportBody changes
+  - Latest data (including sheets) now sent to API
+  ```typescript
+  const customFetch = useCallback(async (url, init) => {
+    // ... inject transportBody ...
+  }, [transportBody]); // ← Added this dependency!
+  ```
+- ✅ **Impact**: Assistant can now see:
+  - Available sheets for Excel files
+  - All other reactive context updates
+  - Column changes, step modifications, etc.
+- ✅ **Build succeeds** with no errors
+- **Status**: Stale closure fixed; assistant should now correctly respond to "what sheets do you see?"
+
+### 2026-02-06: Debugging Sheet Loading for Excel Files (Complete) ✅
+- ✅ **Added Enhanced Logging** (`src/app/pipeline/[pipelineId]/page.tsx`):
+  - Added detailed console logs in `loadSheetNames()`:
+    - Upload ID, MIME type, isExcel flag
+    - "Calling listSheets action..." before action call
+    - Full error details with message, uploadId, mimeType
+  - **Purpose**: Diagnose why sheets aren't being loaded for Excel file
+- 🔍 **Investigation Needed**:
+  - User reports: Excel file with 4 sheets uploaded
+  - Assistant sees: Empty availableSheets array (behaves like CSV)
+  - Possible causes:
+    1. File uploaded with wrong MIME type (not detected as Excel)
+    2. `listSheets` action throwing error (caught and logged)
+    3. Timing issue with upload data not ready
+  - **Next steps**:
+    1. Open browser DevTools console
+    2. Load the Excel file in pipeline page
+    3. Look for logs: `[Pipeline] Checking if should load sheets`
+    4. Check if error appears: `[Pipeline] Failed to load sheet names`
+    5. Share console output to identify root cause
+- ✅ **Build succeeds** with no errors
+- **Status**: Waiting for console logs to diagnose issue
+
+### 2026-02-06: Improved Sheet Awareness for CSV Files (Enhancement)
+- ✅ **Enhanced System Prompt for CSV Files** (`src/app/api/chat/route.ts`):
+  - **Problem**: When testing with CSV files, assistant said "I don't have a list of sheets yet" (confusing)
+  - **Solution**: Updated prompt to always explain file type:
+    - For Excel files: Shows available sheets, current sheet, switch instructions
+    - For CSV files: Explains "CSV file (no sheets - single data table)"
+  - **Impact**: Assistant now correctly responds to "what sheets can you see" based on file type
+  - Assistant will say "This is a CSV file with a single data table - CSV files don't have sheets like Excel"
+- ✅ **Build succeeds** with no errors
+- **Status**: Assistant now properly handles both Excel and CSV files
+
+### 2026-02-06: Fixed Tool Call Arguments Extraction (Critical Fix)
+- ✅ **Fixed Tool Arguments Not Extracting** (`src/components/AssistantPanel.tsx`):
+  - **Root Cause**: Code was checking for old AI SDK v5 part types like `"tool-removeStep"`
+  - **Solution**: Updated to AI SDK v6 structure where tool calls have type `"tool-call"`
+  - **Changes**:
+    - `getToolCalls()`: Now filters for `part.type === 'tool-call'` instead of `part.type.startsWith('tool-')`
+    - `convertToolCallToProposal()`: Now accesses `toolCall.toolName` and `toolCall.args` directly
+    - Added comprehensive debug logging showing: type, toolName, toolCallId, args, all properties
+  - **AI SDK v6 Tool Call Structure**:
+    ```typescript
+    {
+      type: "tool-call",
+      toolCallId: "unique-id",
+      toolName: "removeStep",
+      args: { stepIndex: 2 }
+    }
+    ```
+  - **Impact**: Apply buttons should now work correctly with proper step indices
+- ✅ **Build succeeds** with no errors
+- **Status**: Tool call detection and argument extraction fixed; ready for manual testing
+
+## Recent changes
+
+### 2026-02-05: Enhanced Assistant Context (Complete)
+- ✅ **Added previewData Tool** (`src/lib/assistant/tools.ts`, `src/app/api/chat/route.ts`):
+  - New tool schema: `previewDataToolSchema` with stepIndex and maxRows params
+  - LLM can now request data samples to see current state
+  - Returns columns (name, type, sample values) and up to 50 rows
+  - Implemented as executable tool with preview data from pipeline
+- ✅ **Enhanced System Prompt** (`src/app/api/chat/route.ts`):
+  - Added complete configuration documentation for all 15 transformation types
+  - Shows exact config structure with all parameters for each operation
+  - Includes full step configurations (not just types) in pipeline display
+  - Shows step details like: "sort (date desc, amount asc)", "filter (age > 21)"
+  - Displays current data state: column names, types, and sample values
+  - Up to 100 rows of preview data passed in context
+- ✅ **Passed Preview Data to Assistant** (`src/components/AssistantPanel.tsx`, `src/app/pipeline/[pipelineId]/page.tsx`):
+  - Added `previewData` prop to AssistantPanel
+  - Passes preview data (columns + 100 rows) in transport body
+  - LLM now has full visibility into current pipeline state
+- ✅ **Build succeeds** with no errors
+- **Context Now Includes**:
+  1. **Available columns** with types and sample values
+  2. **Full step configurations** with all parameters
+  3. **Preview data** (columns metadata + up to 100 rows)
+  4. **Parse configuration** (sheet, ranges, headers)
+  5. **Complete config documentation** for all 15 operations
+  6. **previewData tool** for requesting specific data samples
+- **Example Configurations Documented**:
+  - sort: `{ columns: [{ name, direction }], nullsPosition }`
+  - filter: `{ column, operator, value, mode }`
+  - cast_column: `{ column, targetType, onError, dateFormat }`
+  - split_column: `{ sourceColumn, method, newColumns, delimiter, positions, pattern }`
+  - And 11 more operations with full parameter details
+- **Status**: Enhanced context complete; LLM now has comprehensive visibility
+
+### 2026-02-05: Multi-Step Assistant Operations (Complete)
+- ✅ **Enhanced System Prompt** (`src/app/api/chat/route.ts`):
+  - Added explicit instructions for calling MULTIPLE tools in one response
+  - Emphasized that complex requests can be fulfilled with multiple operations
+  - Added examples: "clean up data" → trim + deduplicate + remove empty columns
+  - Encouraged thinking about operation order and dependencies
+- ✅ **Updated AssistantPanel UI** (`src/components/AssistantPanel.tsx`):
+  - Added `handleApplyAll()` function to apply multiple proposals in sequence
+  - Shows all proposals with "Step X of Y" labels when multiple tool calls present
+  - Displays "Apply All (N changes)" button when multiple tool calls detected
+  - Each proposal shown in its own bordered card for clarity
+  - Single tool calls still show simple "Apply" button
+- ✅ **Build succeeds** with no errors
+- **Key Capabilities**:
+  - LLM can now call multiple tools in one response (e.g., addStep multiple times)
+  - UI batches all proposals together with clear step-by-step display
+  - User can apply all changes at once with one button click
+  - Each change is applied sequentially to maintain order dependencies
+- **Example Use Cases**:
+  - "clean the data" → trim, deduplicate, remove nulls
+  - "prepare for analysis" → cast types, sort, filter
+  - "restructure the table" → unpivot, rename, reorder
+- **Status**: Multi-step operations complete; ready for testing
+
+### 2026-02-05: Assistant Panel UI Layout Improvements (Complete)
+- ✅ **Fixed Assistant Panel Height** (`src/app/pipeline/[pipelineId]/page.tsx`):
+  - Moved AssistantPanel to fixed right sidebar (384px width, `w-96`)
+  - No longer embedded in scrolling content area
+  - Panel now has independent height from data preview
+  - Input box always visible at bottom, no scrolling needed
+- ✅ **Updated AssistantPanel Styling** (`src/components/AssistantPanel.tsx`):
+  - Changed to full-height flex column with proper constraints
+  - Added `min-h-0` to CardContent to enable proper flex overflow
+  - Added `flex-shrink-0` to form to keep input fixed at bottom
+  - Messages area scrolls independently while input stays in view
+  - Removed rounded corners and card border (seamless integration)
+- ✅ **Build succeeds** with no errors
+- **Layout Structure**:
+  - Sidebar (pipelines) | Main content (config/steps + data preview) | Assistant panel (fixed 384px)
+  - Assistant panel: Header (collapsible) | Messages (scrollable) | Input form (fixed)
+- **UX Improvements**:
+  - Chat input always accessible without scrolling
+  - Independent scrolling for messages and data preview
+  - Better use of screen space with fixed sidebar layout
+- **Status**: UI improvements complete; ready for testing
+
+### 2026-02-05: AI SDK v5 Migration for Assistant (Complete)
+- ✅ **Updated Chat Route Handler** (`src/app/api/chat/route.ts`):
+  - Changed from `toTextStreamResponse()` to `toUIMessageStreamResponse()` (AI SDK v5 requirement)
+  - Added `convertToModelMessages()` to convert UIMessage format to ModelMessage format
+  - Uses new streaming format compatible with latest useChat hook
+  - Fixed validation error: UIMessages from client now properly converted before passing to streamText
+- ✅ **Updated AssistantPanel Component** (`src/components/AssistantPanel.tsx`):
+  - Migrated to AI SDK v5 useChat API with `DefaultChatTransport`
+  - Replaced deprecated `api` prop with `transport: new DefaultChatTransport({ api, body })`
+  - Removed deprecated `messages` prop from useChat, now using dynamic display logic
+  - Welcome message shown conditionally when no messages exist
+  - Input state already manually managed (was already v5-compatible)
+  - Message rendering handles user/assistant roles properly
+  - sendMessage already in use (was already v5-compatible)
+- ✅ **Build succeeds** with no errors
+- **Key Changes**:
+  - `useChat({ api, body })` → `useChat({ transport: new DefaultChatTransport({ api, body }) })`
+  - `toTextStreamResponse()` → `toUIMessageStreamResponse()`
+  - Added `convertToModelMessages(messages)` in route handler to convert UIMessage[] to ModelMessage[]
+  - Initial messages moved to conditional display logic to avoid type narrowing
+- **Status**: AI SDK v5 migration complete; assistant ready for testing
+
+### 2026-02-05: Spec 015 Phase 3 - UI Integration (Complete)
+- ✅ **Created Full-Featured AssistantPanel Component** (`src/components/AssistantPanel.tsx`):
+  - Chat interface with user/assistant/system messages
+  - Integrates with Convex action for AI-powered intent parsing
+  - Real-time message streaming with auto-scroll
+  - Loading states with spinner during AI processing
+  - Proposal formatting with readable summaries
+  - Apply button for each actionable proposal (except clarify)
+  - Collapsible panel for mobile/desktop
+  - Disabled state during loading or errors
+- ✅ **Integrated AssistantPanel into Pipeline Page** (`src/app/pipeline/[pipelineId]/page.tsx`):
+  - Passed all required props: availableColumns, currentSteps, parseConfig
+  - Wired up handleApplyProposal to execute all 5 proposal types
+  - Added undo stack for reverting assistant changes
+  - Added undo button in header (↺ Undo) with disabled state when no history
+  - Handles all proposal kinds:
+    - `add_step`: Inserts step at specified position or end
+    - `remove_step`: Removes step by index, adjusts selection
+    - `edit_step`: Updates step configuration
+    - `reorder_steps`: Moves step from one position to another
+    - `update_parse_config`: Updates parse config and reloads data
+- ✅ **Undo Functionality**:
+  - Maintains stack of previous step states
+  - Undo button in header reverts to last state
+  - Tracks changes from all assistant operations
+  - Visual feedback when undo available/unavailable
+- ✅ **Message Formatting**:
+  - Human-readable proposal summaries
+  - Operation type translation (e.g., "remove_column" → "Remove Column")
+  - Configuration details display (columns, filters, sorts, etc.)
+  - System messages for confirmations and errors
+- ✅ **Build succeeds** with no errors (only known DuckDB and @next/swc warnings)
+- **Key Features**:
+  - Natural language commands: "sort by date desc", "remove column notes", "move step 3 up"
+  - AI parses intent and proposes concrete changes
+  - User must click "Apply" to confirm (no automatic execution)
+  - Preview updates automatically after apply
+  - Full undo support for all assistant changes
+- **UX Flow**:
+  1. User types natural language command
+  2. AI parses and shows proposal with summary
+  3. User reviews and clicks "Apply"
+  4. Pipeline updates, preview refreshes
+  5. Success message shown
+  6. Undo available in header
+- **Status**: Spec 015 fully complete; ready for manual testing with Azure OpenAI credentials
+
+## Recent changes
+
+### 2026-02-05: Spec 015 Phase 2 - AI-Powered Intent Parser (Complete)
+- ✅ **Upgraded from rule-based to LLM-based intent parsing**:
+  - Replaced manual regex patterns with Azure OpenAI function calling
+  - User requests now parsed by GPT-4o with natural language understanding
+  - More flexible and robust than rule-based approach
+- ✅ **Installed AI SDK packages**:
+  - `ai` - Vercel AI SDK core
+  - `@ai-sdk/azure` - Azure OpenAI provider
+  - `zod` - Schema validation for tool parameters
+- ✅ **Created AI Intent Parser** (`src/lib/assistant/ai-intent.ts`):
+  - `parseIntentWithAI()` - Main function using Azure OpenAI
+  - Uses function calling with 5 tools: addStep, removeStep, editStep, reorderSteps, updateParseConfig
+  - Contextual system prompt includes available columns, current steps, and parse config
+  - Returns same `Proposal` type as before (backward compatible with UI)
+  - Handles LLM errors gracefully with clarification responses
+- ✅ **Defined Tool Schemas** (`src/lib/assistant/tools.ts`):
+  - Zod schemas for all 5 assistant tools
+  - Supports 15 transformation types (sort, filter, deduplicate, cast, split, merge, etc.)
+  - Proper TypeScript typing for tool parameters
+- ✅ **Created Convex Action** (`convex/assistant.ts`):
+  - `parseIntent` action - Wraps AI parser for client-side access
+  - Accepts user message, columns, current steps, and parse config
+  - Calls Azure OpenAI with proper environment variable handling
+  - Returns Proposal for UI to present to user for confirmation
+- ✅ **Updated Type System** (`src/lib/assistant/intent.ts`):
+  - Added `RemoveStepProposal` and `EditStepProposal` types
+  - Extended `Proposal` union to include all 6 proposal kinds
+  - Updated `ParseContext` to include currentSteps and parseConfig
+  - Re-exported `parseIntentWithAI` as `parseIntent` for convenience
+- ✅ **Environment Configuration** (`.env.local.example`):
+  - Added `AZURE_OPENAI_ENDPOINT` - Azure resource URL
+  - Added `AZURE_OPENAI_API_KEY` - API key for authentication
+  - Added `AZURE_OPENAI_DEPLOYMENT` - Deployment name (e.g., gpt-4o)
+  - User must configure these in `.env.local` before using assistant
+- ✅ **Removed Rule-Based Parser**:
+  - Deleted old regex-based implementation from `intent.ts`
+  - Removed unit tests (AI parsing requires manual/integration testing)
+  - Created testing README explaining manual test strategy
+- ✅ **All builds passing** with no errors (only known DuckDB and @next/swc warnings)
+- **Key Design Decisions**:
+  - LLM-based parsing is more robust for ambiguous/complex requests
+  - Function calling ensures structured output (no prompt engineering needed)
+  - Environment variables keep credentials secure (never committed)
+  - Same `Proposal` type maintains compatibility with future UI
+- **Status**: Phase 2 complete; ready for UI integration in Phase 3
 
 ## Recent changes
 

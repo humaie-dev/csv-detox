@@ -202,7 +202,27 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     );
   }
 
-  const availableColumns = originalData?.columns.map((c) => c.name) || [];
+  // Compute available columns based on context
+  // - When adding a new step: use columns from final preview (after all steps)
+  // - When editing step N: use columns from step N-1 (before that step)
+  const getAvailableColumnsForDialog = (): string[] => {
+    if (!originalData) return [];
+    
+    // If editing a step, compute columns available before that step
+    if (editingStepIndex !== null && editingStepIndex > 0) {
+      // Execute pipeline up to the step before the one being edited
+      const result = executeUntilStep(originalData, steps, editingStepIndex - 1);
+      return result.table.columns.map((c) => c.name);
+    } else if (editingStepIndex === 0) {
+      // Editing first step, use original columns
+      return originalData.columns.map((c) => c.name);
+    }
+    
+    // Adding a new step at the end: use current preview columns
+    return previewData?.columns.map((c) => c.name) || originalData.columns.map((c) => c.name);
+  };
+  
+  const availableColumns = getAvailableColumnsForDialog();
 
   return (
     <div className="flex flex-col h-screen">

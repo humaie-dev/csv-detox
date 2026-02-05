@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
+import type { TransformationType, TransformationConfig, TransformationStep, ColumnMetadata } from "@/lib/pipeline/types";
 import type { ParseResult } from "@/lib/parsers/types";
 import { executeUntilStep } from "@/lib/pipeline/executor";
 import { DataTable } from "@/components/DataTable";
@@ -14,8 +14,10 @@ import { ParseConfigPanel } from "@/components/ParseConfigPanel";
 import { ExportButton } from "@/components/ExportButton";
 import { PipelineSidebar } from "@/components/PipelineSidebar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AssistantPanel } from "@/components/AssistantPanel";
+import type { Proposal, AddStepProposal, RemoveStepProposal, EditStepProposal, ReorderStepsProposal, UpdateParseConfigProposal } from "@/lib/assistant/intent";
 
 export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
   const { pipelineId: pipelineIdString } = use(params);
@@ -32,6 +34,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     upload ? { storageId: upload.convexStorageId } : "skip"
   );
   const updatePipeline = useMutation(api.pipelines.update);
+  const updateParseConfigMutation = useMutation(api.uploads.updateParseConfig);
   const parseFile = useAction(api.parsers.parseFile);
   const listSheets = useAction(api.parsers.listSheets);
 
@@ -42,9 +45,11 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [originalData, setOriginalData] = useState<ParseResult | null>(null);
   const [previewData, setPreviewData] = useState<ParseResult | null>(null);
+  const [typeEvolution, setTypeEvolution] = useState<ColumnMetadata[][]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
+  const [undoStack, setUndoStack] = useState<TransformationStep[][]>([]);
 
   // Load steps from pipeline
   useEffect(() => {
@@ -111,14 +116,15 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
       upload.mimeType === "application/vnd.ms-excel";
 
-    if (!isExcel) return;
+    if (!isExcel) {
+      return;
+    }
 
     try {
       const sheets = await listSheets({ uploadId: upload._id });
       setAvailableSheets(sheets);
     } catch (err) {
-      console.error("Failed to load sheet names:", err);
-      // Non-critical error, don't show to user
+      console.error("[Pipeline] Failed to load sheet names:", err);
     }
   };
 
@@ -140,13 +146,16 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
       
       if (steps.length === 0 || stopIndex < 0) {
         setPreviewData(originalData);
+        setTypeEvolution([originalData.columns]);
       } else {
         const result = executeUntilStep(originalData, steps, stopIndex);
         setPreviewData(result.table);
+        setTypeEvolution(result.typeEvolution);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to execute pipeline");
       setPreviewData(originalData); // Fallback to original
+      setTypeEvolution([originalData.columns]);
     } finally {
       setLoading(false);
     }
@@ -213,6 +222,90 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     setEditingStepIndex(null);
   };
 
+  const handleApplyProposal = async (proposal: Proposal) => {
+    // Save current state for undo
+    setUndoStack((prev) => [...prev, steps]);
+
+    switch (proposal.kind) {
+      case "add_step": {
+        const p = proposal as AddStepProposal;
+        const newStep: TransformationStep = {
+          id: `step-${Date.now()}`,
+          type: p.step.config.type,
+          config: p.step.config,
+        };
+
+        if (p.step.position === "end" || p.step.position === undefined) {
+          setSteps([...steps, newStep]);
+        } else {
+          const newSteps = [...steps];
+          newSteps.splice(p.step.position, 0, newStep);
+          setSteps(newSteps);
+        }
+        break;
+      }
+
+      case "remove_step": {
+        const p = proposal as RemoveStepProposal;
+        const newSteps = steps.filter((_, i) => i !== p.stepIndex);
+        setSteps(newSteps);
+        
+        // Adjust selected index if needed
+        if (selectedStepIndex >= newSteps.length) {
+          setSelectedStepIndex(newSteps.length - 1);
+        }
+        break;
+      }
+
+      case "edit_step": {
+        const p = proposal as EditStepProposal;
+        const newSteps = [...steps];
+        newSteps[p.stepIndex] = {
+          ...newSteps[p.stepIndex],
+          type: p.newConfig.type,
+          config: p.newConfig,
+        };
+        setSteps(newSteps);
+        break;
+      }
+
+      case "reorder_steps": {
+        const p = proposal as ReorderStepsProposal;
+        const newSteps = [...steps];
+        const [movedStep] = newSteps.splice(p.from, 1);
+        newSteps.splice(p.to, 0, movedStep);
+        setSteps(newSteps);
+        break;
+      }
+
+      case "update_parse_config": {
+        const p = proposal as UpdateParseConfigProposal;
+        
+        try {
+          await updateParseConfigMutation({
+            uploadId: upload!._id,
+            parseConfig: p.changes as any,
+          });
+          
+          // Reload data with new config
+          await handleConfigSaved();
+        } catch (err) {
+          console.error("Failed to update parse config:", err);
+          setError("Failed to update parse configuration");
+        }
+        break;
+      }
+    }
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    
+    const previousSteps = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setSteps(previousSteps);
+  };
+
   if (!pipeline) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -235,7 +328,30 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     );
   }
 
-  const availableColumns = originalData?.columns.map((c) => c.name) || [];
+  // Compute available columns based on context
+  // - When adding a new step: use columns from final preview (after all steps)
+  // - When editing step N: use columns from step N-1 (before that step)
+  const getAvailableColumnsForDialog = (): string[] => {
+    if (!originalData) return [];
+    
+    // If editing a step, compute columns available before that step
+    if (editingStepIndex !== null && editingStepIndex > 0) {
+      // Execute pipeline up to the step before the one being edited
+      const result = executeUntilStep(originalData, steps, editingStepIndex - 1);
+      return result.table.columns.map((c) => c.name);
+    } else if (editingStepIndex === 0) {
+      // Editing first step, use original columns
+      return originalData.columns.map((c) => c.name);
+    }
+    
+    // Adding a new step at the end: use current preview columns
+    return previewData?.columns.map((c) => c.name) || originalData.columns.map((c) => c.name);
+  };
+  
+  const availableColumnsForDialog = getAvailableColumnsForDialog();
+  
+  // For assistant panel, always use final preview columns
+  const availableColumnsForAssistant = previewData?.columns.map((c) => c.name) || originalData?.columns.map((c) => c.name) || [];
 
   return (
     <div className="flex flex-col h-screen">
@@ -249,6 +365,14 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUndo}
+              disabled={undoStack.length === 0 || loading}
+            >
+              ↺ Undo
+            </Button>
             <ExportButton
               uploadId={upload._id}
               fileUrl={fileUrl || ""}
@@ -279,7 +403,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
           onLoadPipeline={handleLoadPipeline}
         />
 
-        {/* Main Content Area + Assistant */}
+        {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -307,40 +431,44 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
                 />
               </div>
 
-              {/* Right Columns - Data Preview + Assistant */}
-              <div className="lg:col-span-2 grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {/* Right Column - Data Preview */}
+              <div className="lg:col-span-2">
                 {loading ? (
-                  <div className="xl:col-span-2">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-center gap-2">
-                          <Spinner className="size-5" />
-                          <p className="text-muted-foreground">Loading...</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <Spinner className="size-5" />
+                        <p className="text-muted-foreground">Loading...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ) : previewData ? (
-                  <div className="xl:col-span-2">
-                    <DataTable data={previewData} maxRows={100} />
-                  </div>
+                  <DataTable data={previewData} maxRows={100} />
                 ) : (
-                  <div className="xl:col-span-2">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <p className="text-center text-muted-foreground">No data available</p>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-center text-muted-foreground">No data available</p>
+                    </CardContent>
+                  </Card>
                 )}
-
-                {/* Assistant Panel */}
-                <div className="xl:col-span-1 h-full">
-                  <AssistantPanel />
-                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Assistant Panel - Fixed position on right side */}
+        <div className="w-96 border-l flex-shrink-0 flex flex-col">
+          <AssistantPanel
+            availableColumns={availableColumnsForAssistant}
+            currentSteps={steps}
+            parseConfig={upload.parseConfig || undefined}
+            previewData={previewData}
+            originalData={originalData}
+            typeEvolution={typeEvolution}
+            availableSheets={availableSheets}
+            onApplyProposal={handleApplyProposal}
+            disabled={loading}
+          />
         </div>
       </div>
 
@@ -353,7 +481,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
         }}
         onAddStep={handleAddStep}
         onEditStep={handleEditStep}
-        availableColumns={availableColumns}
+        availableColumns={availableColumnsForDialog}
         editingStep={editingStepIndex !== null ? steps[editingStepIndex] : null}
         uploadId={upload._id}
       />
