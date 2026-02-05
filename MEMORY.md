@@ -8,6 +8,11 @@ Single source of truth for project state. Update after every meaningful change.
 - Next action: Replace server-side preview with client-side DuckDB flow; remove Convex guards to prevent drift
 - Note: Preview and Export share loader and SQL translation; sheet listing moves client-side; server caps removed
 
+### 2026-02-05: Loader Idempotency Fix
+- ✅ Prevent "Table with name 'data' already exists" in repeated previews
+- **Change**: `src/lib/duckdb/loader.ts` now drops `data`/`data_filtered` if present and uses `CREATE OR REPLACE TABLE`
+- **Why**: Preview reuses a cached DuckDB instance across navigations; ensuring a clean slate avoids catalog errors
+
 ## Recent changes
 
 ### 2026-02-05: Created Spec 011 - GitHub Issue and PR Automation (Draft)
