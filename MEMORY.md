@@ -8,6 +8,12 @@ Single source of truth for project state. Update after every meaningful change.
 - Next action: Clarify flows (ambiguities) and add more edge-case tests; optional UI polish
 - Note: Assistant panel now parses messages locally, proposes changes with a small dry-run sample, and applies on confirm with undo support. Parse config updates persist via Convex. AI SDK transport remains available for future streaming if needed.
 
+### 2026-02-05: Build Fix — Resolve AI SDK React Peer Dependency
+- ✅ Bumped `react`/`react-dom` to `19.2.1` to satisfy `@ai-sdk/react` peer range
+- ✅ Pinned `@ai-sdk/react` and `ai` to compatible `^3.x` ranges instead of `*`
+- ✅ Regenerated `package-lock.json` (no functional code changes)
+- Impact: Fixes Vercel `npm ERESOLVE` during install; builds should pass
+
 ## Recent changes
 
 ### 2026-02-05: Assistant Wiring — Confirm/Apply/Undo (Phase 1)
