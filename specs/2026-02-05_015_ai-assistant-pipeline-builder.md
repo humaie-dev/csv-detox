@@ -1,7 +1,7 @@
 # Spec 015 — AI Assistant Pipeline Builder
 Date: 2026-02-05
 ID: 015
-Status: Draft
+Status: Active
 
 ## Objective
 Enable users to configure pipelines by chatting with an assistant on the pipeline management screen. The assistant can add, remove, edit, and reorder steps, adjust parser config, and leverage the current preview at each step to make informed changes.

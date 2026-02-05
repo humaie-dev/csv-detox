@@ -4,9 +4,9 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
-- Status: **Draft - Phase 1 scaffolding**
-- Next action: Implement rule-based intent parser and wiring for confirm/apply/undo
-- Note: Added Assistant panel UI scaffold on pipeline page; no new deps
+- Status: **Active - Phase 1 (intent parser)**
+- Next action: Wire confirm/apply/undo to pipeline state and sampling
+- Note: Assistant panel scaffold added; rule-based intent parser + tests implemented
 
 ## Recent changes
 
