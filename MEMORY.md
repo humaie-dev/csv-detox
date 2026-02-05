@@ -4,11 +4,19 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
-- Status: **Active - Phase 1 (intent parser + chat transport)**
-- Next action: Wire confirm/apply/undo to pipeline state and sampling
-- Note: Assistant panel now uses AI SDK UI for chat streaming; rule-based intent parser + tests implemented; server route streams deterministic replies
+- Status: **Active - Phase 1 (intent parser + confirm/apply/undo wired)**
+- Next action: Clarify flows (ambiguities) and add more edge-case tests; optional UI polish
+- Note: Assistant panel now parses messages locally, proposes changes with a small dry-run sample, and applies on confirm with undo support. Parse config updates persist via Convex. AI SDK transport remains available for future streaming if needed.
 
 ## Recent changes
+
+### 2026-02-05: Assistant Wiring — Confirm/Apply/Undo (Phase 1)
+- ✅ Wired AssistantPanel to pipeline state on `/pipeline/[pipelineId]`:
+  - Parses input with `parseIntent()`; summarizes a proposal using a small dry-run sample (≤20 rows × 10 cols) via DuckDB preview.
+  - Shows confirmation with Apply/Cancel; on apply, mutates steps or parse config and pushes an undo action.
+  - Supports `undo`/`revert` command to roll back the last assistant-initiated change (step removal/reorder, parse config restore).
+- ✅ Added `handleReorderSteps` to pipeline page and passed props to AssistantPanel.
+- ℹ️ Chat transport remains local/deterministic in Phase 1; AI SDK dependencies are kept for future streaming integration.
 
 ### 2026-02-05: Created Spec 011 - GitHub Issue and PR Automation (Draft)
 - ✅ Created comprehensive spec for extending OpenCode workflow

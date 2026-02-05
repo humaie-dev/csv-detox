@@ -222,6 +222,15 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     setEditingStepIndex(null);
   };
 
+  const handleReorderSteps = (from: number, to: number) => {
+    if (from < 0 || from >= steps.length) return;
+    const clampedTo = Math.min(Math.max(0, to), steps.length - 1);
+    const newSteps = [...steps];
+    const [moved] = newSteps.splice(from, 1);
+    newSteps.splice(clampedTo, 0, moved);
+    setSteps(newSteps);
+  };
+
   if (!pipeline) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -345,7 +354,19 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
 
                 {/* Assistant Panel */}
                 <div className="xl:col-span-1 h-full">
-                  <AssistantPanel />
+                  <AssistantPanel
+                    steps={steps}
+                    onAddStep={handleAddStep}
+                    onReorderSteps={handleReorderSteps}
+                    onRemoveStep={handleRemove}
+                    uploadId={upload._id}
+                    mimeType={upload.mimeType}
+                    fileUrl={fileUrl || ""}
+                    fileName={upload.originalName}
+                    parseConfig={upload.parseConfig || { hasHeaders: true }}
+                    availableColumns={availableColumns}
+                    onParseConfigChanged={handleConfigSaved}
+                  />
                 </div>
               </div>
             </div>
