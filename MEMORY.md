@@ -6,7 +6,7 @@ Single source of truth for project state. Update after every meaningful change.
 - Active spec: `specs/2026-02-05_015_excel-memory-guard.md`
 - Status: **Active - Prevent Excel preview OOM**
 - Next action: Verify preview handles large Excel files without memory errors
-- Note: Bound materialized rows via `sheetRows` and use `dense: true`; `listSheets` uses `bookSheets: true`
+- Note: Bound materialized rows via `sheetRows` and use `dense: true`; `listSheets` uses `bookSheets: true`; added 25MB server-side guards in Convex actions to avoid reading oversized files into memory
 
 ## Recent changes
 

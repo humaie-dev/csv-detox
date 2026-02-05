@@ -29,6 +29,17 @@ export const parseFile = action({
         throw new ParseError("Upload not found", "FILE_NOT_FOUND");
       }
 
+      // Hard guard: avoid reading very large files into Convex memory (64MB limit)
+      // We set a conservative cap to prevent OOM before parsing begins.
+      const MAX_PREVIEW_BYTES = 25 * 1024 * 1024; // 25MB
+      if (upload.size !== undefined && upload.size > MAX_PREVIEW_BYTES) {
+        const mb = (upload.size / (1024 * 1024)).toFixed(1);
+        throw new ParseError(
+          `File too large for server preview (${mb} MB > 25 MB). Use Export to process client-side or reduce preview range.`,
+          "FILE_TOO_LARGE"
+        );
+      }
+
       // Fetch file from storage
       const file = await ctx.storage.get(upload.convexStorageId);
       if (!file) {
@@ -231,6 +242,15 @@ export const listSheets = action({
         throw new Error("Not an Excel file");
       }
 
+      // Guard against loading very large files into Convex memory
+      const MAX_PREVIEW_BYTES = 25 * 1024 * 1024; // 25MB
+      if (upload.size !== undefined && upload.size > MAX_PREVIEW_BYTES) {
+        const mb = (upload.size / (1024 * 1024)).toFixed(1);
+        throw new Error(
+          `File too large to list sheets on server (${mb} MB > 25 MB). Reduce file size or list after client-side download during Export.`
+        );
+      }
+
       // Fetch file from storage
       const file = await ctx.storage.get(upload.convexStorageId);
       if (!file) {
@@ -280,6 +300,15 @@ export const validateCast = action({
 
       if (!upload) {
         throw new Error("Upload not found");
+      }
+
+      // Guard against loading very large files into Convex memory for validation
+      const MAX_VALIDATION_BYTES = 25 * 1024 * 1024; // 25MB
+      if (upload.size !== undefined && upload.size > MAX_VALIDATION_BYTES) {
+        const mb = (upload.size / (1024 * 1024)).toFixed(1);
+        throw new Error(
+          `File too large for server-side validation (${mb} MB > 25 MB). Export handles large files client-side; reduce file size or narrow the range.`
+        );
       }
 
       // Build parse options from upload's parseConfig

@@ -14,6 +14,7 @@ Functional Requirements
 - Respect user-provided `startRow`, `endRow`, `startColumn`, `endColumn`, `sheetName`/`sheetIndex`, and `hasHeaders`.
 - When preview row cap (`maxRows`) is set (e.g., 5000), only materialize enough rows to satisfy `startRow..startRow+maxRows-1`.
 - `listSheets(buffer)` must read only workbook metadata and avoid loading sheet data.
+ - Add conservative server-side guards to avoid loading very large files into memory for preview/validation (return a clear error instead of crashing).
 
 Non-Functional Requirements
 - Memory-efficient: minimize allocations during `XLSX.read` and `sheet_to_json`.
@@ -25,6 +26,7 @@ Design
 - Compute `sheetRows = endRow ?? ((startRow-1) + maxRows)` when `maxRows` is finite.
 - Pass `sheetRows` into `XLSX.utils.sheet_to_json()` to limit materialized rows.
 - For `listSheets()`, call `XLSX.read(buffer, { type: "array", bookSheets: true })` to avoid loading sheet contents.
+ - Add size caps in Convex actions: refuse to preview or validate files larger than ~25MB server-side; direct users to client-side Export or to narrow ranges.
 
 Testing Plan
 - Unit test to verify `dense: true` and `sheetRows` are passed appropriately by monkey-patching `xlsx` exports.
@@ -34,3 +36,4 @@ Acceptance Criteria
 - Preview parsing of large Excel files no longer throws `Array buffer allocation failed`.
 - `listSheets()` returns correct sheet names without loading cell data.
 - Tests compile and pass locally/CI.
+ - Opening Pipeline/Preview routes with oversized files shows a friendly error instead of crashing the action.
