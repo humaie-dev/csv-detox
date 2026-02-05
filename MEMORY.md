@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_011_github-issue-pr-automation.md`
-- Status: **Draft - Planning GitHub Issue and PR Automation**
-- Next action: Begin implementing Phase 1 (Issue Detection)
-- Note: Extending OpenCode workflow to handle GitHub issues and contribute to existing PRs
+- Active spec: `specs/2026-02-05_014_ci-dummy-convex-url.md`
+- Status: **Done - Provide dummy Convex URL for CI build**
+- Next action: CI should build with env injected on build step
+- Note: Inject `NEXT_PUBLIC_CONVEX_URL` only in the build step of CI using a harmless placeholder
 
 ## Recent changes
 
@@ -36,6 +36,22 @@ Single source of truth for project state. Update after every meaningful change.
   - Use GitHub CLI (`gh`) for API operations (simpler than actions/github-script)
 - **10 Acceptance Criteria** defined
 - **Status**: Draft spec created, ready to begin implementation
+
+### 2026-02-05: Spec 012 - Automated PR Checks (Complete)
+- ✅ Added CI workflow at `.github/workflows/ci.yml`
+- ✅ Triggers on PR updates and pushes to `main`/`master`
+- ✅ Uses Node 20 with npm cache
+- ✅ Steps: install (`npm ci`), test (`npm test`), build (`npm run build`)
+- ✅ Concurrency enabled to cancel in-progress runs per ref
+- **Status**: Complete; monitor run times and adjust caching if needed
+
+### 2026-02-05: Spec 013 - Fix TSX Test Discovery (Complete)
+- ✅ Updated `package.json`:
+  - `test`: `tsx --test src`
+  - `test:watch`: `tsx --test --watch src`
+- ✅ Added spec `specs/2026-02-05_013_fix-tsx-test-discovery.md`
+- ✅ Reason: Shell did not expand `src/**/*.test.ts` in GitHub Actions, causing CI failure
+- **Status**: Complete; CI should now discover tests reliably
 
 ## Recent changes
 
@@ -1019,3 +1035,8 @@ See `docs/internal/CONVEX_SETUP.md` for detailed setup instructions.
 - Postgres available via Convex integration for future features
 - DuckDB planned as data engine for preview/export
 - Ask before introducing new libraries or patterns; record in docs/internal/PATTERNS.md
+### 2026-02-05: Spec 014 - CI Dummy Convex URL (Complete)
+- ✅ Injected `NEXT_PUBLIC_CONVEX_URL` in `.github/workflows/ci.yml` build step only
+- ✅ Placeholder value `https://dummy.convex.cloud` used (non-secret)
+- ✅ Avoids build-time env error from `src/app/providers.tsx`
+- **Status**: Complete; builds in CI should now succeed
