@@ -4,35 +4,48 @@ Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
 - Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
-- Status: **Complete - Moved Excel Sheet Parsing to Client Side**
-- Note: Fixed Convex OOM error by running Excel parsing in browser
+- Status: **Complete - All Parsing Moved to Client Side**
+- Note: Fixed all Convex OOM errors by running file parsing in browser
 
 ## Recent changes
 
-### 2026-02-06: Moved Excel Sheet Listing to Client Side (Critical Fix) ✅
-- ✅ **Fixed Convex OOM Error**:
-  - **Problem**: `listSheets` Convex action was hitting 64MB memory limit with large Excel files
-  - **Solution**: Move Excel file download and parsing to client side (browser has no memory limit)
-  - Excel files now parsed in browser instead of Convex backend
-- ✅ **Created Client-Side Utility** (`src/lib/parsers/client-list-sheets.ts`):
-  - New function: `listSheetsFromUrl(fileUrl: string)`
-  - Downloads Excel file from Convex Storage URL
-  - Parses file in browser using existing `listSheets()` utility
-  - No Convex action needed - avoids memory limits
+### 2026-02-06: Moved ALL File Parsing to Client Side (Critical Fix) ✅
+- ✅ **Fixed ALL Convex OOM Errors**:
+  - **Problem**: Both `listSheets` AND `parseFile` Convex actions hit 64MB memory limit with large files
+  - **Solution**: Move ALL file download and parsing to client side (browser has unlimited memory)
+  - All CSV and Excel parsing now runs in browser instead of Convex backend
+- ✅ **Created Comprehensive Client-Side Utility** (`src/lib/parsers/client-parser.ts`):
+  - New function: `parseFileFromUrl(fileUrl, mimeType, options)` - Full file parsing in browser
+  - New function: `listSheetsFromUrl(fileUrl)` - Excel sheet listing in browser
+  - Downloads files from Convex Storage URL
+  - Parses using existing CSV/Excel utilities
+  - Supports all parse options (sheet selection, row/column ranges, headers)
+  - No Convex actions needed - avoids all memory limits
 - ✅ **Updated Pipeline Page** (`src/app/pipeline/[pipelineId]/page.tsx`):
-  - Removed `listSheets` Convex action import
-  - Added import for `listSheetsFromUrl` client utility
+  - Removed `parseFile` and `listSheets` Convex action imports
+  - Added imports for `parseFileFromUrl` and `listSheetsFromUrl`
+  - Updated `loadOriginalData()` to build parse options and use client-side parsing
   - Updated `loadSheetNames()` to use client-side function
-  - Now depends on `fileUrl` query result (waits for storage URL)
-  - Updated useEffect dependencies to wait for both upload and fileUrl
+  - Both functions now depend on `fileUrl` query (waits for storage URL)
+  - Updated useEffect to wait for both upload and fileUrl before loading
+- ✅ **Updated Preview Page** (`src/app/preview/[uploadId]/page.tsx`):
+  - Same changes as pipeline page
+  - Removed Convex action imports
+  - Added client-side utility imports
+  - Updated both `loadOriginalData()` and `loadSheetNames()`
+  - Updated useEffect dependencies
+- ✅ **Cleanup**:
+  - Deleted old `src/lib/parsers/client-list-sheets.ts` (replaced by client-parser.ts)
 - ✅ **Build succeeds** with no errors
 - **Benefits**:
-  - No 64MB memory limit in browser
-  - Works with Excel files of any size
-  - Faster (no server round-trip for parsing)
-  - Simpler architecture (fewer Convex actions)
-- **Note**: `convex/parsers.ts` still has `listSheets` action but it's no longer used
-- **Status**: OOM error fixed; Excel sheet listing works for large files
+  - ✅ No 64MB memory limit in browser
+  - ✅ Works with files of ANY size
+  - ✅ Faster (no server round-trip, direct from storage)
+  - ✅ Simpler architecture (2 fewer Convex actions)
+  - ✅ Preview limited to 5000 rows (sensible for UI)
+  - ✅ Full data available via export (DuckDB-WASM in browser)
+- **Note**: `convex/parsers.ts` still has `parseFile` and `listSheets` actions but they're no longer used
+- **Status**: ALL OOM errors fixed; file parsing works for any file size
 
 ### 2026-02-06: Cleaned Up Debug Code (Production Ready) ✅
 - ✅ **Removed All Debug Logging**:

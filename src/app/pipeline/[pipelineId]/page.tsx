@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AssistantPanel } from "@/components/AssistantPanel";
 import type { Proposal, AddStepProposal, RemoveStepProposal, EditStepProposal, ReorderStepsProposal, UpdateParseConfigProposal } from "@/lib/assistant/intent";
-import { listSheetsFromUrl } from "@/lib/parsers/client-list-sheets";
+import { listSheetsFromUrl, parseFileFromUrl } from "@/lib/parsers/client-parser";
 
 export default function PipelinePage({ params }: { params: Promise<{ pipelineId: string }> }) {
   const { pipelineId: pipelineIdString } = use(params);
@@ -36,7 +36,6 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   );
   const updatePipeline = useMutation(api.pipelines.update);
   const updateParseConfigMutation = useMutation(api.uploads.updateParseConfig);
-  const parseFile = useAction(api.parsers.parseFile);
 
   // Local state
   const [steps, setSteps] = useState<TransformationStep[]>([]);
@@ -58,13 +57,15 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     }
   }, [pipeline]);
 
-  // Load original data and sheets when upload is available
+  // Load original data and sheets when upload and fileUrl are available
   useEffect(() => {
-    if (upload && !originalData) {
-      loadOriginalData();
-    }
-    if (upload && fileUrl && availableSheets.length === 0) {
-      loadSheetNames();
+    if (upload && fileUrl) {
+      if (!originalData) {
+        loadOriginalData();
+      }
+      if (availableSheets.length === 0) {
+        loadSheetNames();
+      }
     }
   }, [upload, fileUrl]);
 
@@ -91,15 +92,60 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   };
 
   const loadOriginalData = async () => {
-    if (!upload) return;
+    if (!upload || !fileUrl) return;
 
     setLoading(true);
     setError("");
 
     try {
-      const result = await parseFile({
-        uploadId: upload._id,
-      });
+      // Build parse options from upload's parseConfig
+      const options: any = {
+        inferTypes: true,
+        maxRows: 5000, // Limit preview to 5000 rows
+      };
+
+      if (upload.parseConfig) {
+        if (upload.parseConfig.sheetName !== undefined) {
+          options.sheetName = upload.parseConfig.sheetName;
+        }
+        if (upload.parseConfig.sheetIndex !== undefined) {
+          options.sheetIndex = upload.parseConfig.sheetIndex;
+        }
+        if (upload.parseConfig.startRow !== undefined) {
+          options.startRow = upload.parseConfig.startRow;
+        }
+        if (upload.parseConfig.endRow !== undefined) {
+          options.endRow = upload.parseConfig.endRow;
+          
+          // Cap the row range to 5000 rows max
+          if (upload.parseConfig.startRow !== undefined) {
+            const requestedRows = upload.parseConfig.endRow - upload.parseConfig.startRow + 1;
+            if (requestedRows > 5000) {
+              options.endRow = upload.parseConfig.startRow + 5000 - 1;
+            }
+          }
+        }
+        if (upload.parseConfig.startColumn !== undefined) {
+          options.startColumn = upload.parseConfig.startColumn;
+        }
+        if (upload.parseConfig.endColumn !== undefined) {
+          options.endColumn = upload.parseConfig.endColumn;
+        }
+        options.hasHeaders = upload.parseConfig.hasHeaders;
+      } else {
+        options.hasHeaders = true;
+      }
+
+      // Use client-side parsing to avoid Convex memory limits
+      const result = await parseFileFromUrl(fileUrl, upload.mimeType, options);
+      
+      // Add warning if we capped the preview to 5000 rows
+      if (result.rowCount === 5000) {
+        result.warnings.push(
+          "Preview limited to 5000 rows. Full data available via export."
+        );
+      }
+      
       setOriginalData(result);
       setPreviewData(result);
     } catch (err) {
