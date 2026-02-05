@@ -52,6 +52,7 @@ export type Proposal =
   | AddStepProposal
   | ReorderStepsProposal
   | UpdateParseConfigProposal
+  | DataQuestionProposal
   | ClarifyProposal;
 
 export interface ParseContext {
@@ -65,6 +66,10 @@ export interface ParseContext {
  */
 export function parseIntent(input: string, ctx?: ParseContext): Proposal {
   const text = normalize(input);
+
+  // Data Q&A (non-mutating)
+  const q = parseDataQuestion(text, ctx);
+  if (q) return q;
 
   // Sort
   const sort = parseSort(text, ctx);
@@ -104,6 +109,85 @@ function normalize(s: string): string {
 
 function clarify(question: string): ClarifyProposal {
   return { kind: "clarify", question };
+}
+
+// === Data Q&A ===
+
+export type DataQuestionType =
+  | "list_columns"
+  | "column_count"
+  | "row_count"
+  | "distinct_values"
+  | "distinct_count"
+  | "aggregate";
+
+export interface DataQuestion {
+  type: DataQuestionType;
+  column?: string;
+  aggregate?: "min" | "max" | "avg" | "sum";
+  limit?: number; // For distinct_values (default 10)
+}
+
+export type DataQuestionProposal = {
+  kind: "data_question";
+  question: DataQuestion;
+};
+
+function parseDataQuestion(text: string, ctx?: ParseContext): DataQuestionProposal | ClarifyProposal | null {
+  // List columns
+  if (/(^|\b)(what|which)\s+columns\b|\b(list|show)\s+columns\b/i.test(text)) {
+    return { kind: "data_question", question: { type: "list_columns" } };
+  }
+
+  // Column count
+  if (/\b(how many|number of)\s+columns\b/i.test(text)) {
+    return { kind: "data_question", question: { type: "column_count" } };
+  }
+
+  // Row count
+  if (/\b(how many|number of)\s+rows\b/i.test(text)) {
+    return { kind: "data_question", question: { type: "row_count" } };
+  }
+
+  // Distinct values/top N distinct values in column
+  const distinctVals = /\b(?:what|show|list)\s+(?:unique|distinct)\s+values\s+(?:of|in)\s+(.+?)(?:\s+top\s+(\d+))?\b/i.exec(text);
+  if (distinctVals) {
+    const col = cleanupName(distinctVals[1]);
+    const limit = distinctVals[2] ? Number(distinctVals[2]) : 10;
+    if (!col) return clarify("Which column? e.g., 'distinct values of status'");
+    if (ctx?.columns && !ctx.columns.includes(col)) {
+      // proceed but could be ambiguous
+    }
+    return { kind: "data_question", question: { type: "distinct_values", column: col, limit } };
+  }
+
+  // Distinct count in column
+  const distinctCount = /\bcount\s+(?:unique|distinct)\s+(?:values\s+)?(?:of|in)\s+(.+)\b/i.exec(text);
+  if (distinctCount) {
+    const col = cleanupName(distinctCount[1]);
+    if (!col) return clarify("Which column? e.g., 'count distinct values of user_id'");
+    return { kind: "data_question", question: { type: "distinct_count", column: col } };
+  }
+
+  // Aggregates: avg/mean, sum, min, max of column
+  const agg = /\b(average|avg|mean|sum|min|max)\s+(?:of\s+)?(.+)\b/i.exec(text);
+  if (agg) {
+    const opRaw = agg[1].toLowerCase();
+    const col = cleanupName(agg[2]);
+    const map: Record<string, DataQuestion["aggregate"]> = {
+      average: "avg",
+      avg: "avg",
+      mean: "avg",
+      sum: "sum",
+      min: "min",
+      max: "max",
+    };
+    const aggregate = map[opRaw];
+    if (!col || !aggregate) return clarify("Which column? e.g., 'average of amount'");
+    return { kind: "data_question", question: { type: "aggregate", column: col, aggregate } };
+  }
+
+  return null;
 }
 
 function parseSort(text: string, ctx?: ParseContext): AddStepProposal | ClarifyProposal | null {

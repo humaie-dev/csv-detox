@@ -116,4 +116,38 @@ describe("assistant intent parser", () => {
     const p = parseIntent("do the thing");
     assert.equal(p.kind, "clarify");
   });
+
+  it("parses list columns question", () => {
+    const p = parseIntent("what columns are available?");
+    assert.equal(p.kind, "data_question");
+    if (p.kind === "data_question") {
+      // @ts-ignore
+      assert.equal(p.question.type, "list_columns");
+    }
+  });
+
+  it("parses row count question", () => {
+    const p = parseIntent("how many rows?");
+    assert.equal(p.kind, "data_question");
+    if (p.kind === "data_question") {
+      // @ts-ignore
+      assert.equal(p.question.type, "row_count");
+    }
+  });
+
+  it("parses distinct values with limit and aggregate questions", () => {
+    const p1 = parseIntent("show distinct values of status top 5");
+    assert.equal(p1.kind, "data_question");
+    if (p1.kind === "data_question") {
+      // @ts-ignore
+      assert.equal(p1.question.type, "distinct_values");
+    }
+
+    const p2 = parseIntent("average of amount");
+    assert.equal(p2.kind, "data_question");
+    if (p2.kind === "data_question") {
+      // @ts-ignore
+      assert.equal(p2.question.type, "aggregate");
+    }
+  });
 });

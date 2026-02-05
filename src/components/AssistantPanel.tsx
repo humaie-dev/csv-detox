@@ -85,6 +85,87 @@ export function AssistantPanel(props: AssistantPanelProps) {
   const summarizeProposal = useCallback(
     async (proposal: Proposal): Promise<string> => {
       switch (proposal.kind) {
+        case "data_question": {
+          // Answer simple questions using the current preview context
+          try {
+            const preview: ParseResult = await loadPreviewWithDuckDB({
+              fileUrl,
+              mimeType,
+              fileName,
+              steps,
+              parseConfig: parseConfig,
+              maxRows: 1000,
+            });
+            const cols = preview.columns.map((c) => c.name);
+            const rows = preview.rows;
+            const q = proposal.question;
+
+            if (q.type === "list_columns") {
+              return `Columns (${cols.length}): ${cols.join(", ")}`;
+            }
+            if (q.type === "column_count") {
+              return `There are ${cols.length} columns in the current preview.`;
+            }
+            if (q.type === "row_count") {
+              return `Preview contains ${rows.length} rows (first ${rows.length} loaded).`;
+            }
+            if ((q.type === "distinct_values" || q.type === "distinct_count") && !q.column) {
+              return "Which column? e.g., 'distinct values of status'";
+            }
+            if (q.type === "distinct_values" && q.column) {
+              const limit = q.limit ?? 10;
+              const set = new Map<string, number>();
+              for (const r of rows) {
+                const v = (r as Record<string, unknown>)[q.column as string];
+                const key = v === null || v === undefined ? "(null)" : String(v);
+                set.set(key, (set.get(key) || 0) + 1);
+              }
+              const entries = Array.from(set.entries()).sort((a, b) => b[1] - a[1]).slice(0, limit);
+              const parts = entries.map(([val, count]) => `${val} (${count})`);
+              return `Top distinct values in ${q.column}: ${parts.join(", ")}`;
+            }
+            if (q.type === "distinct_count" && q.column) {
+              const set = new Set<string>();
+              for (const r of rows) {
+                const v = (r as Record<string, unknown>)[q.column as string];
+                const key = v === null || v === undefined ? "(null)" : String(v);
+                set.add(key);
+              }
+              return `Distinct values in ${q.column}: ${set.size} (preview sample).`;
+            }
+            if (q.type === "aggregate" && q.column && q.aggregate) {
+              const values: number[] = [];
+              for (const r of rows) {
+                const raw = (r as Record<string, unknown>)[q.column];
+                const num = typeof raw === "number" ? raw : Number(String(raw).replace(/,/g, ""));
+                if (!Number.isNaN(num)) values.push(num);
+              }
+              if (values.length === 0) {
+                return `No numeric values found in ${q.column} (within preview).`;
+              }
+              let result: number;
+              switch (q.aggregate) {
+                case "min":
+                  result = Math.min(...values);
+                  break;
+                case "max":
+                  result = Math.max(...values);
+                  break;
+                case "sum":
+                  result = values.reduce((a, b) => a + b, 0);
+                  break;
+                case "avg":
+                  result = values.reduce((a, b) => a + b, 0) / values.length;
+                  break;
+              }
+              const label = q.aggregate === "avg" ? "Average" : q.aggregate.charAt(0).toUpperCase() + q.aggregate.slice(1);
+              return `${label} of ${q.column} (preview): ${result}`;
+            }
+          } catch {
+            // fall through
+          }
+          return "Sorry, I could not compute that right now.";
+        }
         case "add_step": {
           const cfg = proposal.step.config;
           const base = `I propose to add a '${cfg.type}' step.`;
@@ -181,8 +262,13 @@ export function AssistantPanel(props: AssistantPanelProps) {
       const proposal = parseIntent(text, { columns: ctxColumns });
       const summary = await summarizeProposal(proposal);
       const id = `p-${Date.now()}`;
-      setPendingProposalId(id);
-      appendMessage({ id, role: "assistant", text: summary, proposal, applyLabel: "Apply" });
+      if (proposal.kind === "data_question") {
+        // Answer directly, no confirmation/apply UI
+        appendMessage({ id, role: "assistant", text: summary });
+      } else {
+        setPendingProposalId(id);
+        appendMessage({ id, role: "assistant", text: summary, proposal, applyLabel: "Apply" });
+      }
     } catch (err) {
       appendMessage({ id: `a-${Date.now()}`, role: "assistant", text: `Sorry, I ran into an error.` });
     } finally {
