@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_012_pr-automated-checks.md`
-- Status: **Done - PR Checks CI added**
-- Next action: Observe first PR run; adjust as needed
-- Note: Added `.github/workflows/ci.yml` to run `npm ci`, tests, and build on PRs and protected branches
+- Active spec: `specs/2026-02-05_013_fix-tsx-test-discovery.md`
+- Status: **Done - Fixed test discovery for CI**
+- Next action: Re-run CI; ensure tests execute and pass
+- Note: Updated `package.json` test scripts to use directory-based discovery to avoid shell glob issues in Actions
 
 ## Recent changes
 
@@ -44,6 +44,14 @@ Single source of truth for project state. Update after every meaningful change.
 - ✅ Steps: install (`npm ci`), test (`npm test`), build (`npm run build`)
 - ✅ Concurrency enabled to cancel in-progress runs per ref
 - **Status**: Complete; monitor run times and adjust caching if needed
+
+### 2026-02-05: Spec 013 - Fix TSX Test Discovery (Complete)
+- ✅ Updated `package.json`:
+  - `test`: `tsx --test src`
+  - `test:watch`: `tsx --test --watch src`
+- ✅ Added spec `specs/2026-02-05_013_fix-tsx-test-discovery.md`
+- ✅ Reason: Shell did not expand `src/**/*.test.ts` in GitHub Actions, causing CI failure
+- **Status**: Complete; CI should now discover tests reliably
 
 ## Recent changes
 
