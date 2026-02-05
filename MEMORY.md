@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_014_ci-dummy-convex-url.md`
-- Status: **Done - Provide dummy Convex URL for CI build**
-- Next action: CI should build with env injected on build step
-- Note: Inject `NEXT_PUBLIC_CONVEX_URL` only in the build step of CI using a harmless placeholder
+- Active spec: `specs/2026-02-05_015_excel-memory-guard.md`
+- Status: **Active - Prevent Excel preview OOM**
+- Next action: Verify preview handles large Excel files without memory errors
+- Note: Bound materialized rows via `sheetRows` and use `dense: true`; `listSheets` uses `bookSheets: true`
 
 ## Recent changes
 

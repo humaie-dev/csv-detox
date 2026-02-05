@@ -12,7 +12,8 @@ import { inferColumnTypes } from "./type-inference";
  */
 export function listSheets(buffer: ArrayBuffer): string[] {
   try {
-    const workbook = XLSX.read(buffer, { type: "array" });
+    // Read only workbook metadata to avoid loading sheet data into memory
+    const workbook = XLSX.read(buffer, { type: "array", bookSheets: true });
     return workbook.SheetNames || [];
   } catch (error) {
     throw new ParseError(
@@ -43,8 +44,23 @@ export function parseExcel(
   } = options;
 
   try {
-    // Parse workbook
-    const workbook = XLSX.read(buffer, { type: "array" });
+    // Compute a safe upper bound for rows to materialize from the sheet.
+    // This caps memory usage on large workbooks in constrained environments (e.g. Convex actions).
+    const sheetRows: number | undefined = (() => {
+      if (endRow !== undefined) return endRow; // respect explicit endRow
+      if (Number.isFinite(maxRows)) {
+        const mr = maxRows as number;
+        // Include preceding rows to reach startRow, since XLSX cannot skip directly
+        return Math.max(1, (startRow - 1) + mr);
+      }
+      return undefined;
+    })();
+
+    // Parse workbook with memory-friendly options
+    const workbook = XLSX.read(buffer, {
+      type: "array",
+      dense: true, // more memory-efficient sheet representation
+    });
 
     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
       throw new ParseError("No sheets found in Excel file", "NO_SHEETS");
@@ -122,6 +138,8 @@ export function parseExcel(
       header: 1, // Return array of arrays
       defval: null,
       raw: true, // Keep original types (numbers, dates, etc.)
+      // Limit materialized rows to reduce memory
+      ...(sheetRows !== undefined ? { sheetRows } : {}),
     }) as unknown[][];
 
     if (rawData.length === 0) {
