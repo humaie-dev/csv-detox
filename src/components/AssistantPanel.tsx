@@ -157,7 +157,16 @@ export function AssistantPanel(props: AssistantPanelProps) {
         appendMessage({ id: `a-${Date.now()}`, role: "assistant", text: `Restored step order.` });
       } else if (action.kind === "restore_parse_config") {
         try {
-          await updateParseConfig({ uploadId, parseConfig: action.previous || { hasHeaders: true } });
+          const prev = {
+            sheetName: action.previous?.sheetName,
+            sheetIndex: action.previous?.sheetIndex,
+            startRow: action.previous?.startRow,
+            endRow: action.previous?.endRow,
+            startColumn: action.previous?.startColumn,
+            endColumn: action.previous?.endColumn,
+            hasHeaders: action.previous?.hasHeaders ?? true,
+          };
+          await updateParseConfig({ uploadId, parseConfig: prev });
           onParseConfigChanged();
           appendMessage({ id: `a-${Date.now()}`, role: "assistant", text: `Restored previous parse configuration.` });
         } catch (err) {
@@ -198,7 +207,10 @@ export function AssistantPanel(props: AssistantPanelProps) {
           appendMessage({ id: `a-${Date.now()}`, role: "assistant", text: `Reordered steps.` });
         } else if (p.kind === "update_parse_config") {
           const previous = parseConfig ? { ...parseConfig } : undefined;
-          await updateParseConfig({ uploadId, parseConfig: { ...(parseConfig || { hasHeaders: true }), ...p.changes } });
+          const base = parseConfig
+            ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
+            : { hasHeaders: true };
+          await updateParseConfig({ uploadId, parseConfig: { ...base, ...p.changes } });
           onParseConfigChanged();
           undoStack.current.push({ kind: "restore_parse_config", previous });
           appendMessage({ id: `a-${Date.now()}`, role: "assistant", text: `Updated data source configuration.` });
