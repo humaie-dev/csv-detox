@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_015_excel-memory-guard.md`
-- Status: **Active - Prevent Excel preview OOM**
-- Next action: Verify preview handles large Excel files without memory errors
-- Note: Bound materialized rows via `sheetRows` and use `dense: true`; `listSheets` uses `bookSheets: true`; added 25MB server-side guards in Convex actions to avoid reading oversized files into memory
+- Active spec: `specs/2026-02-05_016_unify-preview-export.md`
+- Status: **Active - Unify Preview & Export via DuckDB-WASM**
+- Next action: Replace server-side preview with client-side DuckDB flow; remove Convex guards to prevent drift
+- Note: Preview and Export share loader and SQL translation; sheet listing moves client-side; server caps removed
 
 ## Recent changes
 
