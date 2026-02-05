@@ -3,10 +3,10 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_014_ci-dummy-convex-url.md`
-- Status: **Done - Provide dummy Convex URL for CI build**
-- Next action: CI should build with env injected on build step
-- Note: Inject `NEXT_PUBLIC_CONVEX_URL` only in the build step of CI using a harmless placeholder
+- Active spec: `specs/2026-02-05_015_ai-assistant-pipeline-builder.md`
+- Status: **Draft - Phase 1 scaffolding**
+- Next action: Implement rule-based intent parser and wiring for confirm/apply/undo
+- Note: Added Assistant panel UI scaffold on pipeline page; no new deps
 
 ## Recent changes
 
@@ -1040,3 +1040,8 @@ See `docs/internal/CONVEX_SETUP.md` for detailed setup instructions.
 - ✅ Placeholder value `https://dummy.convex.cloud` used (non-secret)
 - ✅ Avoids build-time env error from `src/app/providers.tsx`
 - **Status**: Complete; builds in CI should now succeed
+### 2026-02-05: Spec 015 - AI Assistant Pipeline Builder (Draft started)
+- ✅ Added spec file with objectives, scope, requirements, design, testing plan, ACs
+- ✅ Implemented UI scaffold: `src/components/AssistantPanel.tsx`
+- ✅ Integrated panel into `src/app/pipeline/[pipelineId]/page.tsx` alongside preview
+- 🔜 Next: `src/lib/assistant/intent.ts` rule-based parser with unit tests; wiring to pipeline state with confirm/apply/undo
