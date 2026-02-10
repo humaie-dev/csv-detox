@@ -8,6 +8,9 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
 import type { ParseResult } from "@/lib/parsers/types";
 import { executeUntilStep } from "@/lib/pipeline/executor";
+import { loadPreviewWithDuckDB } from "@/lib/duckdb/previewer";
+import { downloadFile } from "@/lib/duckdb/loader";
+import { listSheets as listSheetsFromExcel } from "@/lib/parsers/excel";
 import { DataTable } from "@/components/DataTable";
 import { PipelineSteps } from "@/components/PipelineSteps";
 import { AddStepDialog } from "@/components/AddStepDialog";
@@ -69,12 +72,12 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     upload?.parseConfig?.hasHeaders,
   ]);
 
-  // Execute preview when steps or selected index changes
+  // Execute preview when steps, selected index, upload, or fileUrl change
   useEffect(() => {
-    if (originalData) {
+    if (upload && fileUrl) {
       executePreview();
     }
-  }, [steps, selectedStepIndex, originalData]);
+  }, [steps, selectedStepIndex, upload, fileUrl]);
 
   const loadOriginalData = async () => {
     if (!upload || !fileUrl) return;
@@ -167,25 +170,27 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     setOriginalData(null);
   };
 
-  const executePreview = () => {
-    if (!originalData) return;
+  const executePreview = async () => {
+    if (!upload || !fileUrl) return;
 
     setLoading(true);
     setError("");
 
     try {
-      // Execute pipeline client-side
       const stopIndex = selectedStepIndex >= 0 ? selectedStepIndex : steps.length - 1;
-      
-      if (steps.length === 0 || stopIndex < 0) {
-        setPreviewData(originalData);
-      } else {
-        const result = executeUntilStep(originalData, steps, stopIndex);
-        setPreviewData(result.table);
-      }
+      const result = await loadPreviewWithDuckDB({
+        fileUrl,
+        mimeType: upload.mimeType,
+        fileName: upload.originalName,
+        steps,
+        stopAtStep: stopIndex,
+        parseConfig: upload.parseConfig || undefined,
+        maxRows: 1000,
+      });
+      setPreviewData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to execute pipeline");
-      setPreviewData(originalData); // Fallback to original
+      // Do not fall back to stale data here to preserve correctness
     } finally {
       setLoading(false);
     }
