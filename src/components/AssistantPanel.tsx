@@ -20,6 +20,7 @@ export interface AssistantPanelProps {
   typeEvolution?: ColumnMetadata[][];
   availableSheets?: string[];
   onApplyProposal: (proposal: Proposal) => void;
+  onApplyAllProposals: (proposals: Proposal[]) => void;
   disabled?: boolean;
 }
 
@@ -32,6 +33,7 @@ export function AssistantPanel({
   typeEvolution,
   availableSheets,
   onApplyProposal,
+  onApplyAllProposals,
   disabled = false,
 }: AssistantPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -46,10 +48,12 @@ export function AssistantPanel({
     previewData: previewData ? {
       columns: previewData.columns,
       rows: previewData.rows.slice(0, 100),
+      hasDefaultColumnNames: previewData.hasDefaultColumnNames,
     } : null,
     originalData: originalData ? {
       columns: originalData.columns,
       rows: originalData.rows,
+      hasDefaultColumnNames: originalData.hasDefaultColumnNames,
     } : null,
     typeEvolution,
     availableSheets: availableSheets || [],
@@ -68,7 +72,24 @@ export function AssistantPanel({
     parts: [
       {
         type: "text" as const,
-        text: "Hi! I can help you modify this pipeline using natural language. Try commands like:\n• 'sort by date desc'\n• 'remove column notes'\n• 'move step 3 up'\n• 'keep rows where age > 21'",
+        text: `Hi! I can help you transform this data pipeline using natural language.
+
+**Quick Commands:**
+• "Prepare this for SQL import" - I'll analyze and suggest all needed changes
+• "What issues do you see?" - I'll inspect the data structure  
+• "Fill down the product column" - Apply specific transformations
+• "Remove duplicate rows" - Clean the data
+
+**I Can Automatically Detect:**
+✓ Wrong header row positions
+✓ Grouped data that needs filling down
+✓ SQL naming issues (spaces, uppercase, special chars)
+✓ Data quality problems (types, whitespace, duplicates)
+
+**Multi-Step Changes:**
+I can propose multiple changes at once! For example, asking me to "prepare for SQL" will suggest several steps together with an "Apply All" button.
+
+What would you like to do?`,
       },
     ],
   }), []);
@@ -105,10 +126,12 @@ export function AssistantPanel({
     
     switch (toolName) {
       case "addStep":
+        // Handle nested discriminated union structure: { step: { stepType, config }, position }
+        const step = args.step || {};
         return {
           kind: "add_step",
           step: {
-            config: { type: args.stepType, ...args.config },
+            config: { type: step.stepType, ...step.config },
             position: args.position ?? "end",
           },
         };
@@ -195,13 +218,15 @@ export function AssistantPanel({
   };
 
   const handleApplyAll = (toolCalls: any[]) => {
-    // Apply all tool calls in sequence
-    toolCalls.forEach((toolCall) => {
-      const proposal = convertToolCallToProposal(toolCall);
-      if (proposal) {
-        onApplyProposal(proposal);
-      }
-    });
+    // Convert all tool calls to proposals
+    const proposals = toolCalls
+      .map((toolCall) => convertToolCallToProposal(toolCall))
+      .filter((p): p is Proposal => p !== null);
+    
+    // Apply all proposals at once (batch processing)
+    if (proposals.length > 0) {
+      onApplyAllProposals(proposals);
+    }
   };
 
   const formatProposal = (proposal: Proposal): string => {

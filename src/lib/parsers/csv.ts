@@ -136,6 +136,7 @@ export function parseCSV(
     // Determine headers
     let headers: string[];
     let dataStartIndex: number;
+    let hasDefaultColumnNames = false;
 
     if (hasHeaders) {
       // First line is headers
@@ -145,6 +146,9 @@ export function parseCSV(
       // Apply column range to headers
       headers = applyColumnRange(allHeaders, startColumn, endColumn);
       dataStartIndex = 1;
+      
+      // Check if all headers are empty/null (would result in all Column1, Column2, etc.)
+      hasDefaultColumnNames = headers.every((h, i) => h === `Column${i + 1}` || h === "" || h === null);
     } else {
       // Generate column headers: Column1, Column2, etc.
       const firstLine = lines[0];
@@ -155,6 +159,7 @@ export function parseCSV(
       
       headers = Array.from({ length: columnCount }, (_, i) => `Column${i + 1}`);
       dataStartIndex = 0;
+      hasDefaultColumnNames = true;
     }
 
     if (headers.length === 0) {
@@ -221,6 +226,7 @@ export function parseCSV(
       columns,
       rowCount: rows.length,
       warnings,
+      hasDefaultColumnNames,
     };
   } catch (error) {
     if (error instanceof ParseError) {

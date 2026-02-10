@@ -55,7 +55,21 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
 
   // Load steps from pipeline (only sync from server if we're not currently saving)
   useEffect(() => {
-    if (pipeline && pipeline.steps && !isSavingRef.current) {
+    if (!pipeline || !pipeline.steps) return;
+    if (isSavingRef.current) {
+      console.log('[Pipeline] Skipping pipeline sync - currently saving');
+      return;
+    }
+    
+    // Only update local state if server data is actually different
+    const localJson = JSON.stringify(steps);
+    const serverJson = JSON.stringify(pipeline.steps);
+    
+    if (localJson !== serverJson) {
+      console.log('[Pipeline] Syncing steps from server', {
+        local: steps.length,
+        server: pipeline.steps.length,
+      });
       setSteps(pipeline.steps as TransformationStep[]);
     }
   }, [pipeline]);
@@ -96,15 +110,38 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
 
   // Save steps to pipeline when they change
   useEffect(() => {
-    if (pipeline && steps.length > 0 && JSON.stringify(steps) !== JSON.stringify(pipeline.steps)) {
+    // Don't save if we're currently syncing from server
+    if (isSavingRef.current) return;
+    
+    // Don't save if pipeline hasn't loaded yet
+    if (!pipeline) return;
+    
+    // Compare steps with what's in the database
+    const currentStepsJson = JSON.stringify(steps);
+    const dbStepsJson = JSON.stringify(pipeline.steps || []);
+    
+    // Only save if there's an actual difference
+    if (currentStepsJson !== dbStepsJson) {
+      console.log('[Pipeline] Steps changed, saving to database...', {
+        localSteps: steps.length,
+        dbSteps: (pipeline.steps || []).length,
+      });
       savePipeline();
     }
-  }, [steps]);
+  }, [steps, pipeline]);
 
   const savePipeline = async () => {
+    if (!pipeline) return;
+    
     try {
       isSavingRef.current = true;
+      console.log('[Pipeline] Calling updatePipeline mutation with steps:', steps.length);
       await updatePipeline({ id: pipelineId, steps });
+      console.log('[Pipeline] Successfully saved steps to database');
+      
+      // Keep the saving flag true for a brief moment to allow Convex query to update
+      // This prevents the query update from overwriting our local changes
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (err) {
       console.error("Failed to save pipeline:", err);
     } finally {
@@ -417,6 +454,78 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
     }
   };
 
+  const handleApplyAllProposals = async (proposals: Proposal[]) => {
+    // Save current state for undo
+    setUndoStack((prev) => [...prev, steps]);
+
+    // Accumulate all step changes in a single array
+    let newSteps = [...steps];
+    let hasParseConfigChange = false;
+
+    for (const proposal of proposals) {
+      switch (proposal.kind) {
+        case "add_step": {
+          const p = proposal as AddStepProposal;
+          const newStep: TransformationStep = {
+            id: `step-${Date.now()}-${Math.random()}`,
+            type: p.step.config.type,
+            config: p.step.config,
+          };
+
+          if (p.step.position === "end" || p.step.position === undefined) {
+            newSteps = [...newSteps, newStep];
+          } else {
+            newSteps = [...newSteps];
+            newSteps.splice(p.step.position, 0, newStep);
+          }
+          break;
+        }
+
+        case "remove_step": {
+          const p = proposal as RemoveStepProposal;
+          newSteps = newSteps.filter((_, i) => i !== p.stepIndex);
+          
+          // Adjust selected index if needed
+          if (selectedStepIndex >= newSteps.length) {
+            setSelectedStepIndex(newSteps.length - 1);
+          }
+          break;
+        }
+
+        case "edit_step": {
+          const p = proposal as EditStepProposal;
+          newSteps = [...newSteps];
+          newSteps[p.stepIndex] = {
+            ...newSteps[p.stepIndex],
+            type: p.newConfig.type,
+            config: p.newConfig,
+          };
+          break;
+        }
+
+        case "reorder_steps": {
+          const p = proposal as ReorderStepsProposal;
+          newSteps = [...newSteps];
+          const [movedStep] = newSteps.splice(p.from, 1);
+          newSteps.splice(p.to, 0, movedStep);
+          break;
+        }
+
+        case "update_parse_config": {
+          // Handle parse config changes separately (they need async mutations)
+          hasParseConfigChange = true;
+          await handleApplyProposal(proposal);
+          break;
+        }
+      }
+    }
+
+    // Apply all step changes in a single state update
+    if (newSteps.length !== steps.length || newSteps.some((s, i) => s !== steps[i])) {
+      setSteps(newSteps);
+    }
+  };
+
   const handleUndo = () => {
     if (undoStack.length === 0) return;
     
@@ -586,6 +695,7 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
             typeEvolution={typeEvolution}
             availableSheets={availableSheets}
             onApplyProposal={handleApplyProposal}
+            onApplyAllProposals={handleApplyAllProposals}
             disabled={loading}
           />
         </div>

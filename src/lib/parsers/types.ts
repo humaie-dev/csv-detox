@@ -35,6 +35,8 @@ export interface ParseResult {
   rowCount: number;
   /** Any warnings encountered during parsing */
   warnings: string[];
+  /** Whether default column names (Column1, Column2, etc.) were auto-generated */
+  hasDefaultColumnNames?: boolean;
 }
 
 /**

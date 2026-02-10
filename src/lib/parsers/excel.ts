@@ -131,6 +131,7 @@ export function parseExcel(
     // Determine headers
     let headers: string[];
     let dataStartIndex: number;
+    let hasDefaultColumnNames = false;
 
     if (hasHeaders) {
       // First row is headers
@@ -139,11 +140,16 @@ export function parseExcel(
         h !== null && h !== undefined && h !== "" ? String(h) : `Column${i + 1}`
       );
       dataStartIndex = 1;
+      
+      // Check if all headers are default (Column1, Column2, etc.)
+      // This happens when the header row is empty/junk
+      hasDefaultColumnNames = headers.every((h, i) => h === `Column${i + 1}`);
     } else {
       // Generate column headers: Column1, Column2, etc.
       const columnCount = rawData[0]?.length || 0;
       headers = Array.from({ length: columnCount }, (_, i) => `Column${i + 1}`);
       dataStartIndex = 0;
+      hasDefaultColumnNames = true;
     }
 
     if (headers.length === 0) {
@@ -204,6 +210,7 @@ export function parseExcel(
       columns,
       rowCount: rows.length,
       warnings,
+      hasDefaultColumnNames,
     };
   } catch (error) {
     if (error instanceof ParseError) {
