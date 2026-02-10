@@ -53,6 +53,22 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
     }
   }, [upload, fileUrl]);
 
+  // Reload data when parseConfig changes (e.g., sheet selection)
+  useEffect(() => {
+    if (upload && fileUrl) {
+      // Only reload if parseConfig actually changed
+      loadOriginalData();
+    }
+  }, [
+    upload?.parseConfig?.sheetName,
+    upload?.parseConfig?.sheetIndex,
+    upload?.parseConfig?.startRow,
+    upload?.parseConfig?.endRow,
+    upload?.parseConfig?.startColumn,
+    upload?.parseConfig?.endColumn,
+    upload?.parseConfig?.hasHeaders,
+  ]);
+
   // Execute preview when steps or selected index changes
   useEffect(() => {
     if (originalData) {
@@ -146,9 +162,9 @@ export default function PreviewPage({ params }: { params: Promise<{ uploadId: st
   };
 
   const handleConfigSaved = async () => {
-    // Reload data after configuration changes
-    setOriginalData(null); // Clear to force reload
-    await loadOriginalData();
+    // Data will reload automatically via useEffect watching upload.parseConfig
+    // Just clear the current data to show loading state
+    setOriginalData(null);
   };
 
   const executePreview = () => {

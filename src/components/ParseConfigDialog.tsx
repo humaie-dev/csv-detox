@@ -164,7 +164,15 @@ export function ParseConfigDialog({
     try {
       await updateParseConfig({
         uploadId,
-        parseConfig: config,
+        parseConfig: {
+          sheetName: config.sheetName,
+          sheetIndex: config.sheetIndex,
+          startRow: config.startRow ?? null,
+          endRow: config.endRow ?? null,
+          startColumn: config.startColumn ?? null,
+          endColumn: config.endColumn ?? null,
+          hasHeaders: config.hasHeaders,
+        },
       });
       onConfigSaved();
       onOpenChange(false);

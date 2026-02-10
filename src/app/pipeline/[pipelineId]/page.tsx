@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -49,10 +49,13 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   const [error, setError] = useState<string>("");
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
   const [undoStack, setUndoStack] = useState<TransformationStep[][]>([]);
+  
+  // Track whether we're currently saving to prevent circular updates
+  const isSavingRef = useRef(false);
 
-  // Load steps from pipeline
+  // Load steps from pipeline (only sync from server if we're not currently saving)
   useEffect(() => {
-    if (pipeline && pipeline.steps) {
+    if (pipeline && pipeline.steps && !isSavingRef.current) {
       setSteps(pipeline.steps as TransformationStep[]);
     }
   }, [pipeline]);
@@ -68,6 +71,21 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
       }
     }
   }, [upload, fileUrl]);
+
+  // Reload data when parseConfig changes (e.g., sheet selection)
+  useEffect(() => {
+    if (upload && fileUrl) {
+      loadOriginalData();
+    }
+  }, [
+    upload?.parseConfig?.sheetName,
+    upload?.parseConfig?.sheetIndex,
+    upload?.parseConfig?.startRow,
+    upload?.parseConfig?.endRow,
+    upload?.parseConfig?.startColumn,
+    upload?.parseConfig?.endColumn,
+    upload?.parseConfig?.hasHeaders,
+  ]);
 
   // Execute preview when steps or selected index changes
   useEffect(() => {
@@ -85,9 +103,12 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
 
   const savePipeline = async () => {
     try {
+      isSavingRef.current = true;
       await updatePipeline({ id: pipelineId, steps });
     } catch (err) {
       console.error("Failed to save pipeline:", err);
+    } finally {
+      isSavingRef.current = false;
     }
   };
 
@@ -178,9 +199,9 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
   };
 
   const handleConfigSaved = async () => {
-    // Reload data after configuration changes
-    setOriginalData(null); // Clear to force reload
-    await loadOriginalData();
+    // Data will reload automatically via useEffect watching upload.parseConfig
+    // Just clear the current data to show loading state
+    setOriginalData(null);
   };
 
   const executePreview = () => {
@@ -330,17 +351,66 @@ export default function PipelinePage({ params }: { params: Promise<{ pipelineId:
       case "update_parse_config": {
         const p = proposal as UpdateParseConfigProposal;
         
+        // Build the complete parseConfig, starting with existing config
+        const currentConfig: any = upload!.parseConfig || {};
+        const newConfig: any = {
+          hasHeaders: p.changes.hasHeaders ?? currentConfig.hasHeaders ?? true,
+        };
+        
         try {
+          // If sheetName is provided, compute sheetIndex and update sheet-related fields
+          if (p.changes.sheetName !== undefined) {
+            newConfig.sheetName = p.changes.sheetName;
+            newConfig.sheetIndex = availableSheets.indexOf(p.changes.sheetName);
+          } else if (currentConfig.sheetName !== undefined) {
+            // Preserve existing sheet config
+            newConfig.sheetName = currentConfig.sheetName;
+            newConfig.sheetIndex = currentConfig.sheetIndex;
+          }
+          
+          // Only include row/column ranges if explicitly provided in proposal OR if they exist in current config
+          // This prevents accidentally setting huge ranges when just switching sheets
+          if (p.changes.startRow !== undefined) {
+            newConfig.startRow = p.changes.startRow;
+          } else if (currentConfig.startRow !== undefined) {
+            newConfig.startRow = currentConfig.startRow;
+          }
+          
+          if (p.changes.endRow !== undefined) {
+            newConfig.endRow = p.changes.endRow;
+          } else if (currentConfig.endRow !== undefined) {
+            newConfig.endRow = currentConfig.endRow;
+          }
+          
+          if (p.changes.startColumn !== undefined) {
+            newConfig.startColumn = p.changes.startColumn;
+          } else if (currentConfig.startColumn !== undefined) {
+            newConfig.startColumn = currentConfig.startColumn;
+          }
+          
+          if (p.changes.endColumn !== undefined) {
+            newConfig.endColumn = p.changes.endColumn;
+          } else if (currentConfig.endColumn !== undefined) {
+            newConfig.endColumn = currentConfig.endColumn;
+          }
+          
+          console.log('[Pipeline] Calling mutation with config:', newConfig);
           await updateParseConfigMutation({
             uploadId: upload!._id,
-            parseConfig: p.changes as any,
+            parseConfig: newConfig,
           });
           
           // Reload data with new config
           await handleConfigSaved();
         } catch (err) {
           console.error("Failed to update parse config:", err);
-          setError("Failed to update parse configuration");
+          console.error("Error details:", {
+            message: err instanceof Error ? err.message : String(err),
+            newConfig,
+            currentConfig,
+            proposalChanges: p.changes,
+          });
+          setError(`Failed to update parse configuration: ${err instanceof Error ? err.message : String(err)}`);
         }
         break;
       }

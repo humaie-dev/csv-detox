@@ -6,6 +6,7 @@ import {
   validateFileSize,
   getMaxFileSize,
 } from "../src/lib/validation.js";
+import { start } from "node:repl";
 
 /**
  * Upload a file and store its metadata in the database.
@@ -113,10 +114,10 @@ export const updateParseConfig = mutation({
     parseConfig: v.object({
       sheetName: v.optional(v.string()),
       sheetIndex: v.optional(v.number()),
-      startRow: v.optional(v.number()),
-      endRow: v.optional(v.number()),
-      startColumn: v.optional(v.number()),
-      endColumn: v.optional(v.number()),
+      startRow: v.nullable(v.number()),
+      endRow: v.nullable(v.number()),
+      startColumn: v.nullable(v.number()),
+      endColumn: v.nullable(v.number()),
       hasHeaders: v.boolean(),
     }),
   },
@@ -128,18 +129,18 @@ export const updateParseConfig = mutation({
     }
 
     // Validate range values if provided
-    if (args.parseConfig.startRow !== undefined && args.parseConfig.startRow < 1) {
+    if (args.parseConfig.startRow !== null && args.parseConfig.startRow !== undefined && args.parseConfig.startRow < 1) {
       throw new Error("startRow must be >= 1");
     }
-    if (args.parseConfig.endRow !== undefined && args.parseConfig.startRow !== undefined) {
+    if (args.parseConfig.endRow !== null && args.parseConfig.endRow !== undefined && args.parseConfig.startRow !== null && args.parseConfig.startRow !== undefined) {
       if (args.parseConfig.endRow < args.parseConfig.startRow) {
         throw new Error("endRow must be >= startRow");
       }
     }
-    if (args.parseConfig.startColumn !== undefined && args.parseConfig.startColumn < 1) {
+    if (args.parseConfig.startColumn !== null && args.parseConfig.startColumn !== undefined && args.parseConfig.startColumn < 1) {
       throw new Error("startColumn must be >= 1");
     }
-    if (args.parseConfig.endColumn !== undefined && args.parseConfig.startColumn !== undefined) {
+    if (args.parseConfig.endColumn !== null && args.parseConfig.endColumn !== undefined && args.parseConfig.startColumn !== null && args.parseConfig.startColumn !== undefined) {
       if (args.parseConfig.endColumn < args.parseConfig.startColumn) {
         throw new Error("endColumn must be >= startColumn");
       }
@@ -150,7 +151,13 @@ export const updateParseConfig = mutation({
 
     // Update the upload with the new parse config
     await ctx.db.patch(args.uploadId, {
-      parseConfig: args.parseConfig,
+      parseConfig: {
+        ...args.parseConfig,
+        startRow: args.parseConfig.startRow ?? undefined,
+        endRow: args.parseConfig.endRow ?? undefined,
+        startColumn: args.parseConfig.startColumn ??undefined,
+        endColumn: args.parseConfig.endColumn ?? undefined,
+      },
     });
 
     return { success: true };

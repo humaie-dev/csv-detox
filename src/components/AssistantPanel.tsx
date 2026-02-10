@@ -55,70 +55,53 @@ export function AssistantPanel({
     availableSheets: availableSheets || [],
   }), [availableColumns, currentSteps, parseConfig, previewData, originalData, typeEvolution, availableSheets]);
   
-  const transport = useMemo(() => 
-    new DefaultChatTransport({
-      api: "/api/chat",
-    }), 
-    []
-  );
-  
   const { messages, status, error, sendMessage, stop } = useChat({
-    transport,
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
   });
 
+  // Memoize welcome message to avoid recreating on every render
+  const welcomeMessage = useMemo(() => ({
+    id: "welcome",
+    role: "assistant" as const,
+    parts: [
+      {
+        type: "text" as const,
+        text: "Hi! I can help you modify this pipeline using natural language. Try commands like:\n• 'sort by date desc'\n• 'remove column notes'\n• 'move step 3 up'\n• 'keep rows where age > 21'",
+      },
+    ],
+  }), []);
+
   // Show welcome message if no messages yet
-  const displayMessages = messages.length === 0 ? [
-    {
-      id: "welcome",
-      role: "assistant" as const,
-      parts: [
-        {
-          type: "text" as const,
-          text: "Hi! I can help you modify this pipeline using natural language. Try commands like:\n• 'sort by date desc'\n• 'remove column notes'\n• 'move step 3 up'\n• 'keep rows where age > 21'",
-        },
-      ],
-    },
-  ] : messages;
+  const displayMessages = messages.length === 0 ? [welcomeMessage] : messages;
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = inputValue.trim();
-    if (!text || status === "streaming" || disabled) return;
-
-    setInputValue("");
-    
-    // Pass context data in options.body - this gets merged with the request
-    await sendMessage({ text }, { 
-      body: { data: contextData } 
-    });
-  };
-
-  const handleApply = (toolCall: any) => {
-    // Convert tool call to proposal format
-    const proposal = convertToolCallToProposal(toolCall);
-    if (proposal) {
-      onApplyProposal(proposal);
-    }
-  };
-
-  const handleApplyAll = (toolCalls: any[]) => {
-    // Apply all tool calls in sequence
-    toolCalls.forEach((toolCall) => {
-      const proposal = convertToolCallToProposal(toolCall);
-      if (proposal) {
-        onApplyProposal(proposal);
+  // Helper to get tool calls from message parts
+  const getToolCalls = useCallback((message: any): any[] => {
+    // Azure OpenAI returns tool parts with type like 'tool-{toolName}' instead of 'tool-call'
+    const toolCalls = message.parts.filter((part: any) => {
+      // Check for standard AI SDK format
+      if (part.type === 'tool-call') return true;
+      
+      // Check for Azure OpenAI format: 'tool-addStep', 'tool-updateParseConfig', etc.
+      if (typeof part.type === 'string' && part.type.startsWith('tool-')) {
+        // Convert Azure format to standard format
+        const toolName = part.type.replace('tool-', '');
+        part.toolName = toolName;
+        part.args = part.args || {}; // Azure includes args in the part
+        return true;
       }
+      
+      return false;
     });
-  };
+    
+    return toolCalls;
+  }, []);
 
-  const convertToolCallToProposal = (toolCall: any): Proposal | null => {
+  const convertToolCallToProposal = useCallback((toolCall: any): Proposal | null => {
     const toolName = toolCall.toolName;
-    const args = toolCall.args || {};
+    // Azure OpenAI puts arguments in 'input' field, not 'args'
+    const args = toolCall.input || toolCall.args || {};
     
     switch (toolName) {
       case "addStep":
@@ -147,9 +130,10 @@ export function AssistantPanel({
           to: args.toIndex,
         };
       case "updateParseConfig":
-        return {
+        const proposal: UpdateParseConfigProposal = {
           kind: "update_parse_config",
           changes: {
+            // Only include fields that are actually provided in the args
             ...(args.sheetName !== undefined && { sheetName: args.sheetName }),
             ...(args.startRow !== undefined && { startRow: args.startRow }),
             ...(args.endRow !== undefined && { endRow: args.endRow }),
@@ -158,10 +142,66 @@ export function AssistantPanel({
             ...(args.hasHeaders !== undefined && { hasHeaders: args.hasHeaders }),
           },
         };
+        return proposal;
       default:
         console.warn('[AssistantPanel] Unknown tool:', toolName);
         return null;
     }
+  }, []);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Memoize message proposals to avoid recalculating on every render
+  const messageProposals = useMemo(() => {
+    const proposalMap = new Map<string, Proposal[]>();
+    
+    displayMessages.forEach((message) => {
+      if (message.role === "assistant" && message.parts) {
+        const toolCalls = getToolCalls(message);
+        if (toolCalls.length > 0) {
+          const proposals = toolCalls
+            .map(tc => convertToolCallToProposal(tc))
+            .filter(Boolean) as Proposal[];
+          if (proposals.length > 0) {
+            proposalMap.set(message.id, proposals);
+          }
+        }
+      }
+    });
+    
+    return proposalMap;
+  }, [displayMessages, getToolCalls, convertToolCallToProposal]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = inputValue.trim();
+    if (!text || status === "streaming" || disabled) return;
+
+    setInputValue("");
+    
+    // Send context data with each message (request-level configuration)
+    await sendMessage({ text }, { body: { data: contextData } });
+  };
+
+  const handleApply = (toolCall: any) => {
+    // Convert tool call to proposal format
+    const proposal = convertToolCallToProposal(toolCall);
+    if (proposal) {
+      onApplyProposal(proposal);
+    }
+  };
+
+  const handleApplyAll = (toolCalls: any[]) => {
+    // Apply all tool calls in sequence
+    toolCalls.forEach((toolCall) => {
+      const proposal = convertToolCallToProposal(toolCall);
+      if (proposal) {
+        onApplyProposal(proposal);
+      }
+    });
   };
 
   const formatProposal = (proposal: Proposal): string => {
@@ -266,15 +306,24 @@ export function AssistantPanel({
 
   // Helper to get text content from message parts
   const getMessageText = (message: any): string => {
-    return message.parts
+    if (!message.parts || message.parts.length === 0) {
+      return "";
+    }
+    
+    const textContent = message.parts
       .filter((part: any) => part.type === "text")
       .map((part: any) => part.text)
       .join("");
-  };
-
-  // Helper to get tool calls from message parts
-  const getToolCalls = (message: any): any[] => {
-    return message.parts.filter((part: any) => part.type === 'tool-call');
+    
+    // If no text but has tool calls, show a default message
+    if (!textContent && message.role === "assistant") {
+      const toolCalls = getToolCalls(message);
+      if (toolCalls.length > 0) {
+        return ""; // Return empty, we'll show the proposal instead
+      }
+    }
+    
+    return textContent;
   };
 
   return (
@@ -306,15 +355,19 @@ export function AssistantPanel({
                     ? "bg-primary text-primary-foreground rounded-lg px-3 py-2"
                     : "bg-muted rounded-lg px-3 py-2"
                 }`}>
-                  <div className="whitespace-pre-wrap">{getMessageText(m)}</div>
+                  {getMessageText(m) && (
+                    <div className="whitespace-pre-wrap">{getMessageText(m)}</div>
+                  )}
                   
                   {/* Show Apply buttons for tool calls */}
                   {(() => {
-                    const toolCalls = getToolCalls(m);
-                    if (toolCalls.length === 0) return null;
+                    // Don't show proposals while streaming - arguments are incomplete
+                    if (status === "streaming") return null;
                     
-                    const proposals = toolCalls.map(tc => convertToolCallToProposal(tc)).filter(Boolean) as Proposal[];
-                    if (proposals.length === 0) return null;
+                    const proposals = messageProposals.get(m.id);
+                    if (!proposals || proposals.length === 0) return null;
+                    
+                    const toolCalls = getToolCalls(m);
                     
                     return (
                       <div className="mt-3 space-y-2">

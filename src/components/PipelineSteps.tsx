@@ -35,48 +35,79 @@ export function PipelineSteps({
       case "trim":
       case "uppercase":
       case "lowercase":
+        if (!config.columns || config.columns.length === 0) {
+          return "No columns specified";
+        }
         return `Columns: ${config.columns.join(", ")}`;
       
       case "deduplicate":
-        return config.columns 
-          ? `Columns: ${config.columns.join(", ")}` 
-          : "All columns";
+        if (!config.columns) {
+          return "All columns";
+        }
+        if (config.columns.length === 0) {
+          return "No columns specified";
+        }
+        return `Columns: ${config.columns.join(", ")}`;
       
       case "filter":
-        return `${config.column} ${config.operator} ${config.value}`;
+        return `${config.column || "?"} ${config.operator || "?"} ${config.value ?? "?"}`;
       
       case "rename_column":
-        return `${config.oldName} → ${config.newName}`;
+        return `${config.oldName || "?"} → ${config.newName || "?"}`;
       
       case "remove_column":
+        if (!config.columns || config.columns.length === 0) {
+          return "No columns specified";
+        }
         return `Remove: ${config.columns.join(", ")}`;
       
       case "cast_column":
-        return `${config.column} → ${config.targetType} (on error: ${config.onError})`;
+        return `${config.column || "?"} → ${config.targetType || "?"} (on error: ${config.onError || "fail"})`;
       
       case "unpivot":
-        return `ID: ${config.idColumns.join(", ")} | Values: ${config.valueColumns.join(", ")} → ${config.variableColumnName}, ${config.valueColumnName}`;
+        if (!config.idColumns || !config.valueColumns) {
+          return "Missing configuration";
+        }
+        return `ID: ${config.idColumns.join(", ")} | Values: ${config.valueColumns.join(", ")} → ${config.variableColumnName || "variable"}, ${config.valueColumnName || "value"}`;
       
       case "pivot":
-        return `Index: ${config.indexColumns.join(", ")} | ${config.columnSource} → columns | ${config.valueSource} as values`;
+        if (!config.indexColumns) {
+          return "Missing configuration";
+        }
+        return `Index: ${config.indexColumns.join(", ")} | ${config.columnSource || "?"} → columns | ${config.valueSource || "?"} as values`;
       
       case "split_column":
-        return `${config.column} (${config.method}) → ${config.newColumns.join(", ")}`;
+        if (!config.newColumns) {
+          return `${config.column || "?"} (${config.method || "?"}) → ?`;
+        }
+        return `${config.column || "?"} (${config.method || "?"}) → ${config.newColumns.join(", ")}`;
       
       case "merge_columns":
-        return `${config.columns.join(` ${config.separator} `)} → ${config.newColumn}`;
+        if (!config.columns || config.columns.length === 0) {
+          return `? → ${config.newColumn || "?"}`;
+        }
+        return `${config.columns.join(` ${config.separator || ""} `)} → ${config.newColumn || "?"}`;
       
       case "fill_down":
+        if (!config.columns || config.columns.length === 0) {
+          return "No columns specified";
+        }
         const fillDownSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
         return `Columns: ${config.columns.join(", ")}${fillDownSuffix}`;
       
       case "fill_across":
+        if (!config.columns || config.columns.length === 0) {
+          return "No columns specified";
+        }
         const fillAcrossSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
         return `Columns: ${config.columns.join(" → ")}${fillAcrossSuffix}`;
       
       case "sort": {
+        if (!config.columns || config.columns.length === 0) {
+          return "No columns specified";
+        }
         const sortDesc = config.columns
-          .map(col => `${col.name} (${col.direction === "desc" ? "↓" : "↑"})`)
+          .map(col => `${col.name || "?"} (${col.direction === "desc" ? "↓" : "↑"})`)
           .join(", ");
         const nulls = config.nullsPosition === "first" ? "nulls first" : "nulls last";
         return `Sort by: ${sortDesc} (${nulls})`;
