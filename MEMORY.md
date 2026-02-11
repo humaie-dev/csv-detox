@@ -3,10 +3,340 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-05_016_unify-preview-export.md`
-- Status: **Active - Unify Preview & Export via DuckDB-WASM**
-- Next action: Replace server-side preview with client-side DuckDB flow; remove Convex guards to prevent drift
-- Note: Preview and Export share loader and SQL translation; sheet listing moves client-side; server caps removed
+- Active spec: `specs/2026-02-11_018_sqlite-server-storage.md`
+- Status: **Phase 6 Complete - Export Functionality (Server-Side CSV Streaming)**
+- Next action: Begin Phase 7 (LLM Sampling API) or Phase 8 (Testing & Migration)
+- Note: Major architectural change - Move all file data access from Convex/client to server-side SQLite
+
+### 2026-02-11: Spec 018 Phase 6 - Export Functionality (COMPLETE ✅)
+- ✅ **Created server-side CSV export API endpoint**: `/api/projects/[projectId]/pipelines/[pipelineId]/export`
+  - **GET** - Stream CSV data directly from SQLite
+  - Supports both raw data export (`?raw=true`) and pipeline results export
+  - Memory-efficient streaming: Processes data in 1000-row batches
+  - Proper CSV formatting: Escapes quotes, commas, newlines per RFC 4180
+  - Auto-generates filename from project/pipeline names
+  - Returns 404 if pipeline hasn't been executed yet
+  - Content-Type: `text/csv; charset=utf-8`
+  - Content-Disposition: `attachment; filename="..."`
+- ✅ **Simplified ExportButton component** (162 → 98 lines)
+  - Removed all DuckDB-WASM logic
+  - Simple fetch to export API endpoint
+  - Direct download via Blob URL
+  - No progress modal needed (server handles all processing)
+  - Props changed: Now requires `projectId` and `pipelineId` instead of file details
+- ✅ **Removed DuckDB dependencies entirely**
+  - Deleted `src/lib/duckdb/` directory (8 files: exporter, loader, previewer, sql-translator, types, init, index)
+  - Deleted `src/components/export/ExportProgressModal.tsx`
+  - Deleted `public/duckdb/` directory (WASM bundles: ~74MB of files)
+  - Removed `@duckdb/duckdb-wasm` from package.json
+  - Removed postinstall script that copied WASM files
+  - **26 packages removed** from node_modules
+- ✅ **Created comprehensive export tests** (15 tests, all passing)
+  - `src/lib/sqlite/__tests__/export.test.ts` - CSV export utilities tests:
+    - CSV field escaping (commas, quotes, newlines)
+    - CSV value formatting (null, boolean, number, date, object, array)
+    - Raw data export with special characters
+    - Null value handling
+    - Pipeline results export
+    - Large dataset export (10,000 rows, < 1 second)
+- ✅ **Build succeeds** with no errors
+- ✅ **All 493 tests passing** (15 new export tests added)
+- **Files Created**:
+  - `src/app/api/projects/[projectId]/pipelines/[pipelineId]/export/route.ts` - CSV export endpoint (289 lines)
+  - `src/lib/sqlite/__tests__/export.test.ts` - Export functionality tests (367 lines)
+- ✅ **Integrated ExportButton into project page**
+  - Added to header section next to "Delete Project" button
+  - Two export modes:
+    - **Export Raw Data**: Always visible (when pipelines exist), exports original parsed data
+    - **Export Pipeline Results**: Visible when pipeline is selected with steps, exports transformed data
+  - Conditional rendering based on parsing state and pipeline selection
+- **Files Modified**:
+  - `src/components/ExportButton.tsx` - Simplified to use API endpoint (162 → 98 lines, -64 lines)
+  - `src/app/projects/[projectId]/page.tsx` - Added ExportButton to header (+14 lines)
+  - `package.json` - Removed DuckDB dependency and postinstall script
+- **Files Deleted**:
+  - `src/lib/duckdb/` directory (8 files, ~35 KB)
+  - `src/components/export/ExportProgressModal.tsx` (118 lines)
+  - `public/duckdb/` directory (~74 MB WASM files)
+- **Key Features**:
+  - **Memory-efficient streaming**: Uses ReadableStream to stream CSV in chunks
+  - **Proper CSV escaping**: Handles quotes, commas, newlines per RFC 4180
+  - **Type-aware formatting**: Formats booleans, numbers, dates, objects, arrays correctly
+  - **Flexible export**: Supports raw data or pipeline results
+  - **Auto-filename generation**: Uses project/pipeline names with sanitization
+  - **Error handling**: Returns 404 if pipeline not executed, 500 for server errors
+- **Technical Details**:
+  - CSV escaping: Quotes fields containing `"`, `,`, `\n`, or `\r`
+  - Quote escaping: Doubles quotes (`"` → `""`)
+  - Line endings: Uses CRLF (`\r\n`) per CSV standard
+  - Batch size: 1000 rows per batch for memory efficiency
+  - Format functions: `formatCSVValue()` and `escapeCSVField()`
+- **Bundle Size Impact**:
+  - Before: Project page = 48.9 kB, 26 DuckDB packages installed
+  - After: Project page = 48.9 kB (unchanged), 26 packages removed
+  - WASM files removed: ~74 MB from public directory
+- **Status**: Phase 6 complete, DuckDB fully removed, export works server-side
+
+### 2026-02-11: Spec 018 Phase 5 - Frontend Cleanup (COMPLETE ✅)
+- ✅ **Discovery: Project detail page already uses SQLite APIs**
+  - The main working interface (`/projects/[projectId]/page.tsx`, 870 lines) already uses SQLite API routes
+  - No DuckDB usage in project detail page - it was implemented correctly from the start
+  - Uses `/api/projects/[projectId]/data` for raw data preview
+  - Uses `/api/projects/[projectId]/pipelines/[pipelineId]/preview` for pipeline preview
+  - Uses `/api/projects/[projectId]/sheets` for Excel sheet selection
+  - Fully functional: create pipelines, add/edit/remove steps, view previews, sheet selection
+- ✅ **Deleted unused pipeline editor page**
+  - Removed `/src/app/projects/[projectId]/pipelines/[pipelineId]/` directory entirely
+  - This was a redundant page that was never linked to from anywhere
+  - All functionality exists in the project detail page
+  - Bundle size reduced: 48.9 kB (project page) vs 124 kB (old pipeline editor)
+- ✅ **Created React hooks for API access** (for future use)
+  - `src/hooks/api/useProjectData.ts` - Three reusable hooks:
+    - `useProjectData(projectId, options)` - Fetch raw data with pagination
+    - `useColumns(projectId)` - Fetch column metadata
+    - `usePipelinePreview({ projectId, pipelineId, upToStep })` - Execute pipeline preview
+  - These hooks are available for future pages/components that need API access
+- ✅ **Verified DuckDB usage scope**
+  - Only 2 files still use DuckDB: `ExportButton.tsx` and `ExportProgressModal.tsx`
+  - These will be replaced in Phase 6 with server-side export API
+  - No DuckDB warnings in build output after removing pipeline editor page
+- ✅ **Build succeeds** with no errors
+- ✅ **All 516 tests passing** (no regressions)
+- **Files Deleted**:
+  - `src/app/projects/[projectId]/pipelines/[pipelineId]/page.tsx` - Unused pipeline editor (325 lines)
+- **Files Created**:
+  - `src/hooks/api/useProjectData.ts` - React hooks for API access (203 lines)
+- **Key Insights**:
+  - **Phase 5 was mostly already done**: The project detail page was already using SQLite APIs
+  - **Architectural win**: Single-page approach (project detail) is simpler than separate pipeline editor
+  - **Ready for Phase 6**: Only ExportButton remains to be converted to server-side
+- **Status**: Phase 5 complete, frontend uses SQLite APIs, ready to replace export functionality
+
+
+- ✅ **Created pipeline execution API endpoint**: `/api/projects/[projectId]/pipelines/[pipelineId]/execute`
+  - **POST** - Execute full pipeline and store results in SQLite
+  - Loads raw data from SQLite (or re-parses if pipeline has custom parseConfig)
+  - Executes all transformation steps using existing pipeline executor
+  - Creates/replaces pipeline result tables (`pipeline_{id}_result`, `pipeline_{id}_columns`)
+  - Stores results in batches using transactions for performance
+  - Returns execution metadata: success, rowCount, columnCount, duration, stepResults
+  - Error handling: Reports failed steps with error details
+  - Full support for pipeline-specific parse configs (different Excel sheets)
+- ✅ **Created pipeline results API endpoint**: `/api/projects/[projectId]/pipelines/[pipelineId]/results`
+  - **GET** - Fetch stored pipeline execution results with pagination
+  - Query params: `limit` (1-1000, default 100), `offset` (default 0)
+  - Returns data, columns, pagination metadata
+  - Checks if pipeline results exist (returns 404 with `executed: false` if not)
+  - Helper functions: `getPipelineResults()`, `getPipelineColumns()`, `getPipelineResultRowCount()`
+- ✅ **Build succeeds** with no errors
+- ✅ **All 516 tests passing** (no regressions)
+- **Files Created**:
+  - `src/app/api/projects/[projectId]/pipelines/[pipelineId]/execute/route.ts` - Pipeline execution endpoint (286 lines)
+  - `src/app/api/projects/[projectId]/pipelines/[pipelineId]/results/route.ts` - Results retrieval endpoint (188 lines)
+- **Key Features**:
+  - **Server-side execution**: Pipelines execute on server, not client
+  - **Persistent results**: Execution results stored in SQLite per pipeline
+  - **Full data processing**: Handles entire datasets (not limited to preview rows)
+  - **Pipeline-specific parsing**: Re-parses file if pipeline has custom parseConfig (e.g., different Excel sheet)
+  - **Batch operations**: Stores results in batches using SQLite transactions
+  - **Execution metadata**: Tracks success/failure, duration, rows affected per step
+  - **Error reporting**: Detailed error messages for failed transformations
+- **Technical Details**:
+  - Uses existing `executePipeline()` from `src/lib/pipeline/executor.ts`
+  - Drops and recreates pipeline tables on each execution (clean slate)
+  - Sanitizes pipeline IDs for SQLite table names (hyphens → underscores)
+  - Stores rows as JSON in SQLite for schema flexibility
+  - Column metadata includes type, null count, sample values
+- **Status**: Phase 4 complete, pipeline execution API ready for use
+
+
+- ✅ **Created Convex client wrapper** for server-side API routes:
+  - `src/lib/convex/client.ts` - ConvexHttpClient singleton for API routes
+  - `downloadFileFromConvex()` - Downloads files from Convex Storage
+  - `getUpload()` and `getProject()` - Fetch metadata from Convex
+- ✅ **Created server-side parser module**:
+  - `src/lib/sqlite/parser.ts` - Parses files and stores in SQLite
+  - `parseAndStoreFile()` - Main function: download → parse → store
+  - `isProjectDataInitialized()` - Check if project has data
+  - Supports CSV and Excel files
+  - Batch processing (1000 rows per batch) for memory efficiency
+  - Type conversion: Parser ColumnMetadata → SQLite ColumnMetadata
+  - Auto-clears old data on re-parse
+- ✅ **Created Next.js API route**: `/api/projects/[projectId]/parse`
+  - **POST** - Parse file and store in SQLite
+    - Validates request body with Zod
+    - Checks if already initialized (skip unless force=true)
+    - Downloads file from Convex Storage
+    - Merges parseOptions (request overrides upload config)
+    - Returns rowCount, columnCount, columns, parseTimeMs
+    - Full error handling with descriptive messages
+  - **GET** - Check parse status (returns `initialized: boolean`)
+  - Next.js 15 compatibility (async params)
+- ✅ **Comprehensive integration tests** (8 tests, all passing):
+  - `src/lib/sqlite/__tests__/parser.test.ts`
+  - CSV parsing and storage
+  - Data retrieval verification
+  - Column metadata storage
+  - Parse options (row/column ranges)
+  - Batch processing (2500 rows)
+  - Re-parsing (clears old data)
+- ✅ **Build succeeds** with no errors
+- ✅ **All 516 tests passing** (508 previous + 8 new parser tests)
+- **Files Created**:
+  - `src/lib/convex/client.ts` - Server-side Convex client
+  - `src/lib/sqlite/parser.ts` - File parsing and storage
+  - `src/app/api/projects/[projectId]/parse/route.ts` - Parse API endpoint
+  - `src/lib/sqlite/__tests__/parser.test.ts` - Integration tests
+- **Key Features**:
+  - **No Convex memory limits**: Parsing happens in Next.js server (not Convex actions)
+  - **Batch processing**: Handles large files without OOM
+  - **Parse config support**: Respects row/column ranges, sheet selection, headers
+  - **Idempotent**: Skip re-parsing unless forced
+  - **Error recovery**: Cleans up database on parse failure
+- **Technical Details**:
+  - Uses existing CSV/Excel parsers from `src/lib/parsers/`
+  - Stores rows as JSON in SQLite for schema flexibility
+  - Column type inference: number, string, boolean, date (excludes "null" type)
+  - Sample values converted to strings for storage
+- **Status**: Phase 2 complete, server-side file parsing ready for use
+
+### 2026-02-11: Spec 018 Phase 1 - SQLite Infrastructure (COMPLETE ✅)
+- ✅ **Installed dependencies**: better-sqlite3@11.10.0, @types/better-sqlite3, lru-cache@11.0.2
+- ✅ **Created SQLite infrastructure** in `src/lib/sqlite/`:
+  - `types.ts` - TypeScript interfaces for all DB operations (ColumnMetadata, DataPreviewResult, etc.)
+  - `schema.ts` - Schema initialization, pipeline tables, parse config storage
+  - `database.ts` - Main wrapper with lazy hydration, caching, CRUD operations
+  - `queries.ts` - Common query patterns (random sample, stats, distribution, search)
+  - `cache.ts` - LRU cache for database instances (max 10 open DBs)
+  - `index.ts` - Barrel export for clean imports
+- ✅ **Key Features Implemented**:
+  - **Lazy hydration**: Databases opened on first access, cached for reuse
+  - **LRU cache**: Max 10 databases open, automatically closes least-recently-used
+  - **Schema initialization**: Creates tables on first DB creation (raw_data, columns, parse_config)
+  - **Pipeline tables**: Dynamic table creation per pipeline (pipeline_{id}_result, pipeline_{id}_columns)
+  - **Sanitization**: Pipeline IDs sanitized (hyphens → underscores) for valid table names
+  - **PRAGMA optimizations**: WAL mode, NORMAL sync, 40MB cache, temp tables in RAM
+  - **JSON storage**: Rows stored as JSON for schema flexibility
+  - **Batch operations**: Transactional inserts for performance
+  - **Query utilities**: Random sampling, column stats, value distribution, pattern search
+- ✅ **Database per project**: Each project gets its own SQLite file: `{projectId}.db`
+- ✅ **Comprehensive testing** (42 tests, all passing):
+  - `database.test.ts` - 13 tests (creation, caching, CRUD, pagination, edge cases)
+  - `schema.test.ts` - 11 tests (schema init, pipeline tables, parse config, row counts)
+  - `queries.test.ts` - 18 tests (sampling, stats, distribution, search, distinct values)
+- ✅ **Build succeeds** with no errors
+- ✅ **All 508 tests passing** (466 existing + 42 new SQLite tests)
+- **Files Created**:
+  - `src/lib/sqlite/types.ts`
+  - `src/lib/sqlite/schema.ts`
+  - `src/lib/sqlite/database.ts`
+  - `src/lib/sqlite/queries.ts`
+  - `src/lib/sqlite/cache.ts`
+  - `src/lib/sqlite/index.ts`
+  - `src/lib/sqlite/__tests__/database.test.ts`
+  - `src/lib/sqlite/__tests__/schema.test.ts`
+  - `src/lib/sqlite/__tests__/queries.test.ts`
+- **Technical Details**:
+  - Database files stored in `data/sqlite/` directory (created automatically)
+  - Configurable via `SQLITE_DB_DIR` environment variable
+  - Database wrapper handles cleanup (deletes DB file + WAL + SHM files)
+  - Cache automatically closes databases on eviction
+  - All queries use parameterized statements (no SQL injection)
+- **Status**: Phase 1 complete, SQLite infrastructure ready for Phase 2
+
+### 2026-02-11: Created Spec 018 - Server-Side SQLite Storage (Draft)
+- ✅ **Comprehensive spec for moving data operations to server-side SQLite**
+- **Objective**: Remove all file parsing and data access from Convex actions and client-side DuckDB; move to server-side SQLite
+- **Key Changes**:
+  - Server-side file parsing (Next.js API routes, not Convex actions)
+  - One SQLite database per project (stores raw data, pipeline results)
+  - All data access via API routes (no client-side file processing)
+  - Pipeline execution on server (not client DuckDB-WASM)
+  - LLM-accessible sampling API for data exploration
+  - Lazy hydration: SQLite databases loaded on-demand
+  - Database caching (LRU, max 10 open DBs)
+- **Benefits**:
+  - Remove ~72MB DuckDB-WASM from client bundle
+  - No client-side file downloads (better privacy)
+  - No Convex 64MB memory limits
+  - Better performance on mobile
+  - LLM can sample/explore data
+- **8 Implementation Phases**:
+  1. SQLite Infrastructure (wrapper, schema, caching) - 3-4 hours
+  2. Server-Side File Parsing (Next.js API routes) - 3-4 hours
+  3. Data Access API Routes (preview, columns, sampling) - 2-3 hours
+  4. Pipeline Execution API (server-side transformations) - 4-5 hours
+  5. Update Frontend (remove DuckDB-WASM) - 3-4 hours
+  6. Export Functionality (streaming CSV from SQLite) - 2 hours
+  7. LLM Sampling API (random, stats, search) - 2-3 hours
+  8. Testing & Migration - 3-4 hours
+- **Total estimate**: 22-29 hours
+- **Design Decisions**:
+  - SQLite per project (isolation, parallel access)
+  - JSON column storage (flexible schema)
+  - Keep Convex for metadata (projects, pipelines, uploads)
+  - Streaming export (no memory issues)
+  - WAL mode for better concurrency
+- **Status**: Draft spec created, ready for review and implementation
+
+## Recent changes
+- ✅ **Removed obsolete routes and components**
+- **Deleted Routes**:
+  - `src/app/create-pipeline/` - Replaced by `/projects/new`
+  - `src/app/pipeline/[pipelineId]/` - Replaced by `/projects/[projectId]/pipelines/[pipelineId]`
+  - `src/app/preview/[uploadId]/` - Superseded by new pipeline editor
+- **Deleted Components**:
+  - `src/components/PipelineSidebar.tsx` - No longer used (replaced by project detail page)
+- ✅ **Build succeeds** with no errors (only expected DuckDB and @next/swc warnings)
+- **Current Route Structure**:
+  - `/` - Redirects to `/projects`
+  - `/projects` - List all projects
+  - `/projects/new` - Create new project (file upload)
+  - `/projects/[projectId]` - Project detail (file info + pipelines list)
+  - `/projects/[projectId]/pipelines/[pipelineId]` - Pipeline editor
+
+### 2026-02-11: Spec 017 - Project-Based Architecture (Complete)
+- ✅ **Major architectural refactor to introduce Project concept**
+- **Objective**: Reorganize app around Projects (one file, many pipelines) to enable multi-table extraction from single files
+- ✅ **Phase 1: Database Schema & Backend**:
+  - Updated `convex/schema.ts`: Added `projects` table, updated `pipelines` to use `projectId` instead of `uploadId`
+  - Added `parseConfig` to pipelines table (optional, overrides project/upload defaults)
+  - Created `convex/projects.ts` with full CRUD: `list()`, `get()`, `create()`, `update()`, `remove()`
+  - Updated `convex/pipelines.ts`: Changed `list(projectId)`, added parseConfig support
+  - Proper indexes: `by_project`, `by_created`, `by_upload`
+- ✅ **Phase 3: UI Pages**:
+  - Created `/projects` page: Lists all projects in card grid with file info and pipeline counts
+  - Created `/projects/[projectId]` page: Project detail with file info, pipeline list, create/delete actions
+  - Created `/projects/new` page: File upload and project creation flow
+- ✅ **Phase 4: Pipeline Editor**:
+  - Created `/projects/[projectId]/pipelines/[pipelineId]` route: Full pipeline editor with project context
+  - Pipeline fetches upload through project (nested queries)
+  - Breadcrumb navigation: Projects → [Project Name] → [Pipeline Name]
+  - parseConfig can be set per-pipeline or inherit from project/upload
+- ✅ **Phase 5: Navigation**:
+  - Updated home page (`/`) to redirect to `/projects`
+  - New flow: Home → Projects → Project Detail → Pipeline Editor
+- **Key Design Decisions**:
+  - No data migration (fresh start approach - user confirmed)
+  - ParseConfig hierarchy: Upload default → Pipeline override
+  - Cascading deletes: Delete project → delete all pipelines
+  - One file per project (can extend to multi-file later)
+- **Files Created**:
+  - `convex/projects.ts` - Project CRUD operations
+  - `src/app/projects/page.tsx` - Projects list
+  - `src/app/projects/[projectId]/page.tsx` - Project detail
+  - `src/app/projects/new/page.tsx` - Create project (file upload)
+  - `src/app/projects/[projectId]/pipelines/[pipelineId]/page.tsx` - Pipeline editor
+  - `specs/2026-02-11_017_project-architecture.md` - Comprehensive spec
+- **Files Modified**:
+  - `convex/schema.ts` - Added projects table, updated pipelines
+  - `convex/pipelines.ts` - Changed to use projectId
+  - `src/app/page.tsx` - Simple redirect to /projects
+- **Old Routes (No Longer Used)**:
+  - `/create-pipeline` - Replaced by `/projects/new`
+  - `/pipeline/[pipelineId]` - Replaced by `/projects/[projectId]/pipelines/[pipelineId]`
+  - `/preview/[uploadId]` - Superseded by new pipeline editor
+- **Status**: Core functionality complete, ready for manual testing
 
 ### 2026-02-05: Loader Idempotency Fix
 - ✅ Prevent "Table with name 'data' already exists" in repeated previews

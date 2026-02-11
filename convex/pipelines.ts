@@ -32,14 +32,14 @@ export const get = query({
 });
 
 /**
- * List all pipelines for a given upload
+ * List all pipelines for a given project
  */
 export const list = query({
-  args: { uploadId: v.id("uploads") },
+  args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const pipelines = await ctx.db
       .query("pipelines")
-      .withIndex("by_upload", (q) => q.eq("uploadId", args.uploadId))
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
     return pipelines.sort((a, b) => b.createdAt - a.createdAt);
@@ -51,13 +51,24 @@ export const list = query({
  */
 export const create = mutation({
   args: {
-    uploadId: v.id("uploads"),
+    projectId: v.id("projects"),
     name: v.string(),
     steps: v.array(
       v.object({
         id: v.string(),
         type: v.string(),
         config: v.any(),
+      })
+    ),
+    parseConfig: v.optional(
+      v.object({
+        sheetName: v.optional(v.string()),
+        sheetIndex: v.optional(v.number()),
+        startRow: v.optional(v.number()),
+        endRow: v.optional(v.number()),
+        startColumn: v.optional(v.number()),
+        endColumn: v.optional(v.number()),
+        hasHeaders: v.boolean(),
       })
     ),
   },
@@ -71,21 +82,22 @@ export const create = mutation({
       throw new Error("Pipeline name must be 50 characters or less");
     }
 
-    // Check for duplicate name within this upload
+    // Check for duplicate name within this project
     const existing = await ctx.db
       .query("pipelines")
-      .withIndex("by_upload", (q) => q.eq("uploadId", args.uploadId))
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
     if (existing.some((p) => p.name === trimmedName)) {
-      throw new Error(`Pipeline "${trimmedName}" already exists for this file`);
+      throw new Error(`Pipeline "${trimmedName}" already exists for this project`);
     }
 
     const now = Date.now();
     const pipelineId = await ctx.db.insert("pipelines", {
       name: trimmedName,
-      uploadId: args.uploadId,
+      projectId: args.projectId,
       steps: args.steps,
+      parseConfig: args.parseConfig,
       createdAt: now,
       updatedAt: now,
     });
@@ -105,23 +117,49 @@ export const remove = mutation({
 });
 
 /**
- * Update a pipeline (change steps, not name)
+ * Update a pipeline (change steps or parseConfig)
  */
 export const update = mutation({
   args: {
     id: v.id("pipelines"),
-    steps: v.array(
+    steps: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          type: v.string(),
+          config: v.any(),
+        })
+      )
+    ),
+    parseConfig: v.optional(
       v.object({
-        id: v.string(),
-        type: v.string(),
-        config: v.any(),
+        sheetName: v.optional(v.string()),
+        sheetIndex: v.optional(v.number()),
+        startRow: v.optional(v.number()),
+        endRow: v.optional(v.number()),
+        startColumn: v.optional(v.number()),
+        endColumn: v.optional(v.number()),
+        hasHeaders: v.boolean(),
       })
     ),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      steps: args.steps,
+    const updateData: {
+      steps?: typeof args.steps;
+      parseConfig?: typeof args.parseConfig;
+      updatedAt: number;
+    } = {
       updatedAt: Date.now(),
-    });
+    };
+
+    if (args.steps !== undefined) {
+      updateData.steps = args.steps;
+    }
+
+    if (args.parseConfig !== undefined) {
+      updateData.parseConfig = args.parseConfig;
+    }
+
+    await ctx.db.patch(args.id, updateData);
   },
 });

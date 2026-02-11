@@ -22,10 +22,29 @@ export default defineSchema({
     ),
   }).index("by_uploadedAt", ["uploadedAt"]),
 
+  projects: defineTable({
+    name: v.string(), // User-defined project name
+    uploadId: v.id("uploads"), // Single file reference
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_upload", ["uploadId"])
+    .index("by_created", ["createdAt"]),
+
   pipelines: defineTable({
     name: v.string(),
-    uploadId: v.id("uploads"), // Required - pipeline needs a file
-    sheetName: v.optional(v.string()),
+    projectId: v.id("projects"), // Changed from uploadId - pipeline belongs to project
+    parseConfig: v.optional(
+      v.object({
+        sheetName: v.optional(v.string()),
+        sheetIndex: v.optional(v.number()),
+        startRow: v.optional(v.number()),
+        endRow: v.optional(v.number()),
+        startColumn: v.optional(v.number()),
+        endColumn: v.optional(v.number()),
+        hasHeaders: v.boolean(),
+      })
+    ), // Optional - overrides project/upload defaults
     steps: v.array(
       v.object({
         id: v.string(),
@@ -36,6 +55,6 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_upload", ["uploadId"])
+    .index("by_project", ["projectId"])
     .index("by_created", ["createdAt"]),
 });

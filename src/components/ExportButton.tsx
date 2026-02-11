@@ -1,6 +1,6 @@
 /**
  * Export Button Component
- * Uses DuckDB-WASM for client-side export of full files (not limited to preview)
+ * Uses server-side SQLite export for streaming CSV downloads
  */
 
 "use client";
@@ -9,45 +9,29 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { exportWithDuckDB } from "@/lib/duckdb";
-import { ExportProgressModal } from "@/components/export/ExportProgressModal";
-import type { ExportProgress } from "@/lib/duckdb/types";
-import type { TransformationStep } from "@/lib/pipeline/types";
-import type { ParseOptions } from "@/lib/parsers/types";
 
 interface ExportButtonProps {
-  /** Upload ID from database */
-  uploadId: string;
-  /** URL to download file from Convex storage */
-  fileUrl: string;
-  /** MIME type of the file */
-  mimeType: string;
-  /** Original filename */
-  originalFilename: string;
-  /** Pipeline transformation steps */
-  steps: TransformationStep[];
-  /** Parse configuration (row/column ranges, sheet selection) */
-  parseConfig?: ParseOptions;
+  /** Project ID */
+  projectId: string;
+  /** Pipeline ID (optional for exportAll mode) */
+  pipelineId?: string;
+  /** Export raw data instead of pipeline results */
+  exportRaw?: boolean;
+  /** Export all pipelines as ZIP */
+  exportAll?: boolean;
   /** Disabled state */
   disabled?: boolean;
 }
 
 export function ExportButton({
-  uploadId,
-  fileUrl,
-  mimeType,
-  originalFilename,
-  steps,
-  parseConfig,
+  projectId,
+  pipelineId,
+  exportRaw = false,
+  exportAll = false,
   disabled,
 }: ExportButtonProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
-  const [progress, setProgress] = useState<ExportProgress>({
-    stage: "initializing",
-    message: "Starting export...",
-  });
-  const [exportResult, setExportResult] = useState<{ blob: Blob; fileName: string } | null>(null);
 
   const handleExport = async () => {
     // Prevent concurrent exports
@@ -61,101 +45,79 @@ export function ExportButton({
     }
 
     setIsExporting(true);
-    setExportResult(null);
 
     try {
-      const result = await exportWithDuckDB({
-        uploadId,
-        fileUrl,
-        mimeType,
-        fileName: originalFilename,
-        steps,
-        parseConfig,
-        onProgress: (prog) => {
-          setProgress(prog);
-        },
-      });
+      // Build export URL
+      let url: string;
+      if (exportAll) {
+        url = `/api/projects/${projectId}/export-all`;
+      } else if (!pipelineId) {
+        throw new Error("pipelineId is required for single pipeline export");
+      } else {
+        url = `/api/projects/${projectId}/pipelines/${pipelineId}/export${exportRaw ? "?raw=true" : ""}`;
+      }
 
-      // Store result for download
-      setExportResult({
-        blob: result.blob,
-        fileName: result.fileName,
-      });
+      // Fetch from server
+      const response = await fetch(url);
 
-      toast({
-        title: "Export Complete",
-        description: `Processed ${result.rowCount.toLocaleString()} rows`,
-      });
-    } catch (error) {
-      console.error("Export error:", error);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Export failed");
+      }
 
-      // Error already shown in progress modal
-      // Just log to console for debugging
-    }
-  };
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || (exportAll ? "export.zip" : "export.csv");
 
-  const handleDownload = () => {
-    if (!exportResult) {
-      return;
-    }
+      // Get blob
+      const blob = await response.blob();
 
-    try {
-      // Create blob URL
-      const url = URL.createObjectURL(exportResult.blob);
-
-      // Trigger download
+      // Create download link
+      const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
-      link.download = exportResult.fileName;
+      link.href = downloadUrl;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // Clean up blob URL
-      URL.revokeObjectURL(url);
-
-      // Close modal
-      setIsExporting(false);
-      setExportResult(null);
+      // Clean up
+      URL.revokeObjectURL(downloadUrl);
 
       toast({
-        title: "Download Started",
-        description: `Saving ${exportResult.fileName}`,
+        title: "Export Complete",
+        description: `Downloaded ${filename}`,
       });
     } catch (error) {
-      console.error("Download error:", error);
+      console.error("Export error:", error);
+
       toast({
         variant: "destructive",
-        title: "Download Failed",
-        description: error instanceof Error ? error.message : "Failed to download file",
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export file",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleCancel = () => {
-    setIsExporting(false);
-    setExportResult(null);
-  };
-
   return (
-    <>
-      <Button
-        onClick={handleExport}
-        disabled={disabled || isExporting}
-        variant="default"
-        size="default"
-        title="Export full file using DuckDB in your browser"
-      >
-        <Download className="mr-2 h-4 w-4" />
-        {isExporting ? "Exporting..." : "Export CSV"}
-      </Button>
-
-      <ExportProgressModal
-        isOpen={isExporting}
-        progress={progress}
-        onDownload={handleDownload}
-        onCancel={handleCancel}
-      />
-    </>
+    <Button
+      onClick={handleExport}
+      disabled={disabled || isExporting}
+      variant="default"
+      size="default"
+      title={
+        exportAll
+          ? "Export all pipelines as ZIP"
+          : exportRaw
+          ? "Export raw data as CSV"
+          : "Export pipeline results as CSV"
+      }
+    >
+      <Download className="mr-2 h-4 w-4" />
+      {isExporting ? "Exporting..." : exportAll ? "Export All (ZIP)" : "Export CSV"}
+    </Button>
   );
 }
