@@ -4,9 +4,9 @@ ID: 003
 Status: Superseded
 
 **Note**: This spec has been broken into smaller, more manageable specs:
-- Spec 003a: File Parsing and Type Inference (Active)
-- Spec 003b: Pipeline Engine and Execution (Future)
-- Spec 003c: Preview UI Components (Future)
+- Spec 003a: File Parsing and Type Inference (Done)
+- Spec 003b: Pipeline Engine and Execution (Done)
+- Spec 003c: Preview UI Components (Done)
 
 ---
 

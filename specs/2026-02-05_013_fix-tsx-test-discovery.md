@@ -1,6 +1,6 @@
 # Spec 013 — Fix TSX Test Discovery in CI
 
-Status: Done
+Status: Superseded
 
 Objective
 - Ensure `npm test` reliably discovers and runs all TypeScript tests in CI using TSX + Node test runner.

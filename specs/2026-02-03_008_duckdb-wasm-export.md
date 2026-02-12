@@ -1,7 +1,7 @@
 # Spec: Client-Side Export with DuckDB-WASM
 Date: 2026-02-03
 ID: 008
-Status: Done
+Status: Superseded
 
 ## Objective
 Enable users to export full CSV/Excel files (1M+ rows) by processing transformations client-side using DuckDB-WASM, eliminating the 5000-row preview limit caused by Convex's 64MB memory constraint.

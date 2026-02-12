@@ -3,12 +3,113 @@
 Single source of truth for project state. Update after every meaningful change.
 
 ## Current task
-- Active spec: `specs/2026-02-11_018_sqlite-server-storage.md`
-- Status: **Phase 6 Complete - Export Functionality (Server-Side CSV Streaming)**
-- Next action: Begin Phase 7 (LLM Sampling API) or Phase 8 (Testing & Migration)
-- Note: Major architectural change - Move all file data access from Convex/client to server-side SQLite
+## Current task
+- Active spec: None
+- Status: **Spec 022 complete — assistant uses AI SDK useChat**
+- Next action: Manual assistant prompt test
+- Note: Assistant now uses AI SDK `useChat` with UI message parts
 
-### 2026-02-11: Spec 018 Phase 6 - Export Functionality (COMPLETE ✅)
+### 2026-02-12: Spec 022 - AI SDK useChat Integration (COMPLETE ✅)
+- ✅ **Replaced manual streaming with `useChat`**
+  - Uses AI SDK transport to `/api/assistant/chat`
+  - Renders UI message parts for text and tool badges
+- ✅ **Added UI message conversion on the server**
+  - Converts UI messages to model messages before `streamText`
+- ✅ **Switched response to UI message stream**
+  - Uses `toUIMessageStreamResponse` for useChat compatibility
+- **Files Modified**:
+  - `src/components/AssistantChat.tsx` - useChat integration + parts rendering
+  - `src/app/api/assistant/chat/route.ts` - UI → model message conversion
+
+### 2026-02-12: Spec 021 - Assistant Streaming Display Fix (COMPLETE ✅)
+- ✅ **Expanded client stream parsing**
+  - Handles `0:` and `data:` prefixes
+  - Falls back to appending raw text lines
+- **Files Modified**:
+  - `src/components/AssistantChat.tsx` - More robust stream parsing
+
+### 2026-02-12: Spec 020 - Fix Test Runner Entry Point (COMPLETE ✅)
+- ✅ **Updated test scripts to use test file globs**
+  - `npm test` now targets `src/**/__tests__/**/*.test.ts`
+  - `npm test <file>` still works for single-file runs
+- ✅ **Confirmed test discovery works**
+  - Tests now execute; failure is due to `better-sqlite3` native module mismatch
+- **Files Modified**:
+  - `package.json` - Updated `test` and `test:watch` scripts
+
+### 2026-02-12: Spec 019 - Persistent Assistant Panel (COMPLETE ✅)
+- ✅ **Added shadcn-style Sidebar component** (`src/components/ui/sidebar.tsx`)
+  - Supports left/right sidebars, mobile overlay, and SidebarTrigger
+  - Handles mobile open state and overlay dismissal
+- ✅ **Converted AI Assistant to permanent panel**
+  - Removed Sheet drawer usage
+  - Embedded assistant in right sidebar with fixed layout
+- ✅ **Updated project page layout to use Sidebar**
+  - Left pipelines panel now uses Sidebar component
+  - Right assistant panel added as persistent sidebar
+  - Mobile triggers added for pipelines and assistant
+- **Files Created**:
+  - `src/components/ui/sidebar.tsx` - Sidebar + trigger components
+- **Files Modified**:
+  - `src/components/AssistantChat.tsx` - Panel layout (no drawer)
+  - `src/app/projects/[projectId]/page.tsx` - New sidebar layout + triggers
+
+### 2026-02-11: AI Assistant Integration (COMPLETE ✅)
+- ✅ **Fixed AI SDK v6 API compatibility issues**
+  - Changed `parameters:` to `inputSchema:` in tool definitions (AI SDK v6 requirement)
+  - Changed `toDataStreamResponse()` to `toTextStreamResponse()` (v6 method)
+  - Replaced `maxToolRoundtrips: 5` with `stopWhen: stepCountIs(5)` (v6 stop condition API)
+  - Imported `stepCountIs` from `ai` package
+- ✅ **Upgraded React for compatibility**
+  - Upgraded `react` from 19.0.0 → 19.2.1
+  - Upgraded `react-dom` from 19.0.0 → 19.2.1
+  - Installed `@ai-sdk/react@3.0.81` (not using `useChat` - using manual fetch instead)
+- ✅ **Created AI Assistant Chat Component as Right-Side Drawer**
+  - `src/components/AssistantChat.tsx` - Right-side drawer (240 lines)
+  - Uses shadcn/ui Sheet component for drawer UI
+  - Width: 500px (sm: 540px), slides in from right
+  - Manual state management with fetch streaming (not using `useChat` hook due to API incompatibility)
+  - Features:
+    - Message history with user/assistant bubbles
+    - Tool invocation badges (shows when AI calls tools)
+    - Loading indicator with spinner
+    - Auto-scroll to latest message
+    - Empty state with example prompts
+    - Sheet header with title and description
+- ✅ **Integrated Assistant into Project Page**
+  - Added "AI Assistant" button to header (with Sparkles icon)
+  - Button visible when project has pipelines
+  - Assistant receives context: `projectId` and `selectedPipelineId`
+  - Opens right-side drawer on click
+- ✅ **Installed shadcn/ui components**
+  - `src/components/ui/scroll-area.tsx` - For smooth scrolling chat messages
+  - `src/components/ui/sheet.tsx` - For drawer UI
+- ✅ **All 493 tests passing**
+- ✅ **Build succeeds** with no errors
+- **Files Created**:
+  - `src/components/AssistantChat.tsx` - Chat drawer component (240 lines)
+  - `src/components/ui/scroll-area.tsx` - shadcn/ui component
+  - `src/components/ui/sheet.tsx` - shadcn/ui component
+- **Files Modified**:
+  - `src/app/api/assistant/chat/route.ts` - Fixed for AI SDK v6 compatibility
+  - `src/app/projects/[projectId]/page.tsx` - Added assistant button and component
+  - `package.json` - Upgraded React, added @ai-sdk/react
+- **AI Assistant Capabilities**:
+  - **8 tools available**:
+    1. `getDataSummary` - Overview of data structure
+    2. `sampleData` - Random sample rows
+    3. `getColumnInfo` - Column types and stats
+    4. `getUniqueValues` - Value distributions (for categorical data)
+    5. `searchData` - Find rows matching pattern
+    6. `getRowCount` - Count total rows
+    7. `listPipelines` - Show all pipelines
+    8. `getPipelineDetails` - Inspect specific pipeline steps
+  - **Context-aware**: Knows current project and selected pipeline
+  - **Streaming responses**: Uses Azure OpenAI with text streaming
+  - **Azure OpenAI**: Uses `gpt-4o-global` deployment
+- **Status**: AI Assistant feature complete and integrated
+
+### 2026-02-11: Export All Pipelines as ZIP (COMPLETE ✅)
 - ✅ **Created server-side CSV export API endpoint**: `/api/projects/[projectId]/pipelines/[pipelineId]/export`
   - **GET** - Stream CSV data directly from SQLite
   - Supports both raw data export (`?raw=true`) and pipeline results export

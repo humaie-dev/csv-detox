@@ -1,6 +1,6 @@
 # Spec 016 — Unify Preview And Export With DuckDB-WASM
 
-Status: Active
+Status: Superseded
 
 Objective
 - Remove server-side preview guards and make Preview and Export use the same client-side flow powered by DuckDB-WASM to handle large files without divergence.

@@ -1,7 +1,7 @@
 # Spec: CSV Export Functionality
 Date: 2026-02-03
 ID: 004
-Status: Done
+Status: Superseded
 Completion Date: 2026-02-03
 
 ## Objective

@@ -29,14 +29,23 @@ import {
   ChevronDown,
   Pencil,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { SavePipelineDialog } from "@/components/SavePipelineDialog";
 import { AddStepDialog } from "@/components/AddStepDialog";
 import { PipelineSettingsDialog } from "@/components/PipelineSettingsDialog";
 import { ExportButton } from "@/components/ExportButton";
+import { AssistantChat } from "@/components/AssistantChat";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/DataTable";
 import { InteractiveDataTable } from "@/components/InteractiveDataTable";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import type { ColumnMetadata } from "@/lib/parsers/types";
 import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
 
@@ -573,50 +582,62 @@ export default function ProjectDetailPage({
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/projects">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+    <SidebarProvider defaultOpen={{ left: true, right: true }}>
+      <div className="flex h-screen flex-col">
+        {/* Header */}
+        <div className="border-b bg-background px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/projects">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold">{project.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {project.upload?.originalName}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 md:hidden">
+                <SidebarTrigger side="left" variant="outline" size="sm">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Pipelines
+                </SidebarTrigger>
+                <SidebarTrigger side="right" variant="outline" size="sm">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Assistant
+                </SidebarTrigger>
+              </div>
+              {!isParsingFile && (pipelines?.length ?? 0) > 0 && (
+                <ExportButton
+                  projectId={projectId}
+                  exportAll={true}
+                />
+              )}
+              <Button variant="destructive" onClick={handleDeleteProject}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Project
               </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{project.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {project.upload?.originalName}
-              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {!isParsingFile && (pipelines?.length ?? 0) > 0 && (
-              <ExportButton
-                projectId={projectId}
-                exportAll={true}
-              />
-            )}
-            <Button variant="destructive" onClick={handleDeleteProject}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Project
-            </Button>
-          </div>
         </div>
-      </div>
 
-      {/* 3-Panel Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Pipelines List */}
-        <div className="w-64 overflow-y-auto border-r bg-muted/10">
-          <div className="p-4">
-            <div className="mb-4 flex items-center justify-between">
+        {/* 4-Panel Layout */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Panel: Pipelines List */}
+          <Sidebar side="left" className="bg-muted/10">
+            <SidebarHeader className="border-b-0 pb-0">
               <h2 className="font-semibold">Pipelines</h2>
               <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
               </Button>
-            </div>
+            </SidebarHeader>
+
+            <SidebarContent className="pt-2">
 
             {isParsingFile && (
               <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
@@ -682,241 +703,251 @@ export default function ProjectDetailPage({
                 ))}
               </div>
             )}
-          </div>
-        </div>
+            </SidebarContent>
+          </Sidebar>
 
-        {/* Middle Panel: Steps / Config */}
-        <div className="w-80 overflow-y-auto border-r bg-background">
-          {selectedPipelineId && selectedPipeline ? (
-            <div className="p-4">
-              <div className="mb-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold">Pipeline Steps</h2>
-                  <div className="flex gap-2">
+          {/* Middle Panel: Steps / Config */}
+          <div className="w-80 overflow-y-auto border-r bg-background">
+            {selectedPipelineId && selectedPipeline ? (
+              <div className="p-4">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold">Pipeline Steps</h2>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsSettingsDialogOpen(true)}
+                      >
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={openAddStepDialog}
+                      >
+                        <Plus className="mr-2 h-3 w-3" />
+                        Add Step
+                      </Button>
+                    </div>
+                  </div>
+                  {selectedPipeline.parseConfig && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {selectedPipeline.parseConfig.sheetName && (
+                        <Badge variant="secondary" className="text-xs">
+                          Sheet: {selectedPipeline.parseConfig.sheetName}
+                        </Badge>
+                      )}
+                      {selectedPipeline.parseConfig.startRow && (
+                        <Badge variant="secondary" className="text-xs">
+                          Row {selectedPipeline.parseConfig.startRow}+
+                        </Badge>
+                      )}
+                      {selectedPipeline.parseConfig.endRow && (
+                        <Badge variant="secondary" className="text-xs">
+                          To {selectedPipeline.parseConfig.endRow}
+                        </Badge>
+                      )}
+                      {!selectedPipeline.parseConfig.hasHeaders && (
+                        <Badge variant="secondary" className="text-xs">
+                          No headers
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {selectedPipeline.steps.length === 0 ? (
+                  <div className="rounded-md border border-dashed p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No transformation steps yet
+                    </p>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setIsSettingsDialogOpen(true)}
-                    >
-                      <Settings className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
+                      className="mt-2"
                       onClick={openAddStepDialog}
                     >
-                      <Plus className="mr-2 h-3 w-3" />
-                      Add Step
+                      Add your first step
                     </Button>
                   </div>
-                </div>
-                {selectedPipeline.parseConfig && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {selectedPipeline.parseConfig.sheetName && (
-                      <Badge variant="secondary" className="text-xs">
-                        Sheet: {selectedPipeline.parseConfig.sheetName}
-                      </Badge>
-                    )}
-                    {selectedPipeline.parseConfig.startRow && (
-                      <Badge variant="secondary" className="text-xs">
-                        Row {selectedPipeline.parseConfig.startRow}+
-                      </Badge>
-                    )}
-                    {selectedPipeline.parseConfig.endRow && (
-                      <Badge variant="secondary" className="text-xs">
-                        To {selectedPipeline.parseConfig.endRow}
-                      </Badge>
-                    )}
-                    {!selectedPipeline.parseConfig.hasHeaders && (
-                      <Badge variant="secondary" className="text-xs">
-                        No headers
-                      </Badge>
-                    )}
+                ) : (
+                  <div className="space-y-2">
+                    {selectedPipeline.steps.map((step, index) => (
+                      <div
+                        key={step.id}
+                        className={`rounded-md border p-3 transition-colors ${
+                          selectedStepIndex === index
+                            ? "border-primary bg-primary/10"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <div
+                          className="cursor-pointer"
+                          onClick={() => setSelectedStepIndex(index)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {index + 1}
+                            </Badge>
+                            <span className="flex-1 font-medium capitalize">
+                              {step.type.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                            {JSON.stringify(step.config).slice(0, 80)}
+                          </p>
+                        </div>
+                        <div className="mt-2 flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveStep(index, index - 1);
+                            }}
+                            disabled={index === 0}
+                          >
+                            <ChevronUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveStep(index, index + 1);
+                            }}
+                            disabled={index === selectedPipeline.steps.length - 1}
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditStepDialog(index);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this step?")) {
+                                handleDeleteStep(index);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-
-              {selectedPipeline.steps.length === 0 ? (
-                <div className="rounded-md border border-dashed p-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No transformation steps yet
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={openAddStepDialog}
-                  >
-                    Add your first step
-                  </Button>
+            ) : (
+              <div className="flex h-full items-center justify-center p-4">
+                <div className="text-center text-muted-foreground">
+                  <ChevronRight className="mx-auto mb-2 h-8 w-8" />
+                  <p className="text-sm">Select a pipeline to view steps</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {selectedPipeline.steps.map((step, index) => (
-                    <div
-                      key={step.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        selectedStepIndex === index
-                          ? "border-primary bg-primary/10"
-                          : "hover:bg-muted"
-                      }`}
+              </div>
+            )}
+          </div>
+
+          {/* Right Panel: Data Preview */}
+          <div className="flex-1 overflow-y-auto bg-background">
+            {previewData.loading ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <Spinner />
+                  <span>Loading preview...</span>
+                </div>
+              </div>
+            ) : previewData.rows.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <FileSpreadsheet className="mx-auto mb-2 h-12 w-12" />
+                  <p>No data available</p>
+                  {isParsingFile && <p className="text-sm">File is being parsed...</p>}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4">
+                {/* Sheet selector for raw data (Excel files only) */}
+                {!selectedPipelineId && isExcelFile && availableSheets.length > 0 && (
+                  <div className="mb-4 rounded-lg border bg-muted/10 p-3">
+                    <Label htmlFor="sheet-select" className="text-sm font-medium">
+                      Sheet:
+                    </Label>
+                    <Select
+                      value={selectedSheet || undefined}
+                      onValueChange={handleSheetChange}
+                      disabled={loadingSheets || isParsingFile}
                     >
-                      <div
-                        className="cursor-pointer"
-                        onClick={() => setSelectedStepIndex(index)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {index + 1}
-                          </Badge>
-                          <span className="flex-1 font-medium capitalize">
-                            {step.type.replace(/_/g, " ")}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                          {JSON.stringify(step.config).slice(0, 80)}
-                        </p>
-                      </div>
-                      <div className="mt-2 flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMoveStep(index, index - 1);
-                          }}
-                          disabled={index === 0}
-                        >
-                          <ChevronUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMoveStep(index, index + 1);
-                          }}
-                          disabled={index === selectedPipeline.steps.length - 1}
-                        >
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditStepDialog(index);
-                          }}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm("Delete this step?")) {
-                              handleDeleteStep(index);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center p-4">
-              <div className="text-center text-muted-foreground">
-                <ChevronRight className="mx-auto mb-2 h-8 w-8" />
-                <p className="text-sm">Select a pipeline to view steps</p>
-              </div>
-            </div>
-          )}
-        </div>
+                      <SelectTrigger id="sheet-select" className="mt-1">
+                        <SelectValue placeholder="Select a sheet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSheets.map((sheet) => (
+                          <SelectItem key={sheet} value={sheet}>
+                            {sheet}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isParsingFile && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        <Spinner className="mr-1 inline h-3 w-3" />
+                        Loading sheet data...
+                      </p>
+                    )}
+                  </div>
+                )}
 
-        {/* Right Panel: Data Preview */}
-        <div className="flex-1 overflow-y-auto bg-background">
-          {previewData.loading ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex items-center gap-2">
-                <Spinner />
-                <span>Loading preview...</span>
+                {selectedPipelineId ? (
+                  <DataTable
+                    data={{
+                      rows: previewData.rows,
+                      columns: previewData.columns,
+                      rowCount: previewData.rowCount,
+                      warnings: [],
+                    }}
+                    maxRows={100}
+                  />
+                ) : (
+                  <InteractiveDataTable
+                    data={{
+                      rows: previewData.rows,
+                      columns: previewData.columns,
+                      rowCount: previewData.rowCount,
+                      warnings: [],
+                    }}
+                    maxRows={100}
+                    enableInteraction={true}
+                  />
+                )}
               </div>
-            </div>
-          ) : previewData.rows.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <FileSpreadsheet className="mx-auto mb-2 h-12 w-12" />
-                <p>No data available</p>
-                {isParsingFile && <p className="text-sm">File is being parsed...</p>}
-              </div>
-            </div>
-          ) : (
-            <div className="p-4">
-              {/* Sheet selector for raw data (Excel files only) */}
-              {!selectedPipelineId && isExcelFile && availableSheets.length > 0 && (
-                <div className="mb-4 rounded-lg border bg-muted/10 p-3">
-                  <Label htmlFor="sheet-select" className="text-sm font-medium">
-                    Sheet:
-                  </Label>
-                  <Select
-                    value={selectedSheet || undefined}
-                    onValueChange={handleSheetChange}
-                    disabled={loadingSheets || isParsingFile}
-                  >
-                    <SelectTrigger id="sheet-select" className="mt-1">
-                      <SelectValue placeholder="Select a sheet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSheets.map((sheet) => (
-                        <SelectItem key={sheet} value={sheet}>
-                          {sheet}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {isParsingFile && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      <Spinner className="mr-1 inline h-3 w-3" />
-                      Loading sheet data...
-                    </p>
-                  )}
-                </div>
-              )}
+            )}
+          </div>
 
-              {selectedPipelineId ? (
-                <DataTable
-                  data={{
-                    rows: previewData.rows,
-                    columns: previewData.columns,
-                    rowCount: previewData.rowCount,
-                    warnings: [],
-                  }}
-                  maxRows={100}
-                />
-              ) : (
-                <InteractiveDataTable
-                  data={{
-                    rows: previewData.rows,
-                    columns: previewData.columns,
-                    rowCount: previewData.rowCount,
-                    warnings: [],
-                  }}
-                  maxRows={100}
-                  enableInteraction={true}
-                />
-              )}
-            </div>
-          )}
+          {/* Right Panel: AI Assistant */}
+          <Sidebar side="right" className="w-80">
+            <SidebarContent className="p-0 overflow-hidden">
+              <AssistantChat
+                projectId={projectId}
+                pipelineId={selectedPipelineId ?? undefined}
+              />
+            </SidebarContent>
+          </Sidebar>
         </div>
-      </div>
 
       {/* Create Pipeline Dialog */}
       <SavePipelineDialog
@@ -956,6 +987,8 @@ export default function ProjectDetailPage({
           projectId={projectId}
         />
       )}
-    </div>
+
+      </div>
+    </SidebarProvider>
   );
 }

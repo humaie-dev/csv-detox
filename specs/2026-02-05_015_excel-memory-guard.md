@@ -1,6 +1,6 @@
 # Spec 015 — Excel Memory Guard for Preview
 
-Status: Active
+Status: Superseded
 
 Objective
 - Prevent OOM/ArrayBuffer allocation failures when previewing large Excel files in Convex by bounding in-memory rows and using memory-efficient parsing.

@@ -1,7 +1,7 @@
 # Spec: Server-Side SQLite Storage for File Data and Pipeline Operations
 Date: 2026-02-11
 ID: 018
-Status: Draft
+Status: Done
 
 ## Objective
 Move all file parsing and data access operations from Convex and client-side DuckDB to a server-side SQLite database. This includes file parsing, pipeline execution, previews, and data sampling. The SQLite database will be the single source of truth for file contents and transformation results.
