@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Run lint and format checks
-        run: npm lint
+        run: npm run lint
 
       - name: Run unit tests
         run: npm test
