@@ -33,5 +33,15 @@ CSV Detox uses OpenCode with specialized agents:
 - **Plan** — Design, architecture
 - **Test** — Testing, coverage
 - **Maintenance** — Housekeeping, docs
+- **Review** — Automated PR reviews
 
 See [AGENTS.md](AGENTS.md) for agent instructions.
+
+## Automated PR Reviews
+
+Every pull request gets an automated review checking:
+- ✅ Tests, linting, and build
+- 🔍 Code quality and best practices
+- 💬 Actionable feedback
+
+See [docs/PR_REVIEW.md](docs/PR_REVIEW.md) for details.
