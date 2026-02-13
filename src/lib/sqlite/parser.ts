@@ -3,41 +3,39 @@
  * Parses CSV/Excel files and stores results in SQLite database
  */
 
-import type { ParseOptions, ParseResult } from "../parsers/types";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { parseCSV } from "../parsers/csv";
 import { parseExcel } from "../parsers/excel";
+import type { ParseOptions, ParseResult } from "../parsers/types";
 import { ParseError } from "../parsers/types";
 import {
-  getDatabase,
-  insertRawData,
-  insertColumns,
   clearAllData,
   databaseExists,
+  getDatabase,
+  insertColumns,
+  insertRawData,
 } from "../sqlite/database";
-import { storeParseConfig, isInitialized } from "../sqlite/schema";
+import { isInitialized, storeParseConfig } from "../sqlite/schema";
 import type { ColumnMetadata as SQLiteColumnMetadata } from "../sqlite/types";
-import type { Id } from "../../../convex/_generated/dataModel";
 
 const BATCH_SIZE = 1000; // Process rows in batches for better memory management
 
 /**
  * Convert parser ColumnMetadata to SQLite ColumnMetadata
  */
-function convertToSQLiteColumns(
-  result: ParseResult
-): SQLiteColumnMetadata[] {
+function convertToSQLiteColumns(result: ParseResult): SQLiteColumnMetadata[] {
   return result.columns.map((col) => {
     // Map InferredType to SQLite type (exclude "null")
     let type: "string" | "number" | "boolean" | "date" = "string";
     if (col.type === "number") type = "number";
     else if (col.type === "boolean") type = "boolean";
     else if (col.type === "date") type = "date";
-    
+
     return {
       name: col.name,
       type,
       nullCount: col.nullCount,
-      sampleValues: col.sampleValues?.slice(0, 5).map(v => String(v)), // Convert to strings
+      sampleValues: col.sampleValues?.slice(0, 5).map((v) => String(v)), // Convert to strings
     };
   });
 }
@@ -50,7 +48,7 @@ export async function parseAndStoreFile(
   fileBuffer: ArrayBuffer,
   originalName: string,
   mimeType: string,
-  parseOptions?: ParseOptions
+  parseOptions?: ParseOptions,
 ): Promise<{ rowCount: number; columns: SQLiteColumnMetadata[] }> {
   const db = getDatabase(projectId);
 
@@ -81,9 +79,13 @@ export async function parseAndStoreFile(
         delimiter: parseOptions.delimiter,
         hasHeaders: parseOptions.hasHeaders ?? true,
         sheetName: parseOptions.sheetName,
-        cellRange: parseOptions.startRow || parseOptions.endRow || parseOptions.startColumn || parseOptions.endColumn
-          ? `R${parseOptions.startRow ?? ""}:${parseOptions.endRow ?? ""} C${parseOptions.startColumn ?? ""}:${parseOptions.endColumn ?? ""}`
-          : undefined,
+        cellRange:
+          parseOptions.startRow ||
+          parseOptions.endRow ||
+          parseOptions.startColumn ||
+          parseOptions.endColumn
+            ? `R${parseOptions.startRow ?? ""}:${parseOptions.endRow ?? ""} C${parseOptions.startColumn ?? ""}:${parseOptions.endColumn ?? ""}`
+            : undefined,
       });
     }
 
@@ -107,14 +109,14 @@ export async function parseAndStoreFile(
   } catch (error) {
     // Clean up on error
     clearAllData(db);
-    
+
     if (error instanceof ParseError) {
       throw error;
     }
-    
+
     throw new ParseError(
       `Failed to parse file: ${error instanceof Error ? error.message : "Unknown error"}`,
-      "UNKNOWN_ERROR"
+      "UNKNOWN_ERROR",
     );
   }
 }
@@ -126,7 +128,7 @@ export function isProjectDataInitialized(projectId: Id<"projects">): boolean {
   if (!databaseExists(projectId)) {
     return false;
   }
-  
+
   const db = getDatabase(projectId);
   return isInitialized(db);
 }

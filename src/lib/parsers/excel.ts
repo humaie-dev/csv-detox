@@ -3,9 +3,9 @@
  */
 
 import * as XLSX from "xlsx";
-import type { ParseResult, ParseOptions } from "./types";
-import { ParseError } from "./types";
 import { inferColumnTypes } from "./type-inference";
+import type { ParseOptions, ParseResult } from "./types";
+import { ParseError } from "./types";
 
 /**
  * List all sheet names in an Excel workbook
@@ -19,7 +19,7 @@ export function listSheets(buffer: ArrayBuffer): string[] {
     throw new ParseError(
       `Failed to read Excel file: ${error instanceof Error ? error.message : String(error)}`,
       "PARSE_ERROR",
-      error
+      error,
     );
   }
 }
@@ -27,10 +27,7 @@ export function listSheets(buffer: ArrayBuffer): string[] {
 /**
  * Parse Excel content into structured data
  */
-export function parseExcel(
-  buffer: ArrayBuffer,
-  options: ParseOptions = {}
-): ParseResult {
+export function parseExcel(buffer: ArrayBuffer, options: ParseOptions = {}): ParseResult {
   const {
     maxRows = Infinity,
     inferTypes = true,
@@ -51,7 +48,7 @@ export function parseExcel(
       if (Number.isFinite(maxRows)) {
         const mr = maxRows as number;
         // Include preceding rows to reach startRow, since XLSX cannot skip directly
-        return Math.max(1, (startRow - 1) + mr);
+        return Math.max(1, startRow - 1 + mr);
       }
       return undefined;
     })();
@@ -73,7 +70,7 @@ export function parseExcel(
       if (!workbook.SheetNames.includes(sheetNameOption)) {
         throw new ParseError(
           `Sheet "${sheetNameOption}" not found. Available: ${workbook.SheetNames.join(", ")}`,
-          "SHEET_NOT_FOUND"
+          "SHEET_NOT_FOUND",
         );
       }
       sheetName = sheetNameOption;
@@ -82,7 +79,7 @@ export function parseExcel(
       if (sheetIndexOption < 0 || sheetIndexOption >= workbook.SheetNames.length) {
         throw new ParseError(
           `Sheet index ${sheetIndexOption} out of range. Available: 0-${workbook.SheetNames.length - 1}`,
-          "INVALID_SHEET_INDEX"
+          "INVALID_SHEET_INDEX",
         );
       }
       sheetName = workbook.SheetNames[sheetIndexOption];
@@ -113,8 +110,8 @@ export function parseExcel(
     }
 
     // Get the range of the worksheet
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    
+    const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+
     // Apply row range (convert to 0-based for xlsx)
     range.s.r = Math.max(range.s.r, startRow - 1);
     if (endRow !== undefined) {
@@ -153,8 +150,8 @@ export function parseExcel(
     if (hasHeaders) {
       // First row is headers
       const headerRow = rawData[0] as unknown[];
-      headers = headerRow.map((h, i) => 
-        h !== null && h !== undefined && h !== "" ? String(h) : `Column${i + 1}`
+      headers = headerRow.map((h, i) =>
+        h !== null && h !== undefined && h !== "" ? String(h) : `Column${i + 1}`,
       );
       dataStartIndex = 1;
     } else {
@@ -182,12 +179,15 @@ export function parseExcel(
     if (duplicates.length > 0) {
       warnings.push(
         `Duplicate column names found: ${duplicates.join(", ")}. ` +
-          `Later columns will overwrite earlier ones.`
+          `Later columns will overwrite earlier ones.`,
       );
     }
 
     // Convert array of arrays to array of objects
-    const dataRows = rawData.slice(dataStartIndex, Math.min(rawData.length, dataStartIndex + maxRows));
+    const dataRows = rawData.slice(
+      dataStartIndex,
+      Math.min(rawData.length, dataStartIndex + maxRows),
+    );
     const rows: Record<string, unknown>[] = dataRows.map((row) => {
       const obj: Record<string, unknown> = {};
       for (let i = 0; i < headers.length; i++) {
@@ -202,7 +202,7 @@ export function parseExcel(
       warnings.push(
         `This workbook contains ${workbook.SheetNames.length} sheets. ` +
           `Currently parsing: "${sheetName}". ` +
-          `Available sheets: ${workbook.SheetNames.join(", ")}`
+          `Available sheets: ${workbook.SheetNames.join(", ")}`,
       );
     }
 
@@ -230,7 +230,7 @@ export function parseExcel(
     throw new ParseError(
       `Failed to parse Excel file: ${error instanceof Error ? error.message : String(error)}`,
       "PARSE_ERROR",
-      error
+      error,
     );
   }
 }

@@ -2,7 +2,7 @@
  * Type definitions for transformation pipeline
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 
 // Re-export for convenience
 export type { ParseResult, ColumnMetadata };
@@ -79,13 +79,7 @@ export interface DeduplicateConfig {
 export interface FilterConfig {
   type: "filter";
   column: string;
-  operator:
-    | "equals"
-    | "not_equals"
-    | "contains"
-    | "not_contains"
-    | "greater_than"
-    | "less_than";
+  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
   value: string | number | boolean;
 }
 
@@ -231,10 +225,11 @@ export interface PipelineConfig {
 /**
  * Operation function signature
  * Operations now return both the transformed table and updated column metadata
+ * Uses a generic type parameter to allow each operation to specify its own config type
  */
-export type OperationFn = (
+export type OperationFn<TConfig = TransformationConfig> = (
   table: ParseResult,
-  config: any
+  config: TConfig,
 ) => { table: ParseResult; columns: ColumnMetadata[] };
 
 /**
@@ -245,7 +240,7 @@ export class TransformationError extends Error {
     message: string,
     public readonly stepId: string,
     public readonly operation: TransformationType,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = "TransformationError";

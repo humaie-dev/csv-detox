@@ -58,7 +58,7 @@ export const create = mutation({
         id: v.string(),
         type: v.string(),
         config: v.any(),
-      })
+      }),
     ),
     parseConfig: v.optional(
       v.object({
@@ -69,7 +69,7 @@ export const create = mutation({
         startColumn: v.optional(v.number()),
         endColumn: v.optional(v.number()),
         hasHeaders: v.boolean(),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -128,8 +128,8 @@ export const update = mutation({
           id: v.string(),
           type: v.string(),
           config: v.any(),
-        })
-      )
+        }),
+      ),
     ),
     parseConfig: v.optional(
       v.object({
@@ -140,7 +140,7 @@ export const update = mutation({
         startColumn: v.optional(v.number()),
         endColumn: v.optional(v.number()),
         hasHeaders: v.boolean(),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {

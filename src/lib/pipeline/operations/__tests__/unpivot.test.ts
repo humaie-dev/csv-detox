@@ -2,11 +2,11 @@
  * Unit tests for unpivot operation
  */
 
-import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { unpivot } from "../unpivot";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { UnpivotConfig } from "@/lib/pipeline/types";
+import { unpivot } from "../unpivot";
 
 describe("unpivot", () => {
   it("should unpivot basic wide data to long format", () => {
@@ -16,7 +16,13 @@ describe("unpivot", () => {
         { Name: "Bob", Jan: 80, Feb: 90, Mar: 120 },
       ],
       columns: [
-        { name: "Name", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["Alice", "Bob"] },
+        {
+          name: "Name",
+          type: "string",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: ["Alice", "Bob"],
+        },
         { name: "Jan", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [100, 80] },
         { name: "Feb", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [200, 90] },
         { name: "Mar", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [150, 120] },
@@ -87,12 +93,16 @@ describe("unpivot", () => {
 
   it("should handle multiple id columns", () => {
     const table: ParseResult = {
-      rows: [
-        { Region: "North", Product: "Widget", Jan: 100, Feb: 200 },
-      ],
+      rows: [{ Region: "North", Product: "Widget", Jan: 100, Feb: 200 }],
       columns: [
         { name: "Region", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["North"] },
-        { name: "Product", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Widget"] },
+        {
+          name: "Product",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["Widget"],
+        },
         { name: "Jan", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [100] },
         { name: "Feb", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [200] },
       ],
@@ -242,10 +252,7 @@ describe("unpivot", () => {
       valueColumnName: "Sales",
     };
 
-    assert.throws(
-      () => unpivot(table, config),
-      /ID column "InvalidColumn" does not exist/
-    );
+    assert.throws(() => unpivot(table, config), /ID column "InvalidColumn" does not exist/);
   });
 
   it("should throw error if value column does not exist", () => {
@@ -267,10 +274,7 @@ describe("unpivot", () => {
       valueColumnName: "Sales",
     };
 
-    assert.throws(
-      () => unpivot(table, config),
-      /Value column "InvalidColumn" does not exist/
-    );
+    assert.throws(() => unpivot(table, config), /Value column "InvalidColumn" does not exist/);
   });
 
   it("should throw error if no value columns specified", () => {
@@ -292,10 +296,7 @@ describe("unpivot", () => {
       valueColumnName: "Sales",
     };
 
-    assert.throws(
-      () => unpivot(table, config),
-      /At least one value column must be specified/
-    );
+    assert.throws(() => unpivot(table, config), /At least one value column must be specified/);
   });
 
   it("should throw error if id and value columns overlap", () => {
@@ -317,10 +318,7 @@ describe("unpivot", () => {
       valueColumnName: "Sales",
     };
 
-    assert.throws(
-      () => unpivot(table, config),
-      /ID columns and value columns must not overlap/
-    );
+    assert.throws(() => unpivot(table, config), /ID columns and value columns must not overlap/);
   });
 
   it("should throw error if variable column name conflicts with id column", () => {
@@ -344,7 +342,7 @@ describe("unpivot", () => {
 
     assert.throws(
       () => unpivot(table, config),
-      /Variable column name "Name" conflicts with an ID column/
+      /Variable column name "Name" conflicts with an ID column/,
     );
   });
 
@@ -369,7 +367,7 @@ describe("unpivot", () => {
 
     assert.throws(
       () => unpivot(table, config),
-      /Variable column and value column must have different names/
+      /Variable column and value column must have different names/,
     );
   });
 
@@ -392,9 +390,6 @@ describe("unpivot", () => {
       valueColumnName: "Sales",
     };
 
-    assert.throws(
-      () => unpivot(table, config),
-      /Variable column name cannot be empty/
-    );
+    assert.throws(() => unpivot(table, config), /Variable column name cannot be empty/);
   });
 });

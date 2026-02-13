@@ -2,18 +2,16 @@
  * Tests for fill across operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { fillAcross } from "../fill-across";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { FillAcrossConfig } from "../../types";
+import { fillAcross } from "../fill-across";
 
 describe("fillAcross operation", () => {
   it("should fill single row with string values left to right", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "", Q3: "", Q4: "150" },
-      ],
+      rows: [{ Q1: "100", Q2: "", Q3: "", Q4: "150" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -79,9 +77,7 @@ describe("fillAcross operation", () => {
 
   it("should preserve data types (numbers)", () => {
     const table: ParseResult = {
-      rows: [
-        { Jan: 1000, Feb: null, Mar: "", Apr: 1500 },
-      ],
+      rows: [{ Jan: 1000, Feb: null, Mar: "", Apr: 1500 }],
       columns: [
         { name: "Jan", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Feb", type: "number", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -108,9 +104,7 @@ describe("fillAcross operation", () => {
 
   it("should preserve data types (booleans)", () => {
     const table: ParseResult = {
-      rows: [
-        { Col1: true, Col2: "", Col3: false, Col4: null },
-      ],
+      rows: [{ Col1: true, Col2: "", Col3: false, Col4: null }],
       columns: [
         { name: "Col1", type: "boolean", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Col2", type: "boolean", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -136,9 +130,7 @@ describe("fillAcross operation", () => {
 
   it("should leave first column empty if it starts empty", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "", Q2: "100", Q3: "", Q4: "150" },
-      ],
+      rows: [{ Q1: "", Q2: "100", Q3: "", Q4: "150" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -164,9 +156,7 @@ describe("fillAcross operation", () => {
 
   it("should handle all columns empty (no change)", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "", Q2: null, Q3: "", Q4: null },
-      ],
+      rows: [{ Q1: "", Q2: null, Q3: "", Q4: null }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -192,9 +182,7 @@ describe("fillAcross operation", () => {
 
   it("should respect column order from config", () => {
     const table: ParseResult = {
-      rows: [
-        { A: "First", B: "", C: "Third", D: "" },
-      ],
+      rows: [{ A: "First", B: "", C: "Third", D: "" }],
       columns: [
         { name: "A", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "B", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -221,9 +209,7 @@ describe("fillAcross operation", () => {
 
   it("should stop filling at next non-empty value", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "", Q3: "300", Q4: "" },
-      ],
+      rows: [{ Q1: "100", Q2: "", Q3: "300", Q4: "" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -249,9 +235,7 @@ describe("fillAcross operation", () => {
 
   it("should handle multiple fill sequences in same row", () => {
     const table: ParseResult = {
-      rows: [
-        { Jan: "10", Feb: "", Mar: "", Apr: "40", May: "", Jun: "60" },
-      ],
+      rows: [{ Jan: "10", Feb: "", Mar: "", Apr: "40", May: "", Jun: "60" }],
       columns: [
         { name: "Jan", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Feb", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -281,9 +265,7 @@ describe("fillAcross operation", () => {
 
   it("should not treat whitespace as empty by default", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "   ", Q3: "" },
-      ],
+      rows: [{ Q1: "100", Q2: "   ", Q3: "" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -308,9 +290,7 @@ describe("fillAcross operation", () => {
 
   it("should treat whitespace as empty when option enabled", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "   ", Q3: "" },
-      ],
+      rows: [{ Q1: "100", Q2: "   ", Q3: "" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -383,9 +363,7 @@ describe("fillAcross operation", () => {
   it("should throw error when column does not exist", () => {
     const table: ParseResult = {
       rows: [{ Q1: "100" }],
-      columns: [
-        { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -395,18 +373,15 @@ describe("fillAcross operation", () => {
       columns: ["NonExistent"],
     };
 
-    assert.throws(
-      () => fillAcross(table, config),
-      { message: /Column "NonExistent" does not exist/ }
-    );
+    assert.throws(() => fillAcross(table, config), {
+      message: /Column "NonExistent" does not exist/,
+    });
   });
 
   it("should throw error when columns array is empty", () => {
     const table: ParseResult = {
       rows: [{ Q1: "100" }],
-      columns: [
-        { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -416,18 +391,15 @@ describe("fillAcross operation", () => {
       columns: [],
     };
 
-    assert.throws(
-      () => fillAcross(table, config),
-      { message: /At least one column must be specified/ }
-    );
+    assert.throws(() => fillAcross(table, config), {
+      message: /At least one column must be specified/,
+    });
   });
 
   it("should handle empty table", () => {
     const table: ParseResult = {
       rows: [],
-      columns: [
-        { name: "Q1", type: "string", nonNullCount: 0, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "Q1", type: "string", nonNullCount: 0, nullCount: 0, sampleValues: [] }],
       rowCount: 0,
       warnings: [],
     };
@@ -444,9 +416,7 @@ describe("fillAcross operation", () => {
 
   it("should handle mixed types in same row", () => {
     const table: ParseResult = {
-      rows: [
-        { Col1: 100, Col2: "", Col3: "text", Col4: null },
-      ],
+      rows: [{ Col1: 100, Col2: "", Col3: "text", Col4: null }],
       columns: [
         { name: "Col1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Col2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -472,9 +442,7 @@ describe("fillAcross operation", () => {
 
   it("should not modify column metadata", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "", Q3: "300" },
-      ],
+      rows: [{ Q1: "100", Q2: "", Q3: "300" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["100"] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -496,9 +464,7 @@ describe("fillAcross operation", () => {
 
   it("should handle null values", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: null, Q3: "300" },
-      ],
+      rows: [{ Q1: "100", Q2: null, Q3: "300" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
@@ -522,9 +488,7 @@ describe("fillAcross operation", () => {
 
   it("should handle empty strings", () => {
     const table: ParseResult = {
-      rows: [
-        { Q1: "100", Q2: "", Q3: "300" },
-      ],
+      rows: [{ Q1: "100", Q2: "", Q3: "300" }],
       columns: [
         { name: "Q1", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Q2", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },

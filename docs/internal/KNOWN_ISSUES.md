@@ -88,7 +88,6 @@ Convex actions have a **64MB memory limit** per execution. When working with lar
 
 ### Alternative Approaches Considered
 1. **Client-side parsing** - Would require downloading entire file to browser (slow)
-2. **DuckDB in Convex** - Not available/supported yet
-3. **Chunked parsing** - Complex and doesn't work well with type inference
+2. **Chunked parsing** - Complex and doesn't work well with type inference
 
 Current approach is best for Convex's constraints.

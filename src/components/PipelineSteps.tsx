@@ -1,10 +1,10 @@
 "use client";
 
-import type { TransformationStep } from "@/lib/pipeline/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, Trash2, Plus, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { TransformationStep } from "@/lib/pipeline/types";
 
 interface PipelineStepsProps {
   steps: TransformationStep[];
@@ -30,58 +30,58 @@ export function PipelineSteps({
   // Format step config for display
   const formatConfig = (step: TransformationStep): string => {
     const { config } = step;
-    
+
     switch (config.type) {
       case "trim":
       case "uppercase":
       case "lowercase":
         return `Columns: ${config.columns.join(", ")}`;
-      
+
       case "deduplicate":
-        return config.columns 
-          ? `Columns: ${config.columns.join(", ")}` 
-          : "All columns";
-      
+        return config.columns ? `Columns: ${config.columns.join(", ")}` : "All columns";
+
       case "filter":
         return `${config.column} ${config.operator} ${config.value}`;
-      
+
       case "rename_column":
         return `${config.oldName} → ${config.newName}`;
-      
+
       case "remove_column":
         return `Remove: ${config.columns.join(", ")}`;
-      
+
       case "cast_column":
         return `${config.column} → ${config.targetType} (on error: ${config.onError})`;
-      
+
       case "unpivot":
         return `ID: ${config.idColumns.join(", ")} | Values: ${config.valueColumns.join(", ")} → ${config.variableColumnName}, ${config.valueColumnName}`;
-      
+
       case "pivot":
         return `Index: ${config.indexColumns.join(", ")} | ${config.columnSource} → columns | ${config.valueSource} as values`;
-      
+
       case "split_column":
         return `${config.column} (${config.method}) → ${config.newColumns.join(", ")}`;
-      
+
       case "merge_columns":
         return `${config.columns.join(` ${config.separator} `)} → ${config.newColumn}`;
-      
-      case "fill_down":
+
+      case "fill_down": {
         const fillDownSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
         return `Columns: ${config.columns.join(", ")}${fillDownSuffix}`;
-      
-      case "fill_across":
+      }
+
+      case "fill_across": {
         const fillAcrossSuffix = config.treatWhitespaceAsEmpty ? " (incl. whitespace)" : "";
         return `Columns: ${config.columns.join(" → ")}${fillAcrossSuffix}`;
-      
+      }
+
       case "sort": {
         const sortDesc = config.columns
-          .map(col => `${col.name} (${col.direction === "desc" ? "↓" : "↑"})`)
+          .map((col) => `${col.name} (${col.direction === "desc" ? "↓" : "↑"})`)
           .join(", ");
         const nulls = config.nullsPosition === "first" ? "nulls first" : "nulls last";
         return `Sort by: ${sortDesc} (${nulls})`;
       }
-      
+
       default:
         return "";
     }
@@ -116,8 +116,8 @@ export function PipelineSteps({
           <div>
             <CardTitle>Pipeline Steps</CardTitle>
             <CardDescription>
-              {steps.length === 0 
-                ? "No transformation steps yet" 
+              {steps.length === 0
+                ? "No transformation steps yet"
                 : `${steps.length} step${steps.length === 1 ? "" : "s"}`}
             </CardDescription>
           </div>
@@ -144,9 +144,11 @@ export function PipelineSteps({
                   key={step.id}
                   className={`
                     flex items-center gap-3 p-3 rounded-lg border transition-colors
-                    ${isSelected 
-                      ? "border-primary bg-primary/5" 
-                      : "border-border hover:bg-accent cursor-pointer"}
+                    ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-accent cursor-pointer"
+                    }
                   `}
                   onClick={() => onSelectStep?.(index)}
                 >
@@ -161,9 +163,7 @@ export function PipelineSteps({
                       <Badge variant="outline">{step.type}</Badge>
                       <span className="font-medium">{getOperationName(step.type)}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {formatConfig(step)}
-                    </p>
+                    <p className="text-sm text-muted-foreground truncate">{formatConfig(step)}</p>
                   </div>
 
                   {/* Actions */}

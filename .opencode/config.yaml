@@ -1,0 +1,9 @@
+version: 1
+
+# Default agent when no specific agent is requested
+default_agent: build
+
+# Global settings
+settings:
+  guides_directory: docs/agent-guides
+  skills_directory: .opencode/skills

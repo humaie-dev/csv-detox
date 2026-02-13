@@ -2,12 +2,12 @@
  * Tests for uppercase and lowercase operations
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { uppercase } from "../uppercase";
-import { lowercase } from "../lowercase";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
-import type { UppercaseConfig, LowercaseConfig } from "../../types";
+import type { LowercaseConfig, UppercaseConfig } from "../../types";
+import { lowercase } from "../lowercase";
+import { uppercase } from "../uppercase";
 
 describe("uppercase operation", () => {
   it("should convert strings to uppercase", () => {
@@ -39,9 +39,7 @@ describe("uppercase operation", () => {
 
   it("should only affect string-type columns", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "john", age: 30 },
-      ],
+      rows: [{ name: "john", age: 30 }],
       columns: [
         { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "age", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -64,9 +62,7 @@ describe("uppercase operation", () => {
   it("should throw error for non-existent columns", () => {
     const table: ParseResult = {
       rows: [{ name: "john" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -112,9 +108,7 @@ describe("lowercase operation", () => {
 
   it("should only affect string-type columns", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "JOHN", age: 30 },
-      ],
+      rows: [{ name: "JOHN", age: 30 }],
       columns: [
         { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "age", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -136,12 +130,8 @@ describe("lowercase operation", () => {
 
   it("should handle mixed case", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "JoHn DoE" },
-      ],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ name: "JoHn DoE" }],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };

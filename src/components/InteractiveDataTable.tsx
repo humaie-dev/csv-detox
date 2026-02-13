@@ -1,7 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { ParseResult } from "@/lib/parsers/types";
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,25 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Eye,
-  EyeOff,
-  X,
-  Search,
-} from "lucide-react";
+import type { ParseResult } from "@/lib/parsers/types";
 
 interface InteractiveDataTableProps {
   data: ParseResult;
@@ -49,16 +41,13 @@ export function InteractiveDataTable({
   enableInteraction = false,
 }: InteractiveDataTableProps) {
   // Column visibility and order state
-  const [columnStates, setColumnStates] = useState<Record<string, ColumnState>>(
-    () =>
-      data.columns.reduce(
-        (acc, col, index) => ({
-          ...acc,
-          [col.name]: { visible: true, order: index },
-        }),
-        {}
-      )
-  );
+  const [columnStates, setColumnStates] = useState<Record<string, ColumnState>>(() => {
+    const states: Record<string, ColumnState> = {};
+    data.columns.forEach((col, index) => {
+      states[col.name] = { visible: true, order: index };
+    });
+    return states;
+  });
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -72,10 +61,7 @@ export function InteractiveDataTable({
   const visibleColumns = useMemo(() => {
     return data.columns
       .filter((col) => columnStates[col.name]?.visible !== false)
-      .sort(
-        (a, b) =>
-          (columnStates[a.name]?.order ?? 0) - (columnStates[b.name]?.order ?? 0)
-      );
+      .sort((a, b) => (columnStates[a.name]?.order ?? 0) - (columnStates[b.name]?.order ?? 0));
   }, [data.columns, columnStates]);
 
   // Apply sorting and filtering
@@ -170,7 +156,7 @@ export function InteractiveDataTable({
 
   // Get type badge color
   const getTypeBadgeVariant = (
-    type: string
+    type: string,
   ): "default" | "secondary" | "destructive" | "outline" => {
     switch (type) {
       case "number":
@@ -209,11 +195,7 @@ export function InteractiveDataTable({
           </div>
           {enableInteraction && (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                 <Search className="mr-2 h-4 w-4" />
                 Filter
                 {activeFilterCount > 0 && (
@@ -310,9 +292,7 @@ export function InteractiveDataTable({
                             <Input
                               placeholder="Filter..."
                               value={columnFilters[col.name] || ""}
-                              onChange={(e) =>
-                                handleFilterChange(col.name, e.target.value)
-                              }
+                              onChange={(e) => handleFilterChange(col.name, e.target.value)}
                               className="h-8"
                               onClick={(e) => e.stopPropagation()}
                             />
@@ -325,18 +305,13 @@ export function InteractiveDataTable({
                 <TableBody>
                   {displayRows.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={visibleColumnCount}
-                        className="h-24 text-center"
-                      >
-                        {activeFilterCount > 0
-                          ? "No results found"
-                          : "No data available"}
+                      <TableCell colSpan={visibleColumnCount} className="h-24 text-center">
+                        {activeFilterCount > 0 ? "No results found" : "No data available"}
                       </TableCell>
                     </TableRow>
                   ) : (
                     displayRows.map((row, rowIndex) => (
-                      <TableRow key={rowIndex}>
+                      <TableRow key={`row-${rowIndex}-${JSON.stringify(row)}`}>
                         {visibleColumns.map((col) => {
                           const value = row[col.name];
                           const displayValue =
@@ -360,7 +335,7 @@ export function InteractiveDataTable({
           <div className="mt-4 space-y-2">
             <p className="text-sm font-medium text-yellow-600">Warnings:</p>
             {data.warnings.map((warning, i) => (
-              <p key={i} className="text-sm text-yellow-600">
+              <p key={`warning-${i}-${warning}`} className="text-sm text-yellow-600">
                 • {warning}
               </p>
             ))}

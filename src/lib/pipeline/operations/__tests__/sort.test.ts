@@ -2,11 +2,11 @@
  * Tests for sort operation
  */
 
-import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { sort } from "../sort";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { SortConfig } from "../../types";
+import { sort } from "../sort";
 
 describe("sort", () => {
   it("should sort single column ascending", () => {
@@ -65,15 +65,8 @@ describe("sort", () => {
 
   it("should sort numbers correctly (not lexicographic)", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 100 },
-        { value: 2 },
-        { value: 20 },
-        { value: 1 },
-      ],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 4, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ value: 100 }, { value: 2 }, { value: 20 }, { value: 1 }],
+      columns: [{ name: "value", type: "number", nonNullCount: 4, nullCount: 0, sampleValues: [] }],
       rowCount: 4,
       warnings: [],
     };
@@ -98,9 +91,7 @@ describe("sort", () => {
         { date: new Date("2023-01-10") },
         { date: new Date("2023-12-25") },
       ],
-      columns: [
-        { name: "date", type: "date", nonNullCount: 3, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "date", type: "date", nonNullCount: 3, nullCount: 0, sampleValues: [] }],
       rowCount: 3,
       warnings: [],
     };
@@ -114,26 +105,21 @@ describe("sort", () => {
 
     assert.strictEqual(
       (result.table.rows[0].date as Date).toISOString(),
-      new Date("2023-01-10").toISOString()
+      new Date("2023-01-10").toISOString(),
     );
     assert.strictEqual(
       (result.table.rows[1].date as Date).toISOString(),
-      new Date("2023-06-15").toISOString()
+      new Date("2023-06-15").toISOString(),
     );
     assert.strictEqual(
       (result.table.rows[2].date as Date).toISOString(),
-      new Date("2023-12-25").toISOString()
+      new Date("2023-12-25").toISOString(),
     );
   });
 
   it("should sort booleans (false < true)", () => {
     const table: ParseResult = {
-      rows: [
-        { active: true },
-        { active: false },
-        { active: true },
-        { active: false },
-      ],
+      rows: [{ active: true }, { active: false }, { active: true }, { active: false }],
       columns: [
         { name: "active", type: "boolean", nonNullCount: 4, nullCount: 0, sampleValues: [] },
       ],
@@ -156,16 +142,8 @@ describe("sort", () => {
 
   it("should handle nulls last by default", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 20 },
-        { value: null },
-        { value: 10 },
-        { value: null },
-        { value: 30 },
-      ],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 3, nullCount: 2, sampleValues: [] },
-      ],
+      rows: [{ value: 20 }, { value: null }, { value: 10 }, { value: null }, { value: 30 }],
+      columns: [{ name: "value", type: "number", nonNullCount: 3, nullCount: 2, sampleValues: [] }],
       rowCount: 5,
       warnings: [],
     };
@@ -186,15 +164,8 @@ describe("sort", () => {
 
   it("should handle nulls first when configured", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 20 },
-        { value: null },
-        { value: 10 },
-        { value: 30 },
-      ],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 3, nullCount: 1, sampleValues: [] },
-      ],
+      rows: [{ value: 20 }, { value: null }, { value: 10 }, { value: 30 }],
+      columns: [{ name: "value", type: "number", nonNullCount: 3, nullCount: 1, sampleValues: [] }],
       rowCount: 4,
       warnings: [],
     };
@@ -282,15 +253,8 @@ describe("sort", () => {
 
   it("should handle mixed types by converting to strings", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 100 },
-        { value: "apple" },
-        { value: 50 },
-        { value: "banana" },
-      ],
-      columns: [
-        { name: "value", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ value: 100 }, { value: "apple" }, { value: 50 }, { value: "banana" }],
+      columns: [{ name: "value", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: [] }],
       rowCount: 4,
       warnings: [],
     };
@@ -312,9 +276,7 @@ describe("sort", () => {
   it("should handle empty table", () => {
     const table: ParseResult = {
       rows: [],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 0, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "number", nonNullCount: 0, nullCount: 0, sampleValues: [] }],
       rowCount: 0,
       warnings: [],
     };
@@ -332,9 +294,7 @@ describe("sort", () => {
   it("should handle single row", () => {
     const table: ParseResult = {
       rows: [{ value: 42 }],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -353,9 +313,7 @@ describe("sort", () => {
   it("should handle all nulls", () => {
     const table: ParseResult = {
       rows: [{ value: null }, { value: null }, { value: null }],
-      columns: [
-        { name: "value", type: "string", nonNullCount: 0, nullCount: 3, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "string", nonNullCount: 0, nullCount: 3, sampleValues: [] }],
       rowCount: 3,
       warnings: [],
     };
@@ -376,9 +334,7 @@ describe("sort", () => {
   it("should throw error if column not found", () => {
     const table: ParseResult = {
       rows: [{ value: 1 }],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -396,9 +352,7 @@ describe("sort", () => {
   it("should throw error if no sort columns specified", () => {
     const table: ParseResult = {
       rows: [{ value: 1 }],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -415,14 +369,8 @@ describe("sort", () => {
 
   it("should not modify original table", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 3 },
-        { value: 1 },
-        { value: 2 },
-      ],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ value: 3 }, { value: 1 }, { value: 2 }],
+      columns: [{ name: "value", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [] }],
       rowCount: 3,
       warnings: [],
     };
@@ -443,9 +391,7 @@ describe("sort", () => {
   it("should return unchanged column metadata", () => {
     const table: ParseResult = {
       rows: [{ value: 1 }],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "value", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -462,14 +408,8 @@ describe("sort", () => {
 
   it("should default direction to asc", () => {
     const table: ParseResult = {
-      rows: [
-        { value: 3 },
-        { value: 1 },
-        { value: 2 },
-      ],
-      columns: [
-        { name: "value", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ value: 3 }, { value: 1 }, { value: 2 }],
+      columns: [{ name: "value", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [] }],
       rowCount: 3,
       warnings: [],
     };

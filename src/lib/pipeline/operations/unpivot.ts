@@ -12,18 +12,17 @@
  *     {Name: "Alice", Month: "Mar", Sales: 150}
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { UnpivotConfig } from "@/lib/pipeline/types";
 
 export function unpivot(
   table: ParseResult,
-  config: UnpivotConfig
+  config: UnpivotConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);
 
-  const { idColumns, valueColumns, variableColumnName, valueColumnName } =
-    config;
+  const { idColumns, valueColumns, variableColumnName, valueColumnName } = config;
 
   // Build new column list: id columns + variable column + value column
   const newColumns: ColumnMetadata[] = [];
@@ -84,7 +83,7 @@ export function unpivot(
     rowCount: newRows.length,
     warnings: table.warnings, // Preserve existing warnings
   };
-  
+
   return {
     table: result,
     columns: newColumns,
@@ -95,8 +94,7 @@ export function unpivot(
  * Validate unpivot configuration
  */
 function validateConfig(table: ParseResult, config: UnpivotConfig): void {
-  const { idColumns, valueColumns, variableColumnName, valueColumnName } =
-    config;
+  const { idColumns, valueColumns, variableColumnName, valueColumnName } = config;
 
   // Check id columns exist
   for (const idCol of idColumns) {
@@ -125,15 +123,11 @@ function validateConfig(table: ParseResult, config: UnpivotConfig): void {
 
   // Check new column names don't conflict with id columns
   if (idColumns.includes(variableColumnName)) {
-    throw new Error(
-      `Variable column name "${variableColumnName}" conflicts with an ID column`
-    );
+    throw new Error(`Variable column name "${variableColumnName}" conflicts with an ID column`);
   }
 
   if (idColumns.includes(valueColumnName)) {
-    throw new Error(
-      `Value column name "${valueColumnName}" conflicts with an ID column`
-    );
+    throw new Error(`Value column name "${valueColumnName}" conflicts with an ID column`);
   }
 
   // Check variable and value column names are different
@@ -158,7 +152,7 @@ function validateConfig(table: ParseResult, config: UnpivotConfig): void {
  */
 function inferValueColumnType(
   table: ParseResult,
-  valueColumns: string[]
+  valueColumns: string[],
 ): "string" | "number" | "boolean" | "date" {
   const valueColumnInfos = valueColumns
     .map((name) => table.columns.find((c) => c.name === name))

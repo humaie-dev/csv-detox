@@ -1,9 +1,9 @@
 /**
  * Fill Down transformation
  * Fill empty cells with the last non-empty value from above (vertical)
- * 
+ *
  * Use case: Normalize hierarchical data where parent values span multiple rows
- * 
+ *
  * Example:
  *   Input:  Product="Apple", Measure="Sales"
  *           Product="",      Measure="Returns"
@@ -11,7 +11,7 @@
  *           Product="Apple", Measure="Returns"
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { FillDownConfig } from "../types";
 
 /**
@@ -19,7 +19,7 @@ import type { FillDownConfig } from "../types";
  */
 export function fillDown(
   table: ParseResult,
-  config: FillDownConfig
+  config: FillDownConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);

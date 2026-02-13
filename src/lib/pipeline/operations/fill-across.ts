@@ -3,12 +3,12 @@
  * Fill empty cells with the last non-empty value from left (horizontal)
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { FillAcrossConfig } from "../types";
 
 export function fillAcross(
   table: ParseResult,
-  config: FillAcrossConfig
+  config: FillAcrossConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);

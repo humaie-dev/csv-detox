@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getProject, downloadFileFromConvex, getUpload } from "@/lib/convex/client";
+import { type NextRequest, NextResponse } from "next/server";
+import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
 import { listSheets } from "@/lib/parsers/excel";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -25,14 +25,11 @@ export async function GET(
     }
 
     // Check if it's an Excel file
-    const isExcel = upload.mimeType.includes("spreadsheet") || 
-                    upload.originalName.match(/\.(xlsx?|xls)$/i);
+    const isExcel =
+      upload.mimeType.includes("spreadsheet") || upload.originalName.match(/\.(xlsx?|xls)$/i);
 
     if (!isExcel) {
-      return NextResponse.json(
-        { error: "File is not an Excel file" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "File is not an Excel file" }, { status: 400 });
     }
 
     // Download file from Convex Storage
@@ -49,7 +46,7 @@ export async function GET(
         error: "Failed to fetch sheet names",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

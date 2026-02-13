@@ -2,24 +2,24 @@
  * Tests for SQLite database operations
  */
 
-import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { after, before, describe, it } from "node:test";
+import { resetDatabaseCache } from "../cache";
 import {
-  getDatabase,
+  clearAllData,
   closeDatabase,
-  deleteDatabase,
   databaseExists,
-  getDatabasePath,
-  insertRawData,
-  insertColumns,
+  deleteDatabase,
   getColumns,
+  getDatabase,
+  getDatabasePath,
   getRawData,
   getRowCount,
-  clearAllData,
+  insertColumns,
+  insertRawData,
 } from "../database";
-import { resetDatabaseCache } from "../cache";
 import type { ColumnMetadata } from "../types";
 
 const TEST_PROJECT_ID = "test-project-123";
@@ -98,7 +98,7 @@ describe("SQLite Database Operations", () => {
 
     it("should retrieve raw data with pagination", () => {
       const db = getDatabase(TEST_PROJECT_ID);
-      
+
       // Get first 2 rows
       const rows = getRawData(db, 0, 2);
       assert.strictEqual(rows.length, 2, "Should return 2 rows");
@@ -133,17 +133,17 @@ describe("SQLite Database Operations", () => {
       assert.deepStrictEqual(
         retrieved[0].sampleValues,
         ["Alice", "Bob", "Charlie"],
-        "Sample values should match"
+        "Sample values should match",
       );
     });
 
     it("should clear all data", () => {
       const db = getDatabase(TEST_PROJECT_ID);
       clearAllData(db);
-      
+
       const count = getRowCount(db);
       assert.strictEqual(count, 0, "Should have 0 rows after clearing");
-      
+
       const columns = getColumns(db);
       assert.strictEqual(columns.length, 0, "Should have 0 columns after clearing");
     });
@@ -160,7 +160,7 @@ describe("SQLite Database Operations", () => {
 
     it("should handle large batch inserts", () => {
       const db = getDatabase(TEST_PROJECT_ID);
-      
+
       // Generate 1000 rows
       const rows = Array.from({ length: 1000 }, (_, i) => ({
         id: i,
@@ -176,19 +176,15 @@ describe("SQLite Database Operations", () => {
 
     it("should retrieve data with different pagination parameters", () => {
       const db = getDatabase(TEST_PROJECT_ID);
-      
+
       const page1 = getRawData(db, 0, 10);
       assert.strictEqual(page1.length, 10, "First page should have 10 rows");
-      
+
       const page2 = getRawData(db, 10, 10);
       assert.strictEqual(page2.length, 10, "Second page should have 10 rows");
-      
+
       // Verify no overlap
-      assert.notStrictEqual(
-        page1[0].row_id,
-        page2[0].row_id,
-        "Pages should not overlap"
-      );
+      assert.notStrictEqual(page1[0].row_id, page2[0].row_id, "Pages should not overlap");
     });
   });
 
@@ -204,7 +200,7 @@ describe("SQLite Database Operations", () => {
     it("should handle empty data insertion", () => {
       const db = getDatabase(TEST_PROJECT_ID);
       insertRawData(db, []);
-      
+
       const count = getRowCount(db);
       assert.strictEqual(count, 0, "Should have 0 rows");
     });
@@ -226,10 +222,8 @@ describe("SQLite Database Operations", () => {
     it("should handle special characters in data", () => {
       const db = getDatabase(TEST_PROJECT_ID);
       clearAllData(db);
-      
-      const rows = [
-        { name: "O'Brien", message: 'He said "hello"', symbol: "€£¥" },
-      ];
+
+      const rows = [{ name: "O'Brien", message: 'He said "hello"', symbol: "€£¥" }];
 
       insertRawData(db, rows);
 
@@ -238,7 +232,7 @@ describe("SQLite Database Operations", () => {
       assert.strictEqual(
         retrieved[0].data.message,
         'He said "hello"',
-        "Should handle nested quotes"
+        "Should handle nested quotes",
       );
     });
   });

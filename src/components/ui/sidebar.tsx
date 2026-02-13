@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { PanelLeft, PanelRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type SidebarSide = "left" | "right";
 
@@ -74,14 +74,14 @@ export function SidebarProvider({ defaultOpen, children }: SidebarProviderProps)
         return { ...prev, [side]: false };
       });
     },
-    [isMobile]
+    [isMobile],
   );
 
   const toggle = React.useCallback(
     (side: SidebarSide) => {
       setOpen(side, !openState[side]);
     },
-    [openState, setOpen]
+    [openState, setOpen],
   );
 
   const value = React.useMemo<SidebarContextValue>(
@@ -91,7 +91,7 @@ export function SidebarProvider({ defaultOpen, children }: SidebarProviderProps)
       setOpen,
       toggle,
     }),
-    [isMobile, openState, setOpen, toggle]
+    [isMobile, openState, setOpen, toggle],
   );
 
   return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
@@ -136,67 +136,44 @@ export const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
               ? cn(
                   "fixed inset-y-0 z-50 w-72 transition-transform duration-200 ease-in-out shadow-lg",
                   isLeft ? "left-0" : "right-0",
-                  isOpen ? "translate-x-0" : isLeft ? "-translate-x-full" : "translate-x-full"
+                  isOpen ? "translate-x-0" : isLeft ? "-translate-x-full" : "translate-x-full",
                 )
               : "relative w-64",
-            className
+            className,
           )}
           {...props}
         />
       </>
     );
-  }
+  },
 );
 
 Sidebar.displayName = "Sidebar";
 
-export function SidebarHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={cn("flex items-center justify-between border-b p-4", className)} {...props} />
   );
 }
 
-export function SidebarContent({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("flex-1 overflow-y-auto p-4", className)} {...props} />
-  );
+export function SidebarContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex-1 overflow-y-auto p-4", className)} {...props} />;
 }
 
-export function SidebarFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("border-t p-4", className)} {...props} />
-  );
+export function SidebarFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("border-t p-4", className)} {...props} />;
 }
 
 interface SidebarTriggerProps extends React.ComponentProps<typeof Button> {
   side: SidebarSide;
 }
 
-export function SidebarTrigger({
-  side,
-  className,
-  children,
-  ...props
-}: SidebarTriggerProps) {
+export function SidebarTrigger({ side, className, children, ...props }: SidebarTriggerProps) {
   const { toggle } = useSidebar();
   const Icon = side === "left" ? PanelLeft : PanelRight;
 
   return (
-    <Button
-      type="button"
-      onClick={() => toggle(side)}
-      className={cn(className)}
-      {...props}
-    >
+    <Button type="button" onClick={() => toggle(side)} className={cn(className)} {...props}>
       {children ?? <Icon className="h-4 w-4" />}
     </Button>
   );

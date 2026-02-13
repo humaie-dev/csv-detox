@@ -1,23 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/sqlite/database";
+import archiver from "archiver";
+import type Database from "better-sqlite3";
+import { type NextRequest, NextResponse } from "next/server";
 import { getConvexClient } from "@/lib/convex/client";
+import { getDatabase } from "@/lib/sqlite/database";
+import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
-import Database from "better-sqlite3";
-import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
-import archiver from "archiver";
-import { Readable } from "node:stream";
 
 /**
  * Export all project data as ZIP file containing:
  * - raw_data.csv (original parsed data)
  * - {pipeline_name}.csv for each executed pipeline
- * 
+ *
  * GET /api/projects/[projectId]/export-all
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -82,9 +81,7 @@ export async function GET(
 
         // Check if pipeline has been executed
         const tableExists = db
-          .prepare(
-            `SELECT name FROM sqlite_master WHERE type='table' AND name=?`
-          )
+          .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
           .get(resultTableName);
 
         if (tableExists) {
@@ -120,7 +117,7 @@ export async function GET(
         error: "Failed to export project",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -152,10 +149,7 @@ function getRawDataColumns(db: Database.Database): ColumnMetadata[] {
 /**
  * Helper: Get pipeline columns
  */
-function getPipelineColumns(
-  db: Database.Database,
-  columnsTableName: string
-): ColumnMetadata[] {
+function getPipelineColumns(db: Database.Database, columnsTableName: string): ColumnMetadata[] {
   const stmt = db.prepare(`
     SELECT name, type, null_count, sample_values
     FROM ${columnsTableName}
@@ -183,7 +177,7 @@ function getRows(
   db: Database.Database,
   tableName: string,
   offset: number,
-  limit: number
+  limit: number,
 ): RawDataRow[] {
   const stmt = db.prepare(`
     SELECT row_id, data
@@ -215,11 +209,7 @@ function getRowCount(db: Database.Database, tableName: string): number {
 /**
  * Generate complete CSV string from table
  */
-function generateCSV(
-  db: Database.Database,
-  tableName: string,
-  columns: ColumnMetadata[]
-): string {
+function generateCSV(db: Database.Database, tableName: string, columns: ColumnMetadata[]): string {
   const lines: string[] = [];
 
   // Add header
@@ -245,7 +235,7 @@ function generateCSV(
     }
   }
 
-  return lines.join("\r\n") + "\r\n";
+  return `${lines.join("\r\n")}\r\n`;
 }
 
 /**
@@ -279,12 +269,7 @@ function formatCSVValue(value: unknown): string {
  * Escape CSV field (handle quotes, commas, newlines)
  */
 function escapeCSVField(field: string): string {
-  if (
-    field.includes('"') ||
-    field.includes(",") ||
-    field.includes("\n") ||
-    field.includes("\r")
-  ) {
+  if (field.includes('"') || field.includes(",") || field.includes("\n") || field.includes("\r")) {
     const escaped = field.replace(/"/g, '""');
     return `"${escaped}"`;
   }

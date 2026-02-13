@@ -2,23 +2,19 @@
  * Convert string columns to uppercase
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { UppercaseConfig } from "../types";
 
 export function uppercase(
   table: ParseResult,
-  config: UppercaseConfig
+  config: UppercaseConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
-  const invalidColumns = config.columns.filter(
-    (col) => !columnNames.includes(col)
-  );
+  const invalidColumns = config.columns.filter((col) => !columnNames.includes(col));
 
   if (invalidColumns.length > 0) {
-    throw new Error(
-      `Columns not found: ${invalidColumns.join(", ")}`
-    );
+    throw new Error(`Columns not found: ${invalidColumns.join(", ")}`);
   }
 
   // Only process string-type columns
@@ -43,7 +39,7 @@ export function uppercase(
     ...table,
     rows: newRows,
   };
-  
+
   return {
     table: result,
     columns: result.columns,

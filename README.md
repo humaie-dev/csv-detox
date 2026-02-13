@@ -4,74 +4,34 @@ A transformation pipeline engine for cleaning and transforming CSV/XLSX files.
 
 ## Quick Start
 
-### 1. Install Dependencies
 ```bash
-npm install
+npm install              # Install dependencies
+npx convex dev           # Initialize Convex (first time only)
+npm run dev              # Start development server
 ```
 
-### 2. Initialize Convex (First Time)
-```bash
-npx convex dev
-```
-This will:
-- Prompt you to login or create a free Convex account
-- Set up your Convex project
-- Generate your `.env.local` file with the Convex URL
-- Start the Convex development server
-
-### 3. Run the Development Server
-In a separate terminal:
-```bash
-npm run dev
-```
-
-### 4. Open the App
-Visit [http://localhost:3000](http://localhost:3000) and upload a CSV or XLSX file!
-
-## Features (Current)
-
-- ✅ File upload (CSV and XLSX, up to 50MB)
-- ✅ Drag-and-drop interface
-- ✅ File validation (type and size)
-- ✅ Convex backend with database-generated file IDs
-- ✅ Secure file storage in Convex
+Visit [http://localhost:3000](http://localhost:3000) to use the app.
 
 ## Documentation
 
-- **Setup Guide**: `docs/internal/CONVEX_SETUP.md`
-- **Architecture**: `docs/internal/PATTERNS.md`
-- **Project Memory**: `MEMORY.md`
-- **Specs**: `specs/`
+**For developers:** Start at **[AGENTS.md](AGENTS.md)** or **[docs/agent-guides/INDEX.md](docs/agent-guides/INDEX.md)**
+
+**For users:** See **[docs/public/USAGE.md](docs/public/USAGE.md)**
+
+**For product info:** See **[docs/public/PRODUCT.md](docs/public/PRODUCT.md)**
 
 ## Tech Stack
 
-- Next.js 15 (App Router)
-- React 19
-- TypeScript (strict mode)
-- Convex (backend + database + file storage)
-- Postgres (via Convex integration, available for future features)
+Next.js 15 · React 19 · TypeScript · Convex · SQLite · Playwright
 
-## Development Guidelines
+See [ARCHITECTURE.md](docs/agent-guides/ARCHITECTURE.md) for details.
 
-See `AGENTS.md` for complete development guidelines including:
-- Spec-driven development workflow
-- Code style and conventions
-- Testing requirements
-- Quality gates
+## Multi-Agent System
 
-## GitHub Automation
+CSV Detox uses OpenCode with specialized agents:
+- **Build** (default) — Features, bugs, refactoring
+- **Plan** — Design, architecture
+- **Test** — Testing, coverage
+- **Maintenance** — Housekeeping, docs
 
-CSV Detox includes an automated PR agent powered by OpenCode:
-
-- **Auto-triage**: Reviews new PRs, runs tests, provides feedback
-- **Auto-implement**: Implements features when PRs are assigned
-- **Interactive**: Comment `@opencode <instruction>` on any PR for help
-
-See `.github/workflows/README.md` for setup instructions and usage examples.
-
-## Agent rules (OpenCode)
-- Repo rules: `AGENTS.md`
-- Project memory: `MEMORY.md`
-- Specs: `/specs`
-- Pattern registry: `docs/internal/PATTERNS.md`
-- Public docs: `docs/public/`
+See [AGENTS.md](AGENTS.md) for agent instructions.

@@ -2,8 +2,8 @@
  * Sort operation - Sort rows by one or more columns
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
-import type { SortConfig, SortColumn } from "../types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
+import type { SortConfig } from "../types";
 import { TransformationError } from "../types";
 
 /**
@@ -11,28 +11,20 @@ import { TransformationError } from "../types";
  */
 export function sort(
   table: ParseResult,
-  config: SortConfig
+  config: SortConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   const { columns: sortColumns, nullsPosition = "last" } = config;
 
   // Validate at least one sort column
   if (!sortColumns || sortColumns.length === 0) {
-    throw new TransformationError(
-      "At least one sort column is required",
-      "",
-      "sort"
-    );
+    throw new TransformationError("At least one sort column is required", "", "sort");
   }
 
   // Validate all columns exist
   for (const sortCol of sortColumns) {
     const exists = table.columns.some((col) => col.name === sortCol.name);
     if (!exists) {
-      throw new TransformationError(
-        `Column "${sortCol.name}" not found`,
-        "",
-        "sort"
-      );
+      throw new TransformationError(`Column "${sortCol.name}" not found`, "", "sort");
     }
   }
 
@@ -46,7 +38,7 @@ export function sort(
         a[sortCol.name],
         b[sortCol.name],
         sortCol.direction || "asc",
-        nullsPosition
+        nullsPosition,
       );
 
       // If not equal, return comparison result
@@ -74,10 +66,10 @@ export function sort(
  * Handles type-aware comparison and null positioning
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: unknown,
+  b: unknown,
   direction: "asc" | "desc",
-  nullsPosition: "first" | "last"
+  nullsPosition: "first" | "last",
 ): number {
   // Handle nulls
   const aIsNull = a === null || a === undefined;

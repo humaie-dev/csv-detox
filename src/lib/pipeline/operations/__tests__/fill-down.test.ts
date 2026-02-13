@@ -2,11 +2,11 @@
  * Tests for fill down operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { fillDown } from "../fill-down";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { FillDownConfig } from "../../types";
+import { fillDown } from "../fill-down";
 
 describe("fillDown operation", () => {
   it("should fill single column with string values", () => {
@@ -332,7 +332,7 @@ describe("fillDown operation", () => {
     assert.equal(result.rows[0].Product, "04704 750ML WHITE");
     assert.equal(result.rows[1].Product, "04704 750ML WHITE");
     assert.equal(result.rows[2].Product, "04704 750ML WHITE");
-    
+
     // Second product group
     assert.equal(result.rows[3].Product, "05102 1L RED");
     assert.equal(result.rows[4].Product, "05102 1L RED");
@@ -357,10 +357,9 @@ describe("fillDown operation", () => {
       columns: ["NonExistent"],
     };
 
-    assert.throws(
-      () => fillDown(table, config),
-      { message: /Column "NonExistent" does not exist/ }
-    );
+    assert.throws(() => fillDown(table, config), {
+      message: /Column "NonExistent" does not exist/,
+    });
   });
 
   it("should throw error when columns array is empty", () => {
@@ -378,17 +377,14 @@ describe("fillDown operation", () => {
       columns: [],
     };
 
-    assert.throws(
-      () => fillDown(table, config),
-      { message: /At least one column must be specified/ }
-    );
+    assert.throws(() => fillDown(table, config), {
+      message: /At least one column must be specified/,
+    });
   });
 
   it("should handle single row table (no change)", () => {
     const table: ParseResult = {
-      rows: [
-        { Product: "Apple", Amount: 100 },
-      ],
+      rows: [{ Product: "Apple", Amount: 100 }],
       columns: [
         { name: "Product", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "Amount", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },

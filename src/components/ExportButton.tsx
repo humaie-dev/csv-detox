@@ -5,8 +5,8 @@
 
 "use client";
 
-import { useState } from "react";
 import { Download } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -112,8 +112,8 @@ export function ExportButton({
         exportAll
           ? "Export all pipelines as ZIP"
           : exportRaw
-          ? "Export raw data as CSV"
-          : "Export pipeline results as CSV"
+            ? "Export raw data as CSV"
+            : "Export pipeline results as CSV"
       }
     >
       <Download className="mr-2 h-4 w-4" />

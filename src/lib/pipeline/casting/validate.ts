@@ -21,7 +21,7 @@ export type ValidationResult = {
 
 /**
  * Validate that a column's values can be cast to target type
- * 
+ *
  * @param values - Array of values to validate (typically a column's data)
  * @param targetType - Target type to cast to (string, number, boolean, or date)
  * @param format - Optional format string for date parsing
@@ -34,23 +34,23 @@ export function validateCast(
   targetType: "string" | "number" | "boolean" | "date",
   format?: string,
   maxSamples: number = 5,
-  maxRows: number = 1000
+  maxRows: number = 1000,
 ): ValidationResult {
   // Sample data for performance (use first N rows)
   const sample = values.slice(0, Math.min(maxRows, values.length));
-  
+
   let validCount = 0;
   let invalidCount = 0;
   const invalidSamples: ValidationSample[] = [];
-  
+
   for (const value of sample) {
     const result = tryCast(value, targetType, format);
-    
+
     if (result.success) {
       validCount++;
     } else {
       invalidCount++;
-      
+
       // Collect sample failures (up to maxSamples)
       if (invalidSamples.length < maxSamples) {
         invalidSamples.push({
@@ -60,13 +60,13 @@ export function validateCast(
       }
     }
   }
-  
+
   const total = sample.length;
   const failureRate = total > 0 ? (invalidCount / total) * 100 : 0;
-  
+
   // Recommend error handling mode based on failure rate
   let recommendedMode: "fail" | "null" | "skip";
-  
+
   if (invalidCount === 0) {
     // No failures - any mode works, but "fail" is safest
     recommendedMode = "fail";
@@ -80,7 +80,7 @@ export function validateCast(
     // High failure rate (>20%) - likely wrong type choice, fail to prevent data loss
     recommendedMode = "fail";
   }
-  
+
   return {
     total,
     valid: validCount,

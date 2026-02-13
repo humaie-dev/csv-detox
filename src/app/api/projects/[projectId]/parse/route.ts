@@ -3,35 +3,37 @@
  * Parse uploaded file and store in SQLite database
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getProject, downloadFileFromConvex, getUpload } from "@/lib/convex/client";
-import { parseAndStoreFile, isProjectDataInitialized } from "@/lib/sqlite/parser";
+import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
+import type { ParseOptions } from "@/lib/parsers/types";
 import { getDatabase } from "@/lib/sqlite/database";
+import { isProjectDataInitialized, parseAndStoreFile } from "@/lib/sqlite/parser";
 import { getParseConfig } from "@/lib/sqlite/schema";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
-import type { ParseOptions } from "@/lib/parsers/types";
 
 // Validation schema for request body
 const ParseRequestSchema = z.object({
   force: z.boolean().optional(), // Force re-parse even if data exists
-  parseOptions: z.object({
-    maxRows: z.number().optional(),
-    inferTypes: z.boolean().optional(),
-    delimiter: z.string().optional(),
-    sheetName: z.string().optional(),
-    sheetIndex: z.number().optional(),
-    startRow: z.number().optional(),
-    endRow: z.number().optional(),
-    startColumn: z.number().optional(),
-    endColumn: z.number().optional(),
-    hasHeaders: z.boolean().optional(),
-  }).optional(),
+  parseOptions: z
+    .object({
+      maxRows: z.number().optional(),
+      inferTypes: z.boolean().optional(),
+      delimiter: z.string().optional(),
+      sheetName: z.string().optional(),
+      sheetIndex: z.number().optional(),
+      startRow: z.number().optional(),
+      endRow: z.number().optional(),
+      startColumn: z.number().optional(),
+      endColumn: z.number().optional(),
+      hasHeaders: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string }> }
+  context: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const params = await context.params;
@@ -44,7 +46,7 @@ export async function POST(
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request body", details: parsed.error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +75,7 @@ export async function POST(
           message: "Project data already initialized",
           alreadyInitialized: true,
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -81,20 +83,14 @@ export async function POST(
     const project = await getProject(projectId);
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     // Get upload metadata
     const upload = await getUpload(project.uploadId);
 
     if (!upload) {
-      return NextResponse.json(
-        { error: "Upload not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Upload not found" }, { status: 404 });
     }
 
     // Download file from Convex Storage
@@ -113,7 +109,7 @@ export async function POST(
       fileBuffer,
       upload.originalName,
       upload.mimeType,
-      finalParseOptions
+      finalParseOptions,
     );
     const duration = Date.now() - startTime;
 
@@ -132,15 +128,15 @@ export async function POST(
         error: "Failed to parse file",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // GET endpoint to check parse status
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ projectId: string }> }
+  _request: NextRequest,
+  context: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const params = await context.params;
@@ -159,7 +155,7 @@ export async function GET(
         error: "Failed to check status",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

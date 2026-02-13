@@ -1,5 +1,5 @@
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { validateCast } from "../validate.js";
 
 describe("validateCast", () => {
@@ -87,7 +87,7 @@ describe("validateCast", () => {
       assert.equal(result.invalidSamples.length, 3);
       assert.deepEqual(
         result.invalidSamples.map((s) => s.value),
-        ["a", "b", "c"]
+        ["a", "b", "c"],
       );
     });
 
@@ -113,8 +113,11 @@ describe("validateCast", () => {
   describe("Performance - maxRows sampling", () => {
     it("should sample first maxRows values", () => {
       // Create 2000 values, first 900 valid, next 200 invalid (rows 900-1099)
-      const values = Array(900).fill(1).concat(Array(200).fill("invalid")).concat(Array(900).fill(2));
-      
+      const values = Array(900)
+        .fill(1)
+        .concat(Array(200).fill("invalid"))
+        .concat(Array(900).fill(2));
+
       // With maxRows=1000, should only see first 1000 rows
       const result = validateCast(values, "number", undefined, 5, 1000);
 

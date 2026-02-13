@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,11 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ParseConfig {
@@ -56,14 +56,7 @@ export function PipelineSettingsDialog({
   const [sheets, setSheets] = useState<string[]>([]);
   const [loadingSheets, setLoadingSheets] = useState(false);
 
-  // Fetch sheet names when dialog opens for Excel files
-  useEffect(() => {
-    if (open && isExcelFile) {
-      fetchSheetNames();
-    }
-  }, [open, isExcelFile, projectId]);
-
-  const fetchSheetNames = async () => {
+  const fetchSheetNames = useCallback(async () => {
     setLoadingSheets(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/sheets`);
@@ -76,7 +69,14 @@ export function PipelineSettingsDialog({
     } finally {
       setLoadingSheets(false);
     }
-  };
+  }, [projectId]);
+
+  // Fetch sheet names when dialog opens for Excel files
+  useEffect(() => {
+    if (open && isExcelFile) {
+      fetchSheetNames();
+    }
+  }, [open, isExcelFile, fetchSheetNames]);
 
   useEffect(() => {
     if (open) {
@@ -110,8 +110,8 @@ export function PipelineSettingsDialog({
         <DialogHeader>
           <DialogTitle>Pipeline Settings</DialogTitle>
           <DialogDescription>
-            Configure how this pipeline reads data from the file. Leave blank to use
-            default settings.
+            Configure how this pipeline reads data from the file. Leave blank to use default
+            settings.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,9 +121,7 @@ export function PipelineSettingsDialog({
             <Checkbox
               id="hasHeaders"
               checked={config.hasHeaders}
-              onCheckedChange={(checked) =>
-                setConfig({ ...config, hasHeaders: checked === true })
-              }
+              onCheckedChange={(checked) => setConfig({ ...config, hasHeaders: checked === true })}
             />
             <div className="grid gap-1.5 leading-none">
               <Label
@@ -132,9 +130,7 @@ export function PipelineSettingsDialog({
               >
                 First row contains headers
               </Label>
-              <p className="text-xs text-muted-foreground">
-                Use first row as column names
-              </p>
+              <p className="text-xs text-muted-foreground">Use first row as column names</p>
             </div>
           </div>
 
@@ -170,9 +166,7 @@ export function PipelineSettingsDialog({
                   id="sheetName"
                   placeholder="e.g., Sheet1"
                   value={config.sheetName || ""}
-                  onChange={(e) =>
-                    setConfig({ ...config, sheetName: e.target.value || undefined })
-                  }
+                  onChange={(e) => setConfig({ ...config, sheetName: e.target.value || undefined })}
                 />
               )}
               <p className="text-xs text-muted-foreground">
@@ -197,7 +191,7 @@ export function PipelineSettingsDialog({
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      startRow: e.target.value ? parseInt(e.target.value) : undefined,
+                      startRow: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
                 />
@@ -227,7 +221,7 @@ export function PipelineSettingsDialog({
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      endRow: e.target.value ? parseInt(e.target.value) : undefined,
+                      endRow: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
                 />
@@ -260,7 +254,7 @@ export function PipelineSettingsDialog({
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      startColumn: e.target.value ? parseInt(e.target.value) : undefined,
+                      startColumn: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
                 />
@@ -290,7 +284,7 @@ export function PipelineSettingsDialog({
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      endColumn: e.target.value ? parseInt(e.target.value) : undefined,
+                      endColumn: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
                 />
@@ -328,9 +322,7 @@ export function PipelineSettingsDialog({
                 {config.startColumn && (
                   <Badge variant="secondary">From Col: {config.startColumn}</Badge>
                 )}
-                {config.endColumn && (
-                  <Badge variant="secondary">To Col: {config.endColumn}</Badge>
-                )}
+                {config.endColumn && <Badge variant="secondary">To Col: {config.endColumn}</Badge>}
               </div>
             </div>
           )}

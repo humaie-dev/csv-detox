@@ -2,12 +2,12 @@
  * SQLite database wrapper with lazy hydration
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import Database from "better-sqlite3";
-import * as path from "path";
-import * as fs from "fs";
 import { getDatabaseCache } from "./cache";
-import { initializeSchema, storeParseConfig } from "./schema";
-import type { ParseConfig, ColumnMetadata, RawDataRow } from "./types";
+import { initializeSchema } from "./schema";
+import type { ColumnMetadata, RawDataRow } from "./types";
 
 // Database directory (configurable via env)
 const DB_DIR = process.env.SQLITE_DB_DIR || path.join(process.cwd(), "data", "sqlite");
@@ -35,7 +35,7 @@ export function getDatabasePath(projectId: string): string {
  */
 export function getDatabase(projectId: string): Database.Database {
   const cache = getDatabaseCache();
-  
+
   // Check cache first
   const cached = cache.get(projectId);
   if (cached) {
@@ -45,12 +45,12 @@ export function getDatabase(projectId: string): Database.Database {
   // Open database
   const dbPath = getDatabasePath(projectId);
   const isNewDb = !fs.existsSync(dbPath);
-  
+
   const db = new Database(dbPath, {
     readonly: false,
     fileMustExist: false,
     timeout: 5000,
-    verbose: process.env.NODE_ENV === "development" ? console.log : undefined,
+    verbose: process.env.NODE_ENV === "development" ? console.info : undefined,
   });
 
   // Initialize schema if new database
@@ -83,7 +83,7 @@ export function deleteDatabase(projectId: string): void {
   const dbPath = getDatabasePath(projectId);
   if (fs.existsSync(dbPath)) {
     fs.unlinkSync(dbPath);
-    
+
     // Also delete WAL and SHM files if they exist
     const walPath = `${dbPath}-wal`;
     const shmPath = `${dbPath}-shm`;
@@ -107,10 +107,7 @@ export function databaseExists(projectId: string): boolean {
 /**
  * Insert raw data rows in batch
  */
-export function insertRawData(
-  db: Database.Database,
-  rows: Array<Record<string, unknown>>
-): void {
+export function insertRawData(db: Database.Database, rows: Array<Record<string, unknown>>): void {
   const insert = db.prepare(`
     INSERT INTO raw_data (data)
     VALUES (?)
@@ -128,10 +125,7 @@ export function insertRawData(
 /**
  * Insert column metadata
  */
-export function insertColumns(
-  db: Database.Database,
-  columns: ColumnMetadata[]
-): void {
+export function insertColumns(db: Database.Database, columns: ColumnMetadata[]): void {
   const insert = db.prepare(`
     INSERT OR REPLACE INTO columns (name, type, null_count, sample_values, min_value, max_value)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -145,7 +139,7 @@ export function insertColumns(
         col.nullCount,
         col.sampleValues ? JSON.stringify(col.sampleValues) : null,
         col.minValue || null,
-        col.maxValue || null
+        col.maxValue || null,
       );
     }
   });
@@ -161,7 +155,7 @@ export function getColumns(db: Database.Database): ColumnMetadata[] {
     SELECT name, type, null_count, sample_values, min_value, max_value
     FROM columns
   `);
-  
+
   const rows = stmt.all() as Array<{
     name: string;
     type: string;
@@ -187,7 +181,7 @@ export function getColumns(db: Database.Database): ColumnMetadata[] {
 export function getRawData(
   db: Database.Database,
   offset: number = 0,
-  limit: number = 100
+  limit: number = 100,
 ): RawDataRow[] {
   const stmt = db.prepare(`
     SELECT row_id, data

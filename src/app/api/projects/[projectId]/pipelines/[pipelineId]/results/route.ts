@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import type Database from "better-sqlite3";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getDatabase } from "@/lib/sqlite/database";
 import { getConvexClient } from "@/lib/convex/client";
+import { getDatabase } from "@/lib/sqlite/database";
+import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
 import { api } from "../../../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../../../convex/_generated/dataModel";
-import Database from "better-sqlite3";
-import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(100),
@@ -18,7 +18,7 @@ const querySchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> }
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   try {
     const { projectId, pipelineId } = await params;
@@ -33,7 +33,7 @@ export async function GET(
     if (!validation.success) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: validation.error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,17 +55,14 @@ export async function GET(
     });
 
     if (!pipeline) {
-      return NextResponse.json(
-        { error: "Pipeline not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pipeline not found" }, { status: 404 });
     }
 
     // Verify pipeline belongs to project
     if (pipeline.projectId !== projectId) {
       return NextResponse.json(
         { error: "Pipeline does not belong to this project" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,21 +72,19 @@ export async function GET(
     // Check if pipeline results exist
     const sanitized = pipelineId.replace(/-/g, "_");
     const resultTableName = `pipeline_${sanitized}_result`;
-    const columnsTableName = `pipeline_${sanitized}_columns`;
+    const _columnsTableName = `pipeline_${sanitized}_columns`;
 
     const tableExists = db
-      .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`
-      )
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
       .get(resultTableName);
 
     if (!tableExists) {
       return NextResponse.json(
-        { 
+        {
           error: "Pipeline results not found. Please execute the pipeline first.",
           executed: false,
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -117,7 +112,7 @@ export async function GET(
         error: "Failed to fetch pipeline results",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -129,11 +124,11 @@ function getPipelineResults(
   db: Database.Database,
   pipelineId: string,
   offset: number,
-  limit: number
+  limit: number,
 ): RawDataRow[] {
   const sanitized = pipelineId.replace(/-/g, "_");
   const tableName = `pipeline_${sanitized}_result`;
-  
+
   const stmt = db.prepare(`
     SELECT row_id, data
     FROM ${tableName}
@@ -155,13 +150,10 @@ function getPipelineResults(
 /**
  * Helper: Get pipeline column metadata
  */
-function getPipelineColumns(
-  db: Database.Database,
-  pipelineId: string
-): ColumnMetadata[] {
+function getPipelineColumns(db: Database.Database, pipelineId: string): ColumnMetadata[] {
   const sanitized = pipelineId.replace(/-/g, "_");
   const tableName = `pipeline_${sanitized}_columns`;
-  
+
   const stmt = db.prepare(`
     SELECT name, type, null_count, sample_values
     FROM ${tableName}
@@ -185,13 +177,10 @@ function getPipelineColumns(
 /**
  * Helper: Get pipeline result row count
  */
-function getPipelineResultRowCount(
-  db: Database.Database,
-  pipelineId: string
-): number {
+function getPipelineResultRowCount(db: Database.Database, pipelineId: string): number {
   const sanitized = pipelineId.replace(/-/g, "_");
   const tableName = `pipeline_${sanitized}_result`;
-  
+
   const stmt = db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`);
   const result = stmt.get() as { count: number };
   return result.count;

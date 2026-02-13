@@ -8,12 +8,12 @@
  *   Output: {FirstName: "John", LastName: "Doe"}
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { SplitColumnConfig } from "@/lib/pipeline/types";
 
 export function splitColumn(
   table: ParseResult,
-  config: SplitColumnConfig
+  config: SplitColumnConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);
@@ -44,13 +44,22 @@ export function splitColumn(
     let parts: string[];
     switch (method) {
       case "delimiter":
-        parts = splitByDelimiter(stringValue, delimiter!, maxSplits);
+        if (!delimiter) {
+          throw new Error("Delimiter is required for delimiter method");
+        }
+        parts = splitByDelimiter(stringValue, delimiter, maxSplits);
         break;
       case "position":
-        parts = splitByPosition(stringValue, positions!);
+        if (!positions) {
+          throw new Error("Positions are required for position method");
+        }
+        parts = splitByPosition(stringValue, positions);
         break;
       case "regex":
-        parts = splitByRegex(stringValue, pattern!, maxSplits);
+        if (!pattern) {
+          throw new Error("Pattern is required for regex method");
+        }
+        parts = splitByRegex(stringValue, pattern, maxSplits);
         break;
       default:
         throw new Error(`Unknown split method: ${method}`);
@@ -104,7 +113,7 @@ export function splitColumn(
     rowCount: newRows.length,
     warnings: table.warnings,
   };
-  
+
   return {
     table: result,
     columns: newColumnsMetadata,
@@ -114,11 +123,7 @@ export function splitColumn(
 /**
  * Split string by delimiter
  */
-function splitByDelimiter(
-  value: string,
-  delimiter: string,
-  maxSplits?: number
-): string[] {
+function splitByDelimiter(value: string, delimiter: string, maxSplits?: number): string[] {
   if (!value) return [""];
 
   if (maxSplits === undefined) {
@@ -167,11 +172,7 @@ function splitByPosition(value: string, positions: number[]): string[] {
 /**
  * Split string by regex pattern
  */
-function splitByRegex(
-  value: string,
-  pattern: string,
-  maxSplits?: number
-): string[] {
+function splitByRegex(value: string, pattern: string, maxSplits?: number): string[] {
   if (!value) return [""];
 
   try {
@@ -203,7 +204,7 @@ function splitByRegex(
     throw new Error(
       `Invalid regex pattern "${pattern}": ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -212,14 +213,7 @@ function splitByRegex(
  * Validate split column configuration
  */
 function validateConfig(table: ParseResult, config: SplitColumnConfig): void {
-  const {
-    column,
-    method,
-    delimiter,
-    positions,
-    pattern,
-    newColumns,
-  } = config;
+  const { column, method, delimiter, positions, pattern, newColumns } = config;
 
   // Check column exists
   if (!table.columns.find((c) => c.name === column)) {
@@ -285,7 +279,7 @@ function validateConfig(table: ParseResult, config: SplitColumnConfig): void {
         throw new Error(
           `Invalid regex pattern "${pattern}": ${
             error instanceof Error ? error.message : String(error)
-          }`
+          }`,
         );
       }
       break;

@@ -2,10 +2,13 @@
  * Filter rows based on conditions
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { FilterConfig } from "../types";
 
-export function filter(table: ParseResult, config: FilterConfig): { table: ParseResult; columns: ColumnMetadata[] } {
+export function filter(
+  table: ParseResult,
+  config: FilterConfig,
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate column exists
   const columnNames = table.columns.map((c) => c.name);
   if (!columnNames.includes(config.column)) {
@@ -64,7 +67,7 @@ export function filter(table: ParseResult, config: FilterConfig): { table: Parse
     rows: filteredRows,
     rowCount: filteredRows.length,
   };
-  
+
   return {
     table: result,
     columns: result.columns,

@@ -18,7 +18,7 @@ export default defineSchema({
         startColumn: v.optional(v.number()),
         endColumn: v.optional(v.number()),
         hasHeaders: v.boolean(),
-      })
+      }),
     ),
   }).index("by_uploadedAt", ["uploadedAt"]),
 
@@ -43,14 +43,14 @@ export default defineSchema({
         startColumn: v.optional(v.number()),
         endColumn: v.optional(v.number()),
         hasHeaders: v.boolean(),
-      })
+      }),
     ), // Optional - overrides project/upload defaults
     steps: v.array(
       v.object({
         id: v.string(),
         type: v.string(),
         config: v.any(),
-      })
+      }),
     ),
     createdAt: v.number(),
     updatedAt: v.number(),

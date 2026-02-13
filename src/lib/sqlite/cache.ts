@@ -3,8 +3,8 @@
  * Keeps max 10 databases open to prevent excessive file handles
  */
 
-import { LRUCache } from "lru-cache";
 import type { Database } from "better-sqlite3";
+import { LRUCache } from "lru-cache";
 
 export interface CachedDatabase {
   db: Database;
@@ -22,9 +22,11 @@ class DatabaseCache {
         // Close database when evicted from cache
         try {
           value.db.close();
-          console.log(`[DatabaseCache] Closed database for project: ${value.projectId}`);
         } catch (error) {
-          console.error(`[DatabaseCache] Error closing database for project ${value.projectId}:`, error);
+          console.error(
+            `[DatabaseCache] Error closing database for project ${value.projectId}:`,
+            error,
+          );
         }
       },
     });

@@ -10,15 +10,17 @@
  *   Output: {Name: "Alice", Jan: 100, Feb: 200}
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { PivotConfig } from "@/lib/pipeline/types";
 
-export function pivot(table: ParseResult, config: PivotConfig): { table: ParseResult; columns: ColumnMetadata[] } {
+export function pivot(
+  table: ParseResult,
+  config: PivotConfig,
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);
 
-  const { indexColumns, columnSource, valueSource, aggregation = "last" } =
-    config;
+  const { indexColumns, columnSource, valueSource, aggregation = "last" } = config;
 
   // Step 1: Collect unique values from column source (these become new columns)
   const uniqueColumnValues = new Set<string>();
@@ -41,13 +43,13 @@ export function pivot(table: ParseResult, config: PivotConfig): { table: ParseRe
     if (!grouped.has(key)) {
       grouped.set(key, []);
     }
-    grouped.get(key)!.push(row);
+    grouped.get(key)?.push(row);
   }
 
   // Step 3: Build new rows
   const newRows: Record<string, unknown>[] = [];
 
-  for (const [key, rows] of grouped) {
+  for (const [_key, rows] of grouped) {
     const newRow: Record<string, unknown> = {};
 
     // Add index column values (from first row in group)
@@ -75,7 +77,7 @@ export function pivot(table: ParseResult, config: PivotConfig): { table: ParseRe
         // Multiple matching rows - apply aggregation
         newRow[newColName] = aggregateValues(
           matchingRows.map((r) => r[valueSource]),
-          aggregation
+          aggregation,
         );
       }
     }
@@ -114,7 +116,7 @@ export function pivot(table: ParseResult, config: PivotConfig): { table: ParseRe
     rowCount: newRows.length,
     warnings: table.warnings,
   };
-  
+
   return {
     table: result,
     columns: newColumns,
@@ -169,7 +171,7 @@ function validateConfig(table: ParseResult, config: PivotConfig): void {
  */
 function aggregateValues(
   values: unknown[],
-  aggregation: "first" | "last" | "sum" | "mean" | "count"
+  aggregation: "first" | "last" | "sum" | "mean" | "count",
 ): unknown {
   if (values.length === 0) {
     return null;
@@ -187,18 +189,14 @@ function aggregateValues(
 
     case "sum": {
       // Only sum numeric values
-      const numericValues = values.filter(
-        (v) => typeof v === "number"
-      ) as number[];
+      const numericValues = values.filter((v) => typeof v === "number") as number[];
       if (numericValues.length === 0) return null;
       return numericValues.reduce((sum, val) => sum + val, 0);
     }
 
     case "mean": {
       // Only average numeric values
-      const numericValues = values.filter(
-        (v) => typeof v === "number"
-      ) as number[];
+      const numericValues = values.filter((v) => typeof v === "number") as number[];
       if (numericValues.length === 0) return null;
       const sum = numericValues.reduce((sum, val) => sum + val, 0);
       return sum / numericValues.length;

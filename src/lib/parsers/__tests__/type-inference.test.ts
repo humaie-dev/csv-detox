@@ -2,18 +2,14 @@
  * Tests for type inference
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { inferColumnTypes } from "../type-inference";
 
 describe("inferColumnTypes", () => {
   describe("number inference", () => {
     it("should infer number type for integer values", () => {
-      const rows = [
-        { age: "30" },
-        { age: "25" },
-        { age: "35" },
-      ];
+      const rows = [{ age: "30" }, { age: "25" }, { age: "35" }];
 
       const columns = inferColumnTypes(rows, ["age"]);
 
@@ -21,11 +17,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer number type for decimal values", () => {
-      const rows = [
-        { price: "19.99" },
-        { price: "25.50" },
-        { price: "10.00" },
-      ];
+      const rows = [{ price: "19.99" }, { price: "25.50" }, { price: "10.00" }];
 
       const columns = inferColumnTypes(rows, ["price"]);
 
@@ -33,11 +25,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer number type for negative values", () => {
-      const rows = [
-        { temp: "-5" },
-        { temp: "-10" },
-        { temp: "0" },
-      ];
+      const rows = [{ temp: "-5" }, { temp: "-10" }, { temp: "0" }];
 
       const columns = inferColumnTypes(rows, ["temp"]);
 
@@ -45,10 +33,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer number type for scientific notation", () => {
-      const rows = [
-        { value: "1e10" },
-        { value: "2.5e-4" },
-      ];
+      const rows = [{ value: "1e10" }, { value: "2.5e-4" }];
 
       const columns = inferColumnTypes(rows, ["value"]);
 
@@ -56,10 +41,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer number type for values with commas", () => {
-      const rows = [
-        { amount: "1,234.56" },
-        { amount: "9,999.99" },
-      ];
+      const rows = [{ amount: "1,234.56" }, { amount: "9,999.99" }];
 
       const columns = inferColumnTypes(rows, ["amount"]);
 
@@ -69,10 +51,7 @@ describe("inferColumnTypes", () => {
 
   describe("boolean inference", () => {
     it("should infer boolean for true/false", () => {
-      const rows = [
-        { active: "true" },
-        { active: "false" },
-      ];
+      const rows = [{ active: "true" }, { active: "false" }];
 
       const columns = inferColumnTypes(rows, ["active"]);
 
@@ -80,10 +59,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer boolean for yes/no", () => {
-      const rows = [
-        { approved: "yes" },
-        { approved: "no" },
-      ];
+      const rows = [{ approved: "yes" }, { approved: "no" }];
 
       const columns = inferColumnTypes(rows, ["approved"]);
 
@@ -91,10 +67,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer boolean for y/n", () => {
-      const rows = [
-        { flag: "y" },
-        { flag: "n" },
-      ];
+      const rows = [{ flag: "y" }, { flag: "n" }];
 
       const columns = inferColumnTypes(rows, ["flag"]);
 
@@ -102,10 +75,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer number for 1/0 (numeric values take priority)", () => {
-      const rows = [
-        { enabled: "1" },
-        { enabled: "0" },
-      ];
+      const rows = [{ enabled: "1" }, { enabled: "0" }];
 
       const columns = inferColumnTypes(rows, ["enabled"]);
 
@@ -115,10 +85,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should be case insensitive", () => {
-      const rows = [
-        { active: "TRUE" },
-        { active: "False" },
-      ];
+      const rows = [{ active: "TRUE" }, { active: "False" }];
 
       const columns = inferColumnTypes(rows, ["active"]);
 
@@ -128,10 +95,7 @@ describe("inferColumnTypes", () => {
 
   describe("date inference", () => {
     it("should infer date for ISO format", () => {
-      const rows = [
-        { date: "2023-01-15" },
-        { date: "2023-06-20" },
-      ];
+      const rows = [{ date: "2023-01-15" }, { date: "2023-06-20" }];
 
       const columns = inferColumnTypes(rows, ["date"]);
 
@@ -139,10 +103,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer date for US format", () => {
-      const rows = [
-        { date: "01/15/2023" },
-        { date: "6/20/2023" },
-      ];
+      const rows = [{ date: "01/15/2023" }, { date: "6/20/2023" }];
 
       const columns = inferColumnTypes(rows, ["date"]);
 
@@ -150,10 +111,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer date for alternative formats", () => {
-      const rows = [
-        { date: "15 January 2023" },
-        { date: "20 June 2023" },
-      ];
+      const rows = [{ date: "15 January 2023" }, { date: "20 June 2023" }];
 
       const columns = inferColumnTypes(rows, ["date"]);
 
@@ -161,10 +119,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer date for text format", () => {
-      const rows = [
-        { date: "Jan 15, 2023" },
-        { date: "June 20, 2023" },
-      ];
+      const rows = [{ date: "Jan 15, 2023" }, { date: "June 20, 2023" }];
 
       const columns = inferColumnTypes(rows, ["date"]);
 
@@ -172,10 +127,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer date for ISO datetime", () => {
-      const rows = [
-        { timestamp: "2023-01-15T10:30:00Z" },
-        { timestamp: "2023-06-20T15:45:00Z" },
-      ];
+      const rows = [{ timestamp: "2023-01-15T10:30:00Z" }, { timestamp: "2023-06-20T15:45:00Z" }];
 
       const columns = inferColumnTypes(rows, ["timestamp"]);
 
@@ -185,10 +137,7 @@ describe("inferColumnTypes", () => {
 
   describe("string inference", () => {
     it("should infer string for text values", () => {
-      const rows = [
-        { name: "John" },
-        { name: "Jane" },
-      ];
+      const rows = [{ name: "John" }, { name: "Jane" }];
 
       const columns = inferColumnTypes(rows, ["name"]);
 
@@ -196,10 +145,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer string for mixed types", () => {
-      const rows = [
-        { value: "30" },
-        { value: "hello" },
-      ];
+      const rows = [{ value: "30" }, { value: "hello" }];
 
       const columns = inferColumnTypes(rows, ["value"]);
 
@@ -207,10 +153,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should default to string for all-null columns", () => {
-      const rows = [
-        { value: null },
-        { value: null },
-      ];
+      const rows = [{ value: null }, { value: null }];
 
       const columns = inferColumnTypes(rows, ["value"]);
 
@@ -220,11 +163,7 @@ describe("inferColumnTypes", () => {
 
   describe("null handling", () => {
     it("should ignore null values in type inference", () => {
-      const rows = [
-        { age: "30" },
-        { age: null },
-        { age: "25" },
-      ];
+      const rows = [{ age: "30" }, { age: null }, { age: "25" }];
 
       const columns = inferColumnTypes(rows, ["age"]);
 
@@ -232,12 +171,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should count null and non-null values correctly", () => {
-      const rows = [
-        { value: "test" },
-        { value: null },
-        { value: "" },
-        { value: "hello" },
-      ];
+      const rows = [{ value: "test" }, { value: null }, { value: "" }, { value: "hello" }];
 
       const columns = inferColumnTypes(rows, ["value"]);
 
@@ -262,12 +196,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should infer string when types are mixed without clear majority", () => {
-      const rows = [
-        { value: "100" },
-        { value: "200" },
-        { value: "text" },
-        { value: "hello" },
-      ];
+      const rows = [{ value: "100" }, { value: "200" }, { value: "text" }, { value: "hello" }];
 
       const columns = inferColumnTypes(rows, ["value"]);
 
@@ -292,20 +221,12 @@ describe("inferColumnTypes", () => {
     });
 
     it("should exclude null values from samples", () => {
-      const rows = [
-        { name: "A" },
-        { name: null },
-        { name: "B" },
-        { name: "" },
-        { name: "C" },
-      ];
+      const rows = [{ name: "A" }, { name: null }, { name: "B" }, { name: "" }, { name: "C" }];
 
       const columns = inferColumnTypes(rows, ["name"]);
 
       assert.equal(columns[0].sampleValues.length, 3);
-      assert.ok(
-        columns[0].sampleValues.every((v) => v !== null && v !== "")
-      );
+      assert.ok(columns[0].sampleValues.every((v) => v !== null && v !== ""));
     });
   });
 
@@ -338,10 +259,7 @@ describe("inferColumnTypes", () => {
     });
 
     it("should handle whitespace in values", () => {
-      const rows = [
-        { age: "  30  " },
-        { age: "  25  " },
-      ];
+      const rows = [{ age: "  30  " }, { age: "  25  " }];
 
       const columns = inferColumnTypes(rows, ["age"]);
 

@@ -2,11 +2,11 @@
  * Tests for filter operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { filter } from "../filter";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { FilterConfig } from "../../types";
+import { filter } from "../filter";
 
 describe("filter operation", () => {
   describe("equals operator", () => {
@@ -74,11 +74,7 @@ describe("filter operation", () => {
   describe("contains operator", () => {
     it("should filter rows where column contains value", () => {
       const table: ParseResult = {
-        rows: [
-          { name: "John Doe" },
-          { name: "Jane Smith" },
-          { name: "Bob Johnson" },
-        ],
+        rows: [{ name: "John Doe" }, { name: "Jane Smith" }, { name: "Bob Johnson" }],
         columns: [
           { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
         ],
@@ -102,9 +98,7 @@ describe("filter operation", () => {
 
     it("should return false for non-string values", () => {
       const table: ParseResult = {
-        rows: [
-          { name: "John", age: 30 },
-        ],
+        rows: [{ name: "John", age: 30 }],
         columns: [
           { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
           { name: "age", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -129,11 +123,7 @@ describe("filter operation", () => {
   describe("not_contains operator", () => {
     it("should filter rows where column does not contain value", () => {
       const table: ParseResult = {
-        rows: [
-          { name: "John Doe" },
-          { name: "Jane Smith" },
-          { name: "Bob Johnson" },
-        ],
+        rows: [{ name: "John Doe" }, { name: "Jane Smith" }, { name: "Bob Johnson" }],
         columns: [
           { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
         ],
@@ -187,11 +177,7 @@ describe("filter operation", () => {
 
     it("should work with string comparison", () => {
       const table: ParseResult = {
-        rows: [
-          { name: "Alice" },
-          { name: "Bob" },
-          { name: "Charlie" },
-        ],
+        rows: [{ name: "Alice" }, { name: "Bob" }, { name: "Charlie" }],
         columns: [
           { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
         ],
@@ -246,9 +232,7 @@ describe("filter operation", () => {
   it("should throw error for non-existent column", () => {
     const table: ParseResult = {
       rows: [{ name: "John" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -267,13 +251,8 @@ describe("filter operation", () => {
 
   it("should return empty table when no rows match", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "John" },
-        { name: "Jane" },
-      ],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ name: "John" }, { name: "Jane" }],
+      columns: [{ name: "name", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: [] }],
       rowCount: 2,
       warnings: [],
     };

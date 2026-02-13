@@ -1,11 +1,11 @@
-import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import {
-  sanitizeFilename,
-  validateFileType,
-  validateFileSize,
   getMaxFileSize,
+  sanitizeFilename,
+  validateFileSize,
+  validateFileType,
 } from "../src/lib/validation.js";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 /**
  * Upload a file and store its metadata in the database.
@@ -43,14 +43,14 @@ export const uploadFile = mutation({
 
     // Return the upload record
     const upload = await ctx.db.get(uploadId);
-    
+
     return {
       fileId: uploadId,
-      originalName: upload!.originalName,
-      sanitizedName: upload!.sanitizedName,
-      size: upload!.size,
-      mimeType: upload!.mimeType,
-      uploadedAt: upload!.uploadedAt,
+      originalName: upload?.originalName,
+      sanitizedName: upload?.sanitizedName,
+      size: upload?.size,
+      mimeType: upload?.mimeType,
+      uploadedAt: upload?.uploadedAt,
     };
   },
 });

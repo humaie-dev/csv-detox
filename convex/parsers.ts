@@ -2,14 +2,14 @@
  * Convex actions for parsing uploaded files
  */
 
-import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { parseCSV } from "@/lib/parsers/csv";
-import { parseExcel, listSheets as listSheetsUtil } from "@/lib/parsers/excel";
+import { listSheets as listSheetsUtil, parseExcel } from "@/lib/parsers/excel";
+import type { ParseOptions, ParseResult } from "@/lib/parsers/types";
 import { ParseError } from "@/lib/parsers/types";
-import type { ParseResult, ParseOptions } from "@/lib/parsers/types";
 import { validateCast as validateCastFn } from "@/lib/pipeline/casting/validate";
+import { internal } from "./_generated/api";
+import { action, internalAction } from "./_generated/server";
 
 /**
  * Parse a CSV or Excel file from Convex storage using uploadId
@@ -77,16 +77,12 @@ export const parseFile = action({
         const content = decoder.decode(arrayBuffer);
         result = parseCSV(content, options);
       } else if (
-        upload.mimeType ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        upload.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         upload.mimeType === "application/vnd.ms-excel"
       ) {
         result = parseExcel(arrayBuffer, options);
       } else {
-        throw new ParseError(
-          `Unsupported file type: ${upload.mimeType}`,
-          "UNSUPPORTED_TYPE"
-        );
+        throw new ParseError(`Unsupported file type: ${upload.mimeType}`, "UNSUPPORTED_TYPE");
       }
 
       return result;
@@ -97,7 +93,7 @@ export const parseFile = action({
       throw new ParseError(
         `Failed to parse file: ${error instanceof Error ? error.message : String(error)}`,
         "PARSE_ERROR",
-        error
+        error,
       );
     }
   },
@@ -123,7 +119,7 @@ export const parseFileInternal = internalAction({
         startColumn: v.optional(v.number()),
         endColumn: v.optional(v.number()),
         hasHeaders: v.optional(v.boolean()),
-      })
+      }),
     ),
   },
   handler: async (ctx, args): Promise<ParseResult> => {
@@ -159,16 +155,12 @@ export const parseFileInternal = internalAction({
         const content = decoder.decode(arrayBuffer);
         result = parseCSV(content, options);
       } else if (
-        args.fileType ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        args.fileType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         args.fileType === "application/vnd.ms-excel"
       ) {
         result = parseExcel(arrayBuffer, options);
       } else {
-        throw new ParseError(
-          `Unsupported file type: ${args.fileType}`,
-          "UNSUPPORTED_TYPE"
-        );
+        throw new ParseError(`Unsupported file type: ${args.fileType}`, "UNSUPPORTED_TYPE");
       }
 
       return result;
@@ -179,7 +171,7 @@ export const parseFileInternal = internalAction({
       throw new ParseError(
         `Failed to parse file: ${error instanceof Error ? error.message : String(error)}`,
         "PARSE_ERROR",
-        error
+        error,
       );
     }
   },
@@ -205,8 +197,7 @@ export const listSheets = action({
 
       // Only works for Excel files
       if (
-        upload.mimeType !==
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
+        upload.mimeType !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
         upload.mimeType !== "application/vnd.ms-excel"
       ) {
         throw new Error("Not an Excel file");
@@ -227,7 +218,7 @@ export const listSheets = action({
       return sheets;
     } catch (error) {
       throw new Error(
-        `Failed to list sheets: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to list sheets: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   },
@@ -236,7 +227,7 @@ export const listSheets = action({
 /**
  * Validate that a column can be cast to a target type
  * Returns statistics about cast success/failure and sample errors
- * 
+ *
  * NOTE: This uses a memory-efficient approach by only parsing the first 500 rows
  * to prevent OOM errors on large files in Convex's 64MB memory limit.
  */
@@ -248,7 +239,7 @@ export const validateCast = action({
       v.literal("string"),
       v.literal("number"),
       v.literal("boolean"),
-      v.literal("date")
+      v.literal("date"),
     ),
     format: v.optional(v.string()),
   },
@@ -267,15 +258,16 @@ export const validateCast = action({
 
       // Build parse options from upload's parseConfig
       // Use VERY conservative limits to prevent OOM in Convex (64MB limit)
-      const parseOptions: any = {
+      const parseOptions: Partial<ParseOptions> = {
         inferTypes: false, // Skip type inference to save memory
         maxRows: 500, // Hard limit - only parse 500 rows for validation
       };
 
       if (upload.parseConfig) {
         if (upload.parseConfig.sheetName) parseOptions.sheetName = upload.parseConfig.sheetName;
-        if (upload.parseConfig.sheetIndex !== undefined) parseOptions.sheetIndex = upload.parseConfig.sheetIndex;
-        
+        if (upload.parseConfig.sheetIndex !== undefined)
+          parseOptions.sheetIndex = upload.parseConfig.sheetIndex;
+
         // Apply startRow but ensure we don't parse more than 500 rows total
         if (upload.parseConfig.startRow) {
           parseOptions.startRow = upload.parseConfig.startRow;
@@ -285,8 +277,9 @@ export const validateCast = action({
             parseOptions.endRow = Math.min(upload.parseConfig.endRow, maxEndRow);
           }
         }
-        
-        if (upload.parseConfig.startColumn) parseOptions.startColumn = upload.parseConfig.startColumn;
+
+        if (upload.parseConfig.startColumn)
+          parseOptions.startColumn = upload.parseConfig.startColumn;
         if (upload.parseConfig.endColumn) parseOptions.endColumn = upload.parseConfig.endColumn;
         parseOptions.hasHeaders = upload.parseConfig.hasHeaders;
       } else {
@@ -314,7 +307,7 @@ export const validateCast = action({
         args.targetType,
         args.format,
         5, // maxSamples
-        500 // maxRows (matches parse limit)
+        500, // maxRows (matches parse limit)
       );
 
       return result;
@@ -323,7 +316,7 @@ export const validateCast = action({
         throw error;
       }
       throw new Error(
-        `Failed to validate cast: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to validate cast: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   },

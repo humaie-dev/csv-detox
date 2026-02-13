@@ -2,9 +2,9 @@
  * CSV parser implementation
  */
 
-import type { ParseResult, ParseOptions } from "./types";
-import { ParseError } from "./types";
 import { inferColumnTypes } from "./type-inference";
+import type { ParseOptions, ParseResult } from "./types";
+import { ParseError } from "./types";
 
 /**
  * Detect the delimiter used in a CSV file
@@ -82,10 +82,7 @@ function parseCSVLine(line: string, delimiter: string): string[] {
 /**
  * Parse CSV content into structured data
  */
-export function parseCSV(
-  content: string,
-  options: ParseOptions = {}
-): ParseResult {
+export function parseCSV(content: string, options: ParseOptions = {}): ParseResult {
   const {
     maxRows = Infinity,
     inferTypes = true,
@@ -141,7 +138,7 @@ export function parseCSV(
       // First line is headers
       const headerLine = lines[0];
       const allHeaders = parseCSVLine(headerLine, delimiter);
-      
+
       // Apply column range to headers
       headers = applyColumnRange(allHeaders, startColumn, endColumn);
       dataStartIndex = 1;
@@ -149,10 +146,11 @@ export function parseCSV(
       // Generate column headers: Column1, Column2, etc.
       const firstLine = lines[0];
       const allValues = parseCSVLine(firstLine, delimiter);
-      const columnCount = endColumn !== undefined 
-        ? Math.min(endColumn, allValues.length) - (startColumn - 1)
-        : allValues.length - (startColumn - 1);
-      
+      const columnCount =
+        endColumn !== undefined
+          ? Math.min(endColumn, allValues.length) - (startColumn - 1)
+          : allValues.length - (startColumn - 1);
+
       headers = Array.from({ length: columnCount }, (_, i) => `Column${i + 1}`);
       dataStartIndex = 0;
     }
@@ -175,7 +173,7 @@ export function parseCSV(
     if (duplicates.length > 0) {
       warnings.push(
         `Duplicate column names found: ${duplicates.join(", ")}. ` +
-          `Later columns will overwrite earlier ones.`
+          `Later columns will overwrite earlier ones.`,
       );
     }
 
@@ -186,14 +184,14 @@ export function parseCSV(
     for (let i = 0; i < dataLines.length; i++) {
       const line = dataLines[i];
       const allValues = parseCSVLine(line, delimiter);
-      
+
       // Apply column range to values
       const values = applyColumnRange(allValues, startColumn, endColumn);
 
       if (values.length !== headers.length) {
         warnings.push(
           `Row ${firstLineIndex + dataStartIndex + i + 1} has ${values.length} columns in range but expected ${headers.length}. ` +
-            `This row may be malformed.`
+            `This row may be malformed.`,
         );
       }
 
@@ -229,7 +227,7 @@ export function parseCSV(
     throw new ParseError(
       `Failed to parse CSV: ${error instanceof Error ? error.message : String(error)}`,
       "PARSE_ERROR",
-      error
+      error,
     );
   }
 }

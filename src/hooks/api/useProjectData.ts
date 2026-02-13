@@ -2,18 +2,25 @@
  * React hooks for accessing SQLite-backed API routes
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ColumnMetadata } from "@/lib/parsers/types";
 
 /**
  * Fetch raw project data from SQLite
  */
-export function useProjectData(projectId: string | null, options?: { limit?: number; offset?: number }) {
+export function useProjectData(
+  projectId: string | null,
+  options?: { limit?: number; offset?: number },
+) {
   const [data, setData] = useState<Array<Record<string, unknown>>>([]);
   const [columns, setColumns] = useState<ColumnMetadata[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<{ offset: number; limit: number; total: number } | null>(null);
+  const [pagination, setPagination] = useState<{
+    offset: number;
+    limit: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!projectId) {
@@ -34,7 +41,7 @@ export function useProjectData(projectId: string | null, options?: { limit?: num
         });
 
         const response = await fetch(`/api/projects/${projectId}/data?${params}`);
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to fetch project data");
@@ -80,7 +87,7 @@ export function useColumns(projectId: string | null) {
 
       try {
         const response = await fetch(`/api/projects/${projectId}/columns`);
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to fetch columns");
@@ -134,17 +141,14 @@ export function usePipelinePreview({
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/projects/${projectId}/pipelines/${pipelineId}/preview`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ upToStep }),
-          }
-        );
-        
+        const response = await fetch(`/api/projects/${projectId}/pipelines/${pipelineId}/preview`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ upToStep }),
+        });
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to execute pipeline preview");
@@ -174,17 +178,14 @@ export function usePipelinePreview({
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/projects/${projectId}/pipelines/${pipelineId}/preview`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ upToStep }),
-        }
-      );
-      
+      const response = await fetch(`/api/projects/${projectId}/pipelines/${pipelineId}/preview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ upToStep }),
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to execute pipeline preview");

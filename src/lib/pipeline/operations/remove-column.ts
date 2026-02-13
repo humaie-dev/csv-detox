@@ -2,29 +2,23 @@
  * Remove columns from table
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { RemoveColumnConfig } from "../types";
 
 export function removeColumn(
   table: ParseResult,
-  config: RemoveColumnConfig
+  config: RemoveColumnConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
-  const invalidColumns = config.columns.filter(
-    (col) => !columnNames.includes(col)
-  );
+  const invalidColumns = config.columns.filter((col) => !columnNames.includes(col));
 
   if (invalidColumns.length > 0) {
-    throw new Error(
-      `Columns not found: ${invalidColumns.join(", ")}`
-    );
+    throw new Error(`Columns not found: ${invalidColumns.join(", ")}`);
   }
 
   // Remove from column metadata
-  const newColumns = table.columns.filter(
-    (col) => !config.columns.includes(col.name)
-  );
+  const newColumns = table.columns.filter((col) => !config.columns.includes(col.name));
 
   // Remove from rows
   const newRows = table.rows.map((row) => {
@@ -42,7 +36,7 @@ export function removeColumn(
     columns: newColumns,
     rows: newRows,
   };
-  
+
   return {
     table: result,
     columns: newColumns,
