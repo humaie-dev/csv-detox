@@ -2,7 +2,7 @@
  * Transformation operations registry
  */
 
-import type { OperationFn, TransformationType } from "../types";
+import type { OperationFn, TransformationConfig, TransformationType } from "../types";
 import { castColumn } from "./cast-column";
 import { deduplicate } from "./deduplicate";
 import { fillAcross } from "./fill-across";
@@ -22,7 +22,7 @@ import { uppercase } from "./uppercase";
 /**
  * Registry of all available operations
  */
-export const operations: Record<TransformationType, OperationFn> = {
+export const operations: Record<TransformationType, OperationFn<TransformationConfig>> = {
   trim,
   uppercase,
   lowercase,
@@ -38,7 +38,7 @@ export const operations: Record<TransformationType, OperationFn> = {
   fill_down: fillDown,
   fill_across: fillAcross,
   sort,
-};
+} as Record<TransformationType, OperationFn<TransformationConfig>>;
 
 /**
  * Get operation function by type

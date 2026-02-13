@@ -225,10 +225,11 @@ export interface PipelineConfig {
 /**
  * Operation function signature
  * Operations now return both the transformed table and updated column metadata
+ * Uses a generic type parameter to allow each operation to specify its own config type
  */
-export type OperationFn = (
+export type OperationFn<TConfig = TransformationConfig> = (
   table: ParseResult,
-  config: TransformationConfig,
+  config: TConfig,
 ) => { table: ParseResult; columns: ColumnMetadata[] };
 
 /**
