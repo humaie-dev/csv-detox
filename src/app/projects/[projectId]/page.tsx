@@ -647,6 +647,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               ) : (
                 <div className="space-y-2">
                   <button
+                    type="button"
                     onClick={() => {
                       setSelectedPipelineId(null);
                       setSelectedStepIndex(null);
@@ -666,6 +667,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
 
                   {pipelines.map((pipeline) => (
                     <button
+                      type="button"
                       key={pipeline._id}
                       onClick={() => {
                         setSelectedPipelineId(pipeline._id);

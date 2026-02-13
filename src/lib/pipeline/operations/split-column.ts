@@ -44,13 +44,22 @@ export function splitColumn(
     let parts: string[];
     switch (method) {
       case "delimiter":
-        parts = splitByDelimiter(stringValue, delimiter!, maxSplits);
+        if (!delimiter) {
+          throw new Error("Delimiter is required for delimiter method");
+        }
+        parts = splitByDelimiter(stringValue, delimiter, maxSplits);
         break;
       case "position":
-        parts = splitByPosition(stringValue, positions!);
+        if (!positions) {
+          throw new Error("Positions are required for position method");
+        }
+        parts = splitByPosition(stringValue, positions);
         break;
       case "regex":
-        parts = splitByRegex(stringValue, pattern!, maxSplits);
+        if (!pattern) {
+          throw new Error("Pattern is required for regex method");
+        }
+        parts = splitByRegex(stringValue, pattern, maxSplits);
         break;
       default:
         throw new Error(`Unknown split method: ${method}`);

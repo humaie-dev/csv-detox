@@ -6,11 +6,12 @@ import assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, before, describe, it } from "node:test";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { resetDatabaseCache } from "../cache";
 import { deleteDatabase, getColumns, getDatabase, getRawData, getRowCount } from "../database";
 import { isProjectDataInitialized, parseAndStoreFile } from "../parser";
 
-const TEST_PROJECT_ID = "test-parser-project-001" as any;
+const TEST_PROJECT_ID = "test-parser-project-001" as Id<"projects">;
 const TEST_DATA_DIR = path.join(process.cwd(), "data", "sqlite", "test");
 
 process.env.SQLITE_DB_DIR = TEST_DATA_DIR;

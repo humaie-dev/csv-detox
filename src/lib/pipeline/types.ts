@@ -228,7 +228,7 @@ export interface PipelineConfig {
  */
 export type OperationFn = (
   table: ParseResult,
-  config: any,
+  config: TransformationConfig,
 ) => { table: ParseResult; columns: ColumnMetadata[] };
 
 /**

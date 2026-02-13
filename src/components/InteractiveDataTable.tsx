@@ -311,7 +311,7 @@ export function InteractiveDataTable({
                     </TableRow>
                   ) : (
                     displayRows.map((row, rowIndex) => (
-                      <TableRow key={rowIndex}>
+                      <TableRow key={`row-${rowIndex}-${JSON.stringify(row)}`}>
                         {visibleColumns.map((col) => {
                           const value = row[col.name];
                           const displayValue =
@@ -335,7 +335,7 @@ export function InteractiveDataTable({
           <div className="mt-4 space-y-2">
             <p className="text-sm font-medium text-yellow-600">Warnings:</p>
             {data.warnings.map((warning, i) => (
-              <p key={i} className="text-sm text-yellow-600">
+              <p key={`warning-${i}-${warning}`} className="text-sm text-yellow-600">
                 • {warning}
               </p>
             ))}

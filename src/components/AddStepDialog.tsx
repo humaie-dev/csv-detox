@@ -1,7 +1,7 @@
 "use client";
 
 import { useAction } from "convex/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,13 +63,13 @@ export function AddStepDialog({
   const [validationLoading, setValidationLoading] = useState(false);
   const validateCastAction = useAction(api.parsers.validateCast);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSelectedOperation("");
     setFormData({});
     setSelectedColumns([]);
     setError("");
     setValidationResult(null);
-  };
+  }, []);
 
   // Populate form when editing a step
   useEffect(() => {
@@ -956,7 +956,10 @@ export function AddStepDialog({
                               <div className="font-medium mb-1">Sample invalid values:</div>
                               <div className="rounded bg-muted p-2 space-y-1 font-mono max-h-32 overflow-y-auto">
                                 {validationResult.invalidSamples.map((sample: any, idx: number) => (
-                                  <div key={idx} className="text-xs">
+                                  <div
+                                    key={`${JSON.stringify(sample.value)}-${sample.error}-${idx}`}
+                                    className="text-xs"
+                                  >
                                     <span className="text-red-600 dark:text-red-400">
                                       {JSON.stringify(sample.value)}
                                     </span>
@@ -1555,7 +1558,10 @@ export function AddStepDialog({
               ) : (
                 <div className="space-y-2">
                   {sortColumns.map((sortCol: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
+                    <div
+                      key={`${sortCol.name}-${sortCol.direction}-${index}`}
+                      className="flex items-center gap-2 p-2 border rounded-lg"
+                    >
                       <span className="text-xs text-muted-foreground w-6">[{index + 1}]</span>
 
                       <select

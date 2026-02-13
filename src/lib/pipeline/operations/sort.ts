@@ -66,8 +66,8 @@ export function sort(
  * Handles type-aware comparison and null positioning
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: unknown,
+  b: unknown,
   direction: "asc" | "desc",
   nullsPosition: "first" | "last",
 ): number {
