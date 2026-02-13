@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,11 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import type { ValidationResult } from "@/lib/pipeline/casting/validate";
+import type {
+  TransformationConfig,
+  TransformationStep,
+  TransformationType,
+} from "@/lib/pipeline/types";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface AddStepDialogProps {
   open: boolean;
@@ -46,14 +51,25 @@ export function AddStepDialog({
   uploadId,
 }: AddStepDialogProps) {
   const [selectedOperation, setSelectedOperation] = useState<TransformationType | "">("");
+  // TODO: Replace Record<string, any> with proper discriminated union based on TransformationType
+  // This requires creating a FormData type that matches each transformation config shape
+  // For now, `any` exception is allowed in biome.json for this file due to dynamic form complexity
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [error, setError] = useState<string>("");
-  
+
   // Validation preview state
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [validationLoading, setValidationLoading] = useState(false);
   const validateCastAction = useAction(api.parsers.validateCast);
+
+  const resetForm = () => {
+    setSelectedOperation("");
+    setFormData({});
+    setSelectedColumns([]);
+    setError("");
+    setValidationResult(null);
+  };
 
   // Populate form when editing a step
   useEffect(() => {
@@ -160,23 +176,55 @@ export function AddStepDialog({
     } else if (!open) {
       resetForm();
     }
-  }, [editingStep, open]);
+  }, [editingStep, open, resetForm]);
 
   const operations: { value: TransformationType; label: string; description: string }[] = [
-    { value: "trim", label: "Trim Whitespace", description: "Remove leading and trailing whitespace" },
+    {
+      value: "trim",
+      label: "Trim Whitespace",
+      description: "Remove leading and trailing whitespace",
+    },
     { value: "uppercase", label: "Uppercase", description: "Convert text to uppercase" },
     { value: "lowercase", label: "Lowercase", description: "Convert text to lowercase" },
     { value: "deduplicate", label: "Remove Duplicates", description: "Remove duplicate rows" },
     { value: "filter", label: "Filter Rows", description: "Keep only rows matching a condition" },
     { value: "rename_column", label: "Rename Column", description: "Rename a column" },
     { value: "remove_column", label: "Remove Columns", description: "Remove one or more columns" },
-    { value: "cast_column", label: "Cast Column Type", description: "Convert column values to a different data type" },
-    { value: "unpivot", label: "Unpivot (Wide → Long)", description: "Convert columns into rows (normalize data)" },
-    { value: "pivot", label: "Pivot (Long → Wide)", description: "Convert rows into columns (create crosstab)" },
-    { value: "split_column", label: "Split Column", description: "Split one column into multiple columns" },
-    { value: "merge_columns", label: "Merge Columns", description: "Combine multiple columns into one" },
-    { value: "fill_down", label: "Fill Down", description: "Fill empty cells with value from above" },
-    { value: "fill_across", label: "Fill Across", description: "Fill empty cells with value from left" },
+    {
+      value: "cast_column",
+      label: "Cast Column Type",
+      description: "Convert column values to a different data type",
+    },
+    {
+      value: "unpivot",
+      label: "Unpivot (Wide → Long)",
+      description: "Convert columns into rows (normalize data)",
+    },
+    {
+      value: "pivot",
+      label: "Pivot (Long → Wide)",
+      description: "Convert rows into columns (create crosstab)",
+    },
+    {
+      value: "split_column",
+      label: "Split Column",
+      description: "Split one column into multiple columns",
+    },
+    {
+      value: "merge_columns",
+      label: "Merge Columns",
+      description: "Combine multiple columns into one",
+    },
+    {
+      value: "fill_down",
+      label: "Fill Down",
+      description: "Fill empty cells with value from above",
+    },
+    {
+      value: "fill_across",
+      label: "Fill Across",
+      description: "Fill empty cells with value from left",
+    },
     { value: "sort", label: "Sort", description: "Sort rows by one or more columns" },
   ];
 
@@ -188,14 +236,6 @@ export function AddStepDialog({
     { value: "greater_than", label: "Greater Than" },
     { value: "less_than", label: "Less Than" },
   ];
-
-  const resetForm = () => {
-    setSelectedOperation("");
-    setFormData({});
-    setSelectedColumns([]);
-    setError("");
-    setValidationResult(null);
-  };
 
   // Handle validation preview for cast_column
   const handleValidate = async () => {
@@ -376,7 +416,7 @@ export function AddStepDialog({
           };
           break;
 
-        case "split_column":
+        case "split_column": {
           if (!formData.column) {
             setError("Please select a column to split");
             return;
@@ -389,30 +429,38 @@ export function AddStepDialog({
             setError("Please enter a delimiter");
             return;
           }
-          
+
           // Parse positions if it's a string
-          let positions: number[] | undefined = undefined;
+          let positions: number[] | undefined;
           if (formData.method === "position") {
-            positions = typeof formData.positions === "string"
-              ? formData.positions.split(",").map((p) => parseInt(p.trim())).filter((p) => !isNaN(p))
-              : formData.positions;
-            
+            positions =
+              typeof formData.positions === "string"
+                ? formData.positions
+                    .split(",")
+                    .map((p) => parseInt(p.trim(), 10))
+                    .filter((p) => !Number.isNaN(p))
+                : formData.positions;
+
             if (!positions || positions.length === 0) {
               setError("Please enter positions");
               return;
             }
           }
-          
+
           if (formData.method === "regex" && !formData.pattern) {
             setError("Please enter a regex pattern");
             return;
           }
-          
+
           // Parse newColumns if it's a string
-          const newColumns = typeof formData.newColumns === "string"
-            ? formData.newColumns.split(",").map((c) => c.trim()).filter((c) => c)
-            : formData.newColumns || [];
-          
+          const newColumns =
+            typeof formData.newColumns === "string"
+              ? formData.newColumns
+                  .split(",")
+                  .map((c) => c.trim())
+                  .filter((c) => c)
+              : formData.newColumns || [];
+
           if (newColumns.length === 0) {
             setError("Please specify at least one new column name");
             return;
@@ -430,6 +478,7 @@ export function AddStepDialog({
             maxSplits: formData.maxSplits,
           };
           break;
+        }
 
         case "merge_columns":
           if (selectedColumns.length === 0) {
@@ -501,7 +550,7 @@ export function AddStepDialog({
       } else {
         onAddStep(selectedOperation, config);
       }
-      
+
       resetForm();
       onOpenChange(false);
     } catch (err) {
@@ -511,7 +560,7 @@ export function AddStepDialog({
 
   const toggleColumn = (column: string) => {
     setSelectedColumns((prev) =>
-      prev.includes(column) ? prev.filter((c) => c !== column) : [...prev, column]
+      prev.includes(column) ? prev.filter((c) => c !== column) : [...prev, column],
     );
   };
 
@@ -534,7 +583,7 @@ export function AddStepDialog({
               <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
                 <div className="font-semibold mb-1 text-foreground">Example:</div>
                 <div className="text-muted-foreground">
-                  <div>Input:  "  hello  " → Output: "hello"</div>
+                  <div>Input: " hello " → Output: "hello"</div>
                 </div>
               </div>
             )}
@@ -542,7 +591,7 @@ export function AddStepDialog({
               <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
                 <div className="font-semibold mb-1 text-foreground">Example:</div>
                 <div className="text-muted-foreground">
-                  <div>Input:  "hello" → Output: "HELLO"</div>
+                  <div>Input: "hello" → Output: "HELLO"</div>
                 </div>
               </div>
             )}
@@ -550,7 +599,7 @@ export function AddStepDialog({
               <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
                 <div className="font-semibold mb-1 text-foreground">Example:</div>
                 <div className="text-muted-foreground">
-                  <div>Input:  "HELLO" → Output: "hello"</div>
+                  <div>Input: "HELLO" → Output: "hello"</div>
                 </div>
               </div>
             )}
@@ -798,19 +847,25 @@ export function AddStepDialog({
                   <SelectItem value="fail">
                     <div>
                       <div className="font-medium">Fail</div>
-                      <div className="text-xs text-muted-foreground">Stop immediately on first error</div>
+                      <div className="text-xs text-muted-foreground">
+                        Stop immediately on first error
+                      </div>
                     </div>
                   </SelectItem>
                   <SelectItem value="null">
                     <div>
                       <div className="font-medium">Set to Null</div>
-                      <div className="text-xs text-muted-foreground">Replace invalid values with null</div>
+                      <div className="text-xs text-muted-foreground">
+                        Replace invalid values with null
+                      </div>
                     </div>
                   </SelectItem>
                   <SelectItem value="skip">
                     <div>
                       <div className="font-medium">Skip Row</div>
-                      <div className="text-xs text-muted-foreground">Remove rows with invalid values</div>
+                      <div className="text-xs text-muted-foreground">
+                        Remove rows with invalid values
+                      </div>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -855,9 +910,7 @@ export function AddStepDialog({
                       "Preview Cast Validation"
                     )}
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Validates first 500 rows
-                  </span>
+                  <span className="text-xs text-muted-foreground">Validates first 500 rows</span>
                 </div>
 
                 {validationResult && (
@@ -897,22 +950,23 @@ export function AddStepDialog({
                           </div>
                         )}
 
-                        {validationResult.invalidSamples && validationResult.invalidSamples.length > 0 && (
-                          <div className="text-xs">
-                            <div className="font-medium mb-1">Sample invalid values:</div>
-                            <div className="rounded bg-muted p-2 space-y-1 font-mono max-h-32 overflow-y-auto">
-                              {validationResult.invalidSamples.map((sample: any, idx: number) => (
-                                <div key={idx} className="text-xs">
-                                  <span className="text-red-600 dark:text-red-400">
-                                    {JSON.stringify(sample.value)}
-                                  </span>
-                                  {" → "}
-                                  <span className="text-muted-foreground">{sample.error}</span>
-                                </div>
-                              ))}
+                        {validationResult.invalidSamples &&
+                          validationResult.invalidSamples.length > 0 && (
+                            <div className="text-xs">
+                              <div className="font-medium mb-1">Sample invalid values:</div>
+                              <div className="rounded bg-muted p-2 space-y-1 font-mono max-h-32 overflow-y-auto">
+                                {validationResult.invalidSamples.map((sample: any, idx: number) => (
+                                  <div key={idx} className="text-xs">
+                                    <span className="text-red-600 dark:text-red-400">
+                                      {JSON.stringify(sample.value)}
+                                    </span>
+                                    {" → "}
+                                    <span className="text-muted-foreground">{sample.error}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </>
                     )}
 
@@ -935,7 +989,7 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example:</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  Name: "Alice", Jan: 100, Feb: 200</div>
+                <div className="mb-1">Input: Name: "Alice", Jan: 100, Feb: 200</div>
                 <div>Output: Name: "Alice", Month: "Jan", Sales: 100</div>
                 <div className="ml-16">Name: "Alice", Month: "Feb", Sales: 200</div>
               </div>
@@ -998,7 +1052,9 @@ export function AddStepDialog({
                   value={formData.variableColumnName || ""}
                   onChange={(e) => setFormData({ ...formData, variableColumnName: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Name for column containing original column names</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Name for column containing original column names
+                </p>
               </div>
               <div>
                 <Label htmlFor="value-column-name">Value Column Name</Label>
@@ -1008,7 +1064,9 @@ export function AddStepDialog({
                   value={formData.valueColumnName || ""}
                   onChange={(e) => setFormData({ ...formData, valueColumnName: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Name for column containing values</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Name for column containing values
+                </p>
               </div>
             </div>
           </div>
@@ -1021,7 +1079,7 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example:</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  Name: "Alice", Month: "Jan", Sales: 100</div>
+                <div className="mb-1">Input: Name: "Alice", Month: "Jan", Sales: 100</div>
                 <div className="ml-16">Name: "Alice", Month: "Feb", Sales: 200</div>
                 <div>Output: Name: "Alice", Jan: 100, Feb: 200</div>
               </div>
@@ -1084,7 +1142,9 @@ export function AddStepDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {availableColumns
-                    .filter((col) => !selectedColumns.includes(col) && col !== formData.columnSource)
+                    .filter(
+                      (col) => !selectedColumns.includes(col) && col !== formData.columnSource,
+                    )
                     .map((col) => (
                       <SelectItem key={col} value={col}>
                         {col}
@@ -1122,7 +1182,7 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example (delimiter):</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  Name: "John Doe"</div>
+                <div className="mb-1">Input: Name: "John Doe"</div>
                 <div>Output: FirstName: "John", LastName: "Doe"</div>
               </div>
             </div>
@@ -1190,7 +1250,9 @@ export function AddStepDialog({
                     setFormData({ ...formData, positions: e.target.value });
                   }}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Character positions to split at</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Character positions to split at
+                </p>
               </div>
             )}
 
@@ -1252,7 +1314,7 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example:</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  FirstName: "John", LastName: "Doe"</div>
+                <div className="mb-1">Input: FirstName: "John", LastName: "Doe"</div>
                 <div>Output: FullName: "John Doe"</div>
               </div>
             </div>
@@ -1326,8 +1388,8 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example:</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  Product: "Apple", Measure: "Sales"</div>
-                <div className="ml-16">Product: "",      Measure: "Cost"</div>
+                <div className="mb-1">Input: Product: "Apple", Measure: "Sales"</div>
+                <div className="ml-16">Product: "", Measure: "Cost"</div>
                 <div>Output: Product: "Apple", Measure: "Sales"</div>
                 <div className="ml-16">Product: "Apple", Measure: "Cost"</div>
               </div>
@@ -1357,7 +1419,9 @@ export function AddStepDialog({
                 type="checkbox"
                 id="treatWhitespace-down"
                 checked={formData.treatWhitespaceAsEmpty || false}
-                onChange={(e) => setFormData({ ...formData, treatWhitespaceAsEmpty: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, treatWhitespaceAsEmpty: e.target.checked })
+                }
                 className="rounded"
               />
               <Label htmlFor="treatWhitespace-down" className="cursor-pointer">
@@ -1374,13 +1438,15 @@ export function AddStepDialog({
             <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono">
               <div className="font-semibold mb-1 text-foreground">Example:</div>
               <div className="text-muted-foreground">
-                <div className="mb-1">Input:  Q1: "100", Q2: "", Q3: "300"</div>
+                <div className="mb-1">Input: Q1: "100", Q2: "", Q3: "300"</div>
                 <div>Output: Q1: "100", Q2: "100", Q3: "300"</div>
               </div>
             </div>
 
             <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-xs">
-              <div className="font-semibold text-yellow-800 dark:text-yellow-300 mb-1">⚠️ Order Matters</div>
+              <div className="font-semibold text-yellow-800 dark:text-yellow-300 mb-1">
+                ⚠️ Order Matters
+              </div>
               <div className="text-yellow-700 dark:text-yellow-400">
                 Columns are filled left to right in the order you select them
               </div>
@@ -1413,7 +1479,9 @@ export function AddStepDialog({
                 type="checkbox"
                 id="treatWhitespace-across"
                 checked={formData.treatWhitespaceAsEmpty || false}
-                onChange={(e) => setFormData({ ...formData, treatWhitespaceAsEmpty: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, treatWhitespaceAsEmpty: e.target.checked })
+                }
                 className="rounded"
               />
               <Label htmlFor="treatWhitespace-across" className="cursor-pointer">
@@ -1423,27 +1491,30 @@ export function AddStepDialog({
           </div>
         );
 
-      case "sort":
+      case "sort": {
         const sortColumns = formData.sortColumns || [];
-        
+
         const addSortColumn = () => {
           const newCol = { name: availableColumns[0] || "", direction: "asc" as "asc" | "desc" };
           setFormData({ ...formData, sortColumns: [...sortColumns, newCol] });
         };
-        
+
         const removeSortColumn = (index: number) => {
           const updated = sortColumns.filter((_: any, i: number) => i !== index);
           setFormData({ ...formData, sortColumns: updated });
         };
-        
+
         const updateSortColumn = (index: number, field: string, value: any) => {
           const updated = [...sortColumns];
           updated[index] = { ...updated[index], [field]: value };
           setFormData({ ...formData, sortColumns: updated });
         };
-        
+
         const moveSortColumn = (index: number, direction: "up" | "down") => {
-          if ((direction === "up" && index === 0) || (direction === "down" && index === sortColumns.length - 1)) {
+          if (
+            (direction === "up" && index === 0) ||
+            (direction === "down" && index === sortColumns.length - 1)
+          ) {
             return;
           }
           const updated = [...sortColumns];
@@ -1476,7 +1547,7 @@ export function AddStepDialog({
                   + Add Column
                 </Button>
               </div>
-              
+
               {sortColumns.length === 0 ? (
                 <div className="text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg text-center">
                   Click "Add Column" to add sort criteria
@@ -1486,17 +1557,19 @@ export function AddStepDialog({
                   {sortColumns.map((sortCol: any, index: number) => (
                     <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
                       <span className="text-xs text-muted-foreground w-6">[{index + 1}]</span>
-                      
+
                       <select
                         className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                         value={sortCol.name}
                         onChange={(e) => updateSortColumn(index, "name", e.target.value)}
                       >
                         {availableColumns.map((col) => (
-                          <option key={col} value={col}>{col}</option>
+                          <option key={col} value={col}>
+                            {col}
+                          </option>
                         ))}
                       </select>
-                      
+
                       <select
                         className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                         value={sortCol.direction}
@@ -1505,7 +1578,7 @@ export function AddStepDialog({
                         <option value="asc">Ascending (A→Z, 1→9)</option>
                         <option value="desc">Descending (Z→A, 9→1)</option>
                       </select>
-                      
+
                       <div className="flex gap-1">
                         <Button
                           type="button"
@@ -1572,6 +1645,7 @@ export function AddStepDialog({
             </div>
           </div>
         );
+      }
 
       default:
         return null;
@@ -1579,15 +1653,22 @@ export function AddStepDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) resetForm();
-      onOpenChange(isOpen);
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) resetForm();
+        onOpenChange(isOpen);
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editingStep ? "Edit Transformation Step" : "Add Transformation Step"}</DialogTitle>
+          <DialogTitle>
+            {editingStep ? "Edit Transformation Step" : "Add Transformation Step"}
+          </DialogTitle>
           <DialogDescription>
-            {editingStep ? "Modify the configuration for this transformation" : "Configure a new transformation to apply to your data"}
+            {editingStep
+              ? "Modify the configuration for this transformation"
+              : "Configure a new transformation to apply to your data"}
           </DialogDescription>
         </DialogHeader>
 
@@ -1626,9 +1707,7 @@ export function AddStepDialog({
 
           {/* Error Display */}
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
           )}
         </div>
 
@@ -1636,9 +1715,7 @@ export function AddStepDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>
-            {editingStep ? "Save Changes" : "Add Step"}
-          </Button>
+          <Button onClick={handleSubmit}>{editingStep ? "Save Changes" : "Add Step"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

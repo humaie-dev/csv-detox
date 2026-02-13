@@ -1,20 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  getDatabase,
-  getRawData,
-  getColumns,
-  getRowCount,
-} from "@/lib/sqlite/database";
-import { isInitialized, getParseConfig } from "@/lib/sqlite/schema";
-import { getConvexClient, downloadFileFromConvex, getUpload } from "@/lib/convex/client";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
-import { executePipeline, executeUntilStep } from "@/lib/pipeline/executor";
-import type { ParseResult, ParseOptions } from "@/lib/parsers/types";
-import type { TransformationStep } from "@/lib/pipeline/types";
+import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
+import type { ParseOptions, ParseResult } from "@/lib/parsers/types";
+import { executePipeline, executeUntilStep } from "@/lib/pipeline/executor";
+import type { ExecutionResult, TransformationStep } from "@/lib/pipeline/types";
+import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import { getParseConfig, isInitialized } from "@/lib/sqlite/schema";
+import { api } from "../../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../../convex/_generated/dataModel";
 
 const requestSchema = z.object({
   upToStep: z.number().int().min(-1).nullable().optional(), // -1 means raw data, null/undefined means all steps
@@ -22,7 +17,7 @@ const requestSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> }
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   try {
     const { projectId, pipelineId } = await params;
@@ -34,12 +29,12 @@ export async function POST(
     if (!validation.success) {
       return NextResponse.json(
         { error: "Invalid request body", details: validation.error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { upToStep } = validation.data;
-    
+
     // Normalize null to undefined (both mean "execute all steps")
     const normalizedUpToStep = upToStep === null ? undefined : upToStep;
 
@@ -59,17 +54,14 @@ export async function POST(
     });
 
     if (!pipeline) {
-      return NextResponse.json(
-        { error: "Pipeline not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pipeline not found" }, { status: 404 });
     }
 
     // Verify pipeline belongs to project
     if (pipeline.projectId !== projectId) {
       return NextResponse.json(
         { error: "Pipeline does not belong to this project" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,17 +73,16 @@ export async function POST(
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);
-    
+
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse = pipeline.parseConfig && (
-      pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName
-    );
+    const needsCustomParse =
+      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
 
     let parseResult: ParseResult;
 
@@ -99,10 +90,7 @@ export async function POST(
       // Re-parse with pipeline-specific config
       const upload = await getUpload(project.uploadId);
       if (!upload) {
-        return NextResponse.json(
-          { error: "Upload not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Upload not found" }, { status: 404 });
       }
 
       // Download file from Convex Storage
@@ -115,10 +103,10 @@ export async function POST(
       };
 
       // Determine file type and parse
-      const isExcel = upload.mimeType?.includes("spreadsheet") || 
-                     upload.originalName?.match(/\.(xlsx?|xls)$/i);
-      
-      const parsedData = isExcel 
+      const isExcel =
+        upload.mimeType?.includes("spreadsheet") || upload.originalName?.match(/\.(xlsx?|xls)$/i);
+
+      const parsedData = isExcel
         ? await parseExcel(fileBuffer, parseOptions)
         : await parseCSV(new TextDecoder().decode(fileBuffer), parseOptions);
 
@@ -159,22 +147,16 @@ export async function POST(
     }
 
     // Convert Convex steps to TransformationStep format
-    const transformationSteps: TransformationStep[] = pipeline.steps.map(
-      (step) => ({
-        id: step.id,
-        type: step.type as TransformationStep["type"],
-        config: step.config as TransformationStep["config"],
-      })
-    );
+    const transformationSteps: TransformationStep[] = pipeline.steps.map((step) => ({
+      id: step.id,
+      type: step.type as TransformationStep["type"],
+      config: step.config as TransformationStep["config"],
+    }));
 
     // Execute pipeline
-    let executionResult;
+    let executionResult: ExecutionResult;
     if (normalizedUpToStep !== undefined && normalizedUpToStep < transformationSteps.length) {
-      executionResult = executeUntilStep(
-        parseResult,
-        transformationSteps,
-        normalizedUpToStep
-      );
+      executionResult = executeUntilStep(parseResult, transformationSteps, normalizedUpToStep);
     } else {
       executionResult = executePipeline(parseResult, transformationSteps);
     }
@@ -194,7 +176,7 @@ export async function POST(
         error: "Failed to generate pipeline preview",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

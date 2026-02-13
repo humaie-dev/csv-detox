@@ -1,5 +1,5 @@
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { parseCSV } from "../csv";
 import { ParseError } from "../types";
 
@@ -55,7 +55,7 @@ Eve,32,Seattle`;
         assert(error instanceof ParseError);
         assert.equal(error.code, "INVALID_RANGE");
         return true;
-      }
+      },
     );
   });
 
@@ -66,7 +66,7 @@ Eve,32,Seattle`;
         assert(error instanceof ParseError);
         assert.equal(error.code, "INVALID_RANGE");
         return true;
-      }
+      },
     );
   });
 
@@ -82,7 +82,7 @@ Eve,32,Seattle`;
         assert(error instanceof ParseError);
         assert.equal(error.code, "EMPTY_RANGE");
         return true;
-      }
+      },
     );
   });
 
@@ -110,7 +110,7 @@ Charlie,35,Chicago,USA,60601`;
     assert.equal(result.columns.length, 5);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Name", "Age", "City", "Country", "Zip"]
+      ["Name", "Age", "City", "Country", "Zip"],
     );
   });
 
@@ -119,7 +119,7 @@ Charlie,35,Chicago,USA,60601`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["City", "Country", "Zip"]
+      ["City", "Country", "Zip"],
     );
     assert.equal(result.rows[0].City, "NYC");
   });
@@ -129,7 +129,7 @@ Charlie,35,Chicago,USA,60601`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Name", "Age", "City"]
+      ["Name", "Age", "City"],
     );
   });
 
@@ -138,7 +138,7 @@ Charlie,35,Chicago,USA,60601`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Age", "City", "Country"]
+      ["Age", "City", "Country"],
     );
     assert.equal(result.rows[0].Age, "30");
     assert.equal(result.rows[0].City, "NYC");
@@ -157,7 +157,7 @@ Charlie,35,Chicago,USA,60601`;
         assert(error instanceof ParseError);
         assert.equal(error.code, "INVALID_RANGE");
         return true;
-      }
+      },
     );
   });
 
@@ -168,7 +168,7 @@ Charlie,35,Chicago,USA,60601`;
         assert(error instanceof ParseError);
         assert.equal(error.code, "INVALID_RANGE");
         return true;
-      }
+      },
     );
   });
 
@@ -199,7 +199,7 @@ Eve,32,Seattle,USA,98101`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["30", "NYC", "USA"] // Alice's values become headers
+      ["30", "NYC", "USA"], // Alice's values become headers
     );
     assert.equal(result.rowCount, 2);
     assert.equal(result.rows[0]["30"], "25"); // Bob's Age column (named "30")
@@ -217,10 +217,10 @@ Eve,32,Seattle,USA,98101`;
     assert.equal(result.columns.length, 2);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["USA", "02101"] // David's values become headers
+      ["USA", "02101"], // David's values become headers
     );
     assert.equal(result.rowCount, 1); // Only Eve
-    assert.equal(result.rows[0]["USA"], "USA"); // Eve's Country
+    assert.equal(result.rows[0].USA, "USA"); // Eve's Country
     assert.equal(result.rows[0]["02101"], "98101"); // Eve's Zip
   });
 });
@@ -240,7 +240,7 @@ Charlie,35,Chicago`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Name", "Age", "City"]
+      ["Name", "Age", "City"],
     );
     assert.equal(result.rowCount, 3);
     assert.equal(result.rows[0].Name, "Alice");
@@ -251,7 +251,7 @@ Charlie,35,Chicago`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Name", "Age", "City"]
+      ["Name", "Age", "City"],
     );
     assert.equal(result.rowCount, 3);
   });
@@ -261,7 +261,7 @@ Charlie,35,Chicago`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Column1", "Column2", "Column3"]
+      ["Column1", "Column2", "Column3"],
     );
     assert.equal(result.rowCount, 3);
     assert.equal(result.rows[0].Column1, "Alice");
@@ -286,7 +286,7 @@ Bob,25,LA`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Column1", "Column2", "Column3"]
+      ["Column1", "Column2", "Column3"],
     );
     assert.equal(result.rowCount, 2);
     assert.equal(result.rows[0].Column1, "Alice");
@@ -301,7 +301,7 @@ Bob,25,LA`;
     assert.equal(result.columns.length, 2);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Column1", "Column2"]
+      ["Column1", "Column2"],
     );
     assert.equal(result.rows[0].Column1, "30");
     assert.equal(result.rows[0].Column2, "NYC");
@@ -320,7 +320,7 @@ Bob,25,LA`;
     assert.equal(result.columns.length, 3);
     assert.deepEqual(
       result.columns.map((c) => c.name),
-      ["Name", "Age", "City"]
+      ["Name", "Age", "City"],
     );
     assert.equal(result.rowCount, 2);
   });
@@ -335,7 +335,7 @@ describe("CSV parser - edge cases with ranges", () => {
         assert(error instanceof ParseError);
         assert.equal(error.code, "EMPTY_FILE");
         return true;
-      }
+      },
     );
   });
 

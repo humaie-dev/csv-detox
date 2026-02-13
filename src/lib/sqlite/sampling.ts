@@ -12,7 +12,7 @@ import type { ColumnMetadata } from "./types";
 export function sampleRows(
   db: Database,
   tableName: string,
-  limit: number = 10
+  limit: number = 10,
 ): Array<Record<string, unknown>> {
   const stmt = db.prepare(`
     SELECT data
@@ -28,10 +28,7 @@ export function sampleRows(
 /**
  * Get column statistics for AI context
  */
-export function getColumnStats(
-  db: Database,
-  tableName: string = "raw_data"
-): ColumnMetadata[] {
+export function getColumnStats(db: Database, tableName: string = "raw_data"): ColumnMetadata[] {
   const isRawData = tableName === "raw_data";
   const columnsTable = isRawData ? "columns" : tableName.replace("_result", "_columns");
 
@@ -62,7 +59,7 @@ export function getUniqueValues(
   db: Database,
   tableName: string,
   columnName: string,
-  limit: number = 50
+  limit: number = 50,
 ): Array<{ value: unknown; count: number }> {
   // Get all rows
   const stmt = db.prepare(`
@@ -71,7 +68,7 @@ export function getUniqueValues(
   `);
 
   const rows = stmt.all() as Array<{ data: string }>;
-  
+
   // Count values
   const valueCounts = new Map<string, number>();
   for (const row of rows) {
@@ -108,7 +105,7 @@ export function searchColumn(
   tableName: string,
   columnName: string,
   searchTerm: string,
-  limit: number = 20
+  limit: number = 20,
 ): Array<Record<string, unknown>> {
   const stmt = db.prepare(`
     SELECT data
@@ -134,7 +131,7 @@ export interface DataSummary {
 export function getDataSummary(
   db: Database,
   tableName: string,
-  sampleSize: number = 5
+  sampleSize: number = 5,
 ): DataSummary {
   return {
     tableName,

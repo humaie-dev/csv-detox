@@ -2,23 +2,26 @@
  * Unit tests for split-column operation
  */
 
-import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { splitColumn } from "../split-column";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { SplitColumnConfig } from "@/lib/pipeline/types";
+import { splitColumn } from "../split-column";
 
 describe("splitColumn", () => {
   // Delimiter method tests
   describe("delimiter method", () => {
     it("should split by space delimiter", () => {
       const table: ParseResult = {
-        rows: [
-          { Name: "John Doe" },
-          { Name: "Jane Smith" },
-        ],
+        rows: [{ Name: "John Doe" }, { Name: "Jane Smith" }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["John Doe", "Jane Smith"] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["John Doe", "Jane Smith"],
+          },
         ],
         rowCount: 2,
         warnings: [],
@@ -46,7 +49,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Address: "123 Main St,Springfield,IL" }],
         columns: [
-          { name: "Address", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["123 Main St,Springfield,IL"] },
+          {
+            name: "Address",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["123 Main St,Springfield,IL"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -95,7 +104,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Name: "John Middle Doe" }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John Middle Doe"] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John Middle Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -119,7 +134,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Name: " John , Doe " }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [" John , Doe "] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: [" John , Doe "],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -144,7 +165,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Name: " John , Doe " }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [" John , Doe "] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: [" John , Doe "],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -169,7 +196,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Name: "John Doe" }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John Doe"] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -195,7 +228,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Name: "John Middle Jr Doe" }],
         columns: [
-          { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John Middle Jr Doe"] },
+          {
+            name: "Name",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John Middle Jr Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -247,7 +286,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Code: "ABC123DEF" }],
         columns: [
-          { name: "Code", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["ABC123DEF"] },
+          {
+            name: "Code",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["ABC123DEF"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -299,7 +344,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Data: "one:two;three" }],
         columns: [
-          { name: "Data", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["one:two;three"] },
+          {
+            name: "Data",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["one:two;three"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -324,7 +375,13 @@ describe("splitColumn", () => {
       const table: ParseResult = {
         rows: [{ Data: "one:two:three" }],
         columns: [
-          { name: "Data", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["one:two:three"] },
+          {
+            name: "Data",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["one:two:three"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -366,10 +423,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "Last"],
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /Column "InvalidColumn" does not exist/
-      );
+      assert.throws(() => splitColumn(table, config), /Column "InvalidColumn" does not exist/);
     });
 
     it("should throw error if no new columns specified", () => {
@@ -390,10 +444,7 @@ describe("splitColumn", () => {
         newColumns: [],
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /At least one new column must be specified/
-      );
+      assert.throws(() => splitColumn(table, config), /At least one new column must be specified/);
     });
 
     it("should throw error if new column already exists", () => {
@@ -415,10 +466,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "Age"], // Age already exists
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /New column "Age" already exists/
-      );
+      assert.throws(() => splitColumn(table, config), /New column "Age" already exists/);
     });
 
     it("should throw error if new column names are empty", () => {
@@ -439,10 +487,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "  "], // Empty name
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /New column names cannot be empty/
-      );
+      assert.throws(() => splitColumn(table, config), /New column names cannot be empty/);
     });
 
     it("should throw error if new column names are duplicates", () => {
@@ -463,10 +508,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "First"], // Duplicate
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /New column names must be unique/
-      );
+      assert.throws(() => splitColumn(table, config), /New column names must be unique/);
     });
 
     it("should throw error if delimiter is undefined for delimiter method", () => {
@@ -488,7 +530,7 @@ describe("splitColumn", () => {
 
       assert.throws(
         () => splitColumn(table, config),
-        /Delimiter must be specified for delimiter method/
+        /Delimiter must be specified for delimiter method/,
       );
     });
 
@@ -511,7 +553,7 @@ describe("splitColumn", () => {
 
       assert.throws(
         () => splitColumn(table, config),
-        /Positions must be specified for position method/
+        /Positions must be specified for position method/,
       );
     });
 
@@ -532,10 +574,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "Last"],
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /Pattern must be specified for regex method/
-      );
+      assert.throws(() => splitColumn(table, config), /Pattern must be specified for regex method/);
     });
 
     it("should throw error for invalid regex pattern", () => {
@@ -556,10 +595,7 @@ describe("splitColumn", () => {
         newColumns: ["First", "Last"],
       };
 
-      assert.throws(
-        () => splitColumn(table, config),
-        /Invalid regex pattern/
-      );
+      assert.throws(() => splitColumn(table, config), /Invalid regex pattern/);
     });
   });
 });

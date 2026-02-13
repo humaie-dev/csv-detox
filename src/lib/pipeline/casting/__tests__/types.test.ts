@@ -2,15 +2,9 @@
  * Tests for type casting functions
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  castToString,
-  castToNumber,
-  castToBoolean,
-  castToDate,
-  tryCast,
-} from "../types";
+import { describe, it } from "node:test";
+import { castToBoolean, castToDate, castToNumber, castToString, tryCast } from "../types";
 
 describe("castToString", () => {
   it("should convert null to empty string", () => {

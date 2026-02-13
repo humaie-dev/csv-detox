@@ -1,37 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  getDatabase,
-  getRawData,
-  getColumns,
-  getRowCount,
-} from "@/lib/sqlite/database";
-import { 
-  isInitialized, 
-  getParseConfig,
-  createPipelineTables,
-  dropPipelineTables,
-} from "@/lib/sqlite/schema";
-import { getConvexClient, downloadFileFromConvex, getUpload } from "@/lib/convex/client";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
-import { executePipeline } from "@/lib/pipeline/executor";
-import type { ParseResult, ParseOptions } from "@/lib/parsers/types";
-import type { TransformationStep } from "@/lib/pipeline/types";
+import type Database from "better-sqlite3";
+import { type NextRequest, NextResponse } from "next/server";
+import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
-import Database from "better-sqlite3";
-import type { ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseOptions, ParseResult } from "@/lib/parsers/types";
+import { executePipeline } from "@/lib/pipeline/executor";
+import type { TransformationStep } from "@/lib/pipeline/types";
+import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import {
+  createPipelineTables,
+  dropPipelineTables,
+  getParseConfig,
+  isInitialized,
+} from "@/lib/sqlite/schema";
+import { api } from "../../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../../convex/_generated/dataModel";
 
 /**
  * Execute full pipeline and store results in SQLite
  * POST /api/projects/[projectId]/pipelines/[pipelineId]/execute
  */
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   const startTime = Date.now();
-  
+
   try {
     const { projectId, pipelineId } = await params;
 
@@ -51,17 +45,14 @@ export async function POST(
     });
 
     if (!pipeline) {
-      return NextResponse.json(
-        { error: "Pipeline not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pipeline not found" }, { status: 404 });
     }
 
     // Verify pipeline belongs to project
     if (pipeline.projectId !== projectId) {
       return NextResponse.json(
         { error: "Pipeline does not belong to this project" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,17 +64,16 @@ export async function POST(
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);
-    
+
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse = pipeline.parseConfig && (
-      pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName
-    );
+    const needsCustomParse =
+      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
 
     let parseResult: ParseResult;
 
@@ -91,10 +81,7 @@ export async function POST(
       // Re-parse with pipeline-specific config (full data, not preview)
       const upload = await getUpload(project.uploadId);
       if (!upload) {
-        return NextResponse.json(
-          { error: "Upload not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Upload not found" }, { status: 404 });
       }
 
       // Download file from Convex Storage
@@ -107,10 +94,10 @@ export async function POST(
       };
 
       // Determine file type and parse
-      const isExcel = upload.mimeType?.includes("spreadsheet") || 
-                     upload.originalName?.match(/\.(xlsx?|xls)$/i);
-      
-      parseResult = isExcel 
+      const isExcel =
+        upload.mimeType?.includes("spreadsheet") || upload.originalName?.match(/\.(xlsx?|xls)$/i);
+
+      parseResult = isExcel
         ? await parseExcel(fileBuffer, parseOptions)
         : await parseCSV(new TextDecoder().decode(fileBuffer), parseOptions);
     } else {
@@ -138,12 +125,12 @@ export async function POST(
     if (pipeline.steps.length === 0) {
       // Create pipeline tables
       createPipelineTables(db, pipelineId);
-      
+
       // Store raw data as pipeline result
       storePipelineResults(db, pipelineId, parseResult.rows, parseResult.columns);
-      
+
       const duration = Date.now() - startTime;
-      
+
       return NextResponse.json({
         success: true,
         rowCount: parseResult.rowCount,
@@ -155,29 +142,30 @@ export async function POST(
     }
 
     // Convert Convex steps to TransformationStep format
-    const transformationSteps: TransformationStep[] = pipeline.steps.map(
-      (step) => ({
-        id: step.id,
-        type: step.type as TransformationStep["type"],
-        config: step.config as TransformationStep["config"],
-      })
-    );
+    const transformationSteps: TransformationStep[] = pipeline.steps.map((step) => ({
+      id: step.id,
+      type: step.type as TransformationStep["type"],
+      config: step.config as TransformationStep["config"],
+    }));
 
     // Execute full pipeline
     const executionResult = executePipeline(parseResult, transformationSteps);
 
     // Check for execution errors
-    const failedSteps = executionResult.stepResults.filter(s => !s.success);
+    const failedSteps = executionResult.stepResults.filter((s) => !s.success);
     if (failedSteps.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: "Pipeline execution failed",
-        failedSteps: failedSteps.map(s => ({
-          stepId: s.stepId,
-          error: s.error,
-        })),
-        duration: Date.now() - startTime,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Pipeline execution failed",
+          failedSteps: failedSteps.map((s) => ({
+            stepId: s.stepId,
+            error: s.error,
+          })),
+          duration: Date.now() - startTime,
+        },
+        { status: 400 },
+      );
     }
 
     // Create or replace pipeline tables
@@ -185,12 +173,7 @@ export async function POST(
     createPipelineTables(db, pipelineId);
 
     // Store results in SQLite
-    storePipelineResults(
-      db, 
-      pipelineId, 
-      executionResult.table.rows, 
-      executionResult.table.columns
-    );
+    storePipelineResults(db, pipelineId, executionResult.table.rows, executionResult.table.columns);
 
     const duration = Date.now() - startTime;
 
@@ -201,7 +184,7 @@ export async function POST(
       columnCount: executionResult.table.columns.length,
       duration,
       warnings: executionResult.table.warnings,
-      stepResults: executionResult.stepResults.map(s => ({
+      stepResults: executionResult.stepResults.map((s) => ({
         stepId: s.stepId,
         success: s.success,
         rowsAffected: s.rowsAffected,
@@ -214,7 +197,7 @@ export async function POST(
         error: "Failed to execute pipeline",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -226,7 +209,7 @@ function storePipelineResults(
   db: Database.Database,
   pipelineId: string,
   rows: Array<Record<string, unknown>>,
-  columns: ColumnMetadata[]
+  columns: ColumnMetadata[],
 ): void {
   const sanitized = pipelineId.replace(/-/g, "_");
   const resultTableName = `pipeline_${sanitized}_result`;
@@ -259,7 +242,7 @@ function storePipelineResults(
         col.name,
         col.type,
         col.nullCount,
-        col.sampleValues ? JSON.stringify(col.sampleValues) : null
+        col.sampleValues ? JSON.stringify(col.sampleValues) : null,
       );
     }
   });

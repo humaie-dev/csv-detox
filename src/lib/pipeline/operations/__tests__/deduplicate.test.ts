@@ -2,11 +2,11 @@
  * Tests for deduplicate operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { deduplicate } from "../deduplicate";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { DeduplicateConfig } from "../../types";
+import { deduplicate } from "../deduplicate";
 
 describe("deduplicate operation", () => {
   it("should remove duplicate rows based on all columns", () => {
@@ -71,16 +71,8 @@ describe("deduplicate operation", () => {
 
   it("should preserve order of first occurrences", () => {
     const table: ParseResult = {
-      rows: [
-        { id: "3" },
-        { id: "1" },
-        { id: "3" },
-        { id: "2" },
-        { id: "1" },
-      ],
-      columns: [
-        { name: "id", type: "string", nonNullCount: 5, nullCount: 0, sampleValues: [] },
-      ],
+      rows: [{ id: "3" }, { id: "1" }, { id: "3" }, { id: "2" }, { id: "1" }],
+      columns: [{ name: "id", type: "string", nonNullCount: 5, nullCount: 0, sampleValues: [] }],
       rowCount: 5,
       warnings: [],
     };
@@ -125,9 +117,7 @@ describe("deduplicate operation", () => {
   it("should throw error for non-existent columns", () => {
     const table: ParseResult = {
       rows: [{ name: "John" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -145,9 +135,7 @@ describe("deduplicate operation", () => {
   it("should handle empty table", () => {
     const table: ParseResult = {
       rows: [],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 0, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 0, nullCount: 0, sampleValues: [] }],
       rowCount: 0,
       warnings: [],
     };

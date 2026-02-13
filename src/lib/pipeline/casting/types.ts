@@ -36,12 +36,12 @@ export function castToNumber(value: unknown): number | null {
 
   // Already a number
   if (typeof value === "number") {
-    return isNaN(value) || !isFinite(value) ? null : value;
+    return Number.isNaN(value) || !Number.isFinite(value) ? null : value;
   }
 
   // Convert to string for parsing
   const str = String(value).trim();
-  
+
   if (str === "") {
     return null;
   }
@@ -53,7 +53,7 @@ export function castToNumber(value: unknown): number | null {
   const num = Number(cleaned);
 
   // Check if valid number (not NaN, not Infinity)
-  if (isNaN(num) || !isFinite(num)) {
+  if (Number.isNaN(num) || !Number.isFinite(num)) {
     return null;
   }
 
@@ -63,7 +63,7 @@ export function castToNumber(value: unknown): number | null {
 /**
  * Cast value to boolean
  * Returns null if conversion fails
- * 
+ *
  * Accepts: true/false, yes/no, y/n, 1/0 (case-insensitive)
  */
 export function castToBoolean(value: unknown): boolean | null {
@@ -103,7 +103,7 @@ export function castToBoolean(value: unknown): boolean | null {
 /**
  * Cast value to Date
  * Returns null if conversion fails
- * 
+ *
  * Supports:
  * - ISO 8601: 2023-01-15, 2023-01-15T10:30:00Z
  * - US format: 01/15/2023, 1/15/2023
@@ -118,12 +118,12 @@ export function castToDate(value: unknown, format?: string): Date | null {
 
   // Already a Date
   if (value instanceof Date) {
-    return isNaN(value.getTime()) ? null : value;
+    return Number.isNaN(value.getTime()) ? null : value;
   }
 
   // Try to parse as date
   const str = String(value).trim();
-  
+
   if (str === "") {
     return null;
   }
@@ -136,9 +136,9 @@ export function castToDate(value: unknown, format?: string): Date | null {
 
   // Try parsing with Date constructor
   const date = new Date(str);
-  
+
   // Check if valid date
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return null;
   }
 
@@ -161,7 +161,7 @@ export type CastResult = {
 export function tryCast(
   value: unknown,
   targetType: "string" | "number" | "boolean" | "date",
-  format?: string
+  format?: string,
 ): CastResult {
   try {
     // If input value is null or undefined, treat as successful cast to null

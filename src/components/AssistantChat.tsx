@@ -1,21 +1,15 @@
 "use client";
 
-import { useRef, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useChat } from "@ai-sdk/react";
-import {
-  DefaultChatTransport,
-  getToolName,
-  isTextUIPart,
-  isToolUIPart,
-  type UIMessage,
-} from "ai";
+import { DefaultChatTransport, getToolName, isTextUIPart, isToolUIPart, type UIMessage } from "ai";
+import { Loader2, Send, Sparkles } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2 } from "lucide-react";
-import type { Id } from "../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface AssistantChatProps {
   projectId: Id<"projects">;
@@ -61,7 +55,7 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages]);
+  }, []);
 
   const getMessageText = (message: UIMessage) => {
     const legacyMessage = message as UIMessage & { content?: string };
@@ -83,9 +77,7 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
       return legacyMessage.toolInvocations.map((tool) => tool.toolName);
     }
     if (!message.parts) return [];
-    const toolNames = message.parts
-      .filter(isToolUIPart)
-      .map((part) => getToolName(part));
+    const toolNames = message.parts.filter(isToolUIPart).map((part) => getToolName(part));
     return Array.from(new Set(toolNames));
   };
 
@@ -115,36 +107,34 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <ScrollArea className="flex-1 px-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-12 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mb-4 text-purple-500 opacity-50" />
-                <p className="text-sm mb-4">
-                  Ask me anything about your data, or request help with transformations!
-                </p>
-                <div className="space-y-2 text-xs">
-                  <p className="font-medium">Try asking:</p>
-                  <ul className="space-y-1 text-left">
-                    <li>• "What columns do I have?"</li>
-                    <li>• "Show me a sample of the data"</li>
-                    <li>• "Suggest a pipeline to clean this data"</li>
-                  </ul>
-                </div>
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12 text-muted-foreground">
+              <Sparkles className="h-12 w-12 mb-4 text-purple-500 opacity-50" />
+              <p className="text-sm mb-4">
+                Ask me anything about your data, or request help with transformations!
+              </p>
+              <div className="space-y-2 text-xs">
+                <p className="font-medium">Try asking:</p>
+                <ul className="space-y-1 text-left">
+                  <li>• "What columns do I have?"</li>
+                  <li>• "Show me a sample of the data"</li>
+                  <li>• "Suggest a pipeline to clean this data"</li>
+                </ul>
               </div>
-            ) : (
-              <div className="space-y-4 py-4">
-                {messages.map((message) => {
-                  const messageText = getMessageText(message);
-                  const toolNames = getToolNames(message);
-                  return (
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              {messages.map((message) => {
+                const messageText = getMessageText(message);
+                const toolNames = getToolNames(message);
+                return (
                   <div
                     key={message.id}
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
                       className={`max-w-[85%] rounded-lg px-4 py-2 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
                       {message.role === "assistant" && toolNames.length > 0 && (
@@ -160,17 +150,17 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
                     </div>
                   </div>
                 );
-                })}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="rounded-lg px-4 py-2 bg-muted">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
+              })}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="rounded-lg px-4 py-2 bg-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   </div>
-                )}
-                <div ref={scrollRef} />
-              </div>
-            )}
+                </div>
+              )}
+              <div ref={scrollRef} />
+            </div>
+          )}
         </ScrollArea>
 
         <div className="border-t px-4 py-4">
@@ -183,7 +173,11 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
               className="flex-1"
             />
             <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </form>
         </div>

@@ -2,11 +2,11 @@
  * Tests for trim operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { trim } from "../trim";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { TrimConfig } from "../../types";
+import { trim } from "../trim";
 
 describe("trim operation", () => {
   it("should trim whitespace from string columns", () => {
@@ -38,9 +38,7 @@ describe("trim operation", () => {
 
   it("should only trim string-type columns", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "  John  ", age: 30, active: true },
-      ],
+      rows: [{ name: "  John  ", age: 30, active: true }],
       columns: [
         { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "age", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -64,9 +62,7 @@ describe("trim operation", () => {
 
   it("should handle empty strings", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "   ", value: "" },
-      ],
+      rows: [{ name: "   ", value: "" }],
       columns: [
         { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
         { name: "value", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
@@ -89,9 +85,7 @@ describe("trim operation", () => {
   it("should throw error for non-existent columns", () => {
     const table: ParseResult = {
       rows: [{ name: "John" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -108,13 +102,8 @@ describe("trim operation", () => {
 
   it("should handle null values", () => {
     const table: ParseResult = {
-      rows: [
-        { name: "  John  " },
-        { name: null },
-      ],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 1, sampleValues: [] },
-      ],
+      rows: [{ name: "  John  " }, { name: null }],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 1, sampleValues: [] }],
       rowCount: 2,
       warnings: [],
     };

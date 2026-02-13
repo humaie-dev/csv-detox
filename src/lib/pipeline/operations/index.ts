@@ -3,21 +3,21 @@
  */
 
 import type { OperationFn, TransformationType } from "../types";
-import { trim } from "./trim";
-import { uppercase } from "./uppercase";
-import { lowercase } from "./lowercase";
-import { deduplicate } from "./deduplicate";
-import { filter } from "./filter";
-import { renameColumn } from "./rename-column";
-import { removeColumn } from "./remove-column";
-import { unpivot } from "./unpivot";
-import { pivot } from "./pivot";
-import { splitColumn } from "./split-column";
-import { mergeColumns } from "./merge-columns";
 import { castColumn } from "./cast-column";
-import { fillDown } from "./fill-down";
+import { deduplicate } from "./deduplicate";
 import { fillAcross } from "./fill-across";
+import { fillDown } from "./fill-down";
+import { filter } from "./filter";
+import { lowercase } from "./lowercase";
+import { mergeColumns } from "./merge-columns";
+import { pivot } from "./pivot";
+import { removeColumn } from "./remove-column";
+import { renameColumn } from "./rename-column";
 import { sort } from "./sort";
+import { splitColumn } from "./split-column";
+import { trim } from "./trim";
+import { unpivot } from "./unpivot";
+import { uppercase } from "./uppercase";
 
 /**
  * Registry of all available operations

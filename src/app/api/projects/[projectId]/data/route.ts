@@ -1,13 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  getDatabase,
-  getRawData,
-  getColumns,
-  getRowCount,
-} from "@/lib/sqlite/database";
-import { isInitialized } from "@/lib/sqlite/schema";
 import { getConvexClient } from "@/lib/convex/client";
+import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import { isInitialized } from "@/lib/sqlite/schema";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
@@ -18,7 +13,7 @@ const querySchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -33,7 +28,7 @@ export async function GET(
     if (!validation.success) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: validation.error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,7 +52,7 @@ export async function GET(
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,9 +80,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Error fetching project data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch project data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch project data" }, { status: 500 });
   }
 }

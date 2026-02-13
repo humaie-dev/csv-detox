@@ -1,23 +1,25 @@
 "use client";
 
-import { useState, type DragEvent, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import { ArrowLeft, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { type ChangeEvent, type DragEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { Upload, ArrowLeft } from "lucide-react";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 export default function CreateProjectPage() {
   const router = useRouter();
   const [projectName, setProjectName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "creating" | "error">("idle");
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "creating" | "error">(
+    "idle",
+  );
   const [errorMessage, setErrorMessage] = useState("");
 
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
@@ -27,7 +29,7 @@ export default function CreateProjectPage() {
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
     setErrorMessage("");
-    
+
     // Auto-generate project name from filename if empty
     if (!projectName) {
       const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
@@ -55,7 +57,7 @@ export default function CreateProjectPage() {
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFile = event.dataTransfer.files[0];
     if (droppedFile) {
       handleFileSelect(droppedFile);
@@ -127,10 +129,7 @@ export default function CreateProjectPage() {
   return (
     <div className="container mx-auto p-8 max-w-2xl">
       <div className="flex justify-between items-center mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/projects")}
-        >
+        <Button variant="ghost" onClick={() => router.push("/projects")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects
         </Button>
@@ -139,9 +138,7 @@ export default function CreateProjectPage() {
       <Card>
         <CardHeader>
           <CardTitle>Create New Project</CardTitle>
-          <CardDescription>
-            Upload a CSV or Excel file to start extracting tables
-          </CardDescription>
+          <CardDescription>Upload a CSV or Excel file to start extracting tables</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Project Name Input */}
@@ -155,9 +152,7 @@ export default function CreateProjectPage() {
               disabled={isLoading}
               maxLength={100}
             />
-            <p className="text-sm text-muted-foreground">
-              {projectName.length}/100 characters
-            </p>
+            <p className="text-sm text-muted-foreground">{projectName.length}/100 characters</p>
           </div>
 
           {/* File Upload Area */}
@@ -181,13 +176,13 @@ export default function CreateProjectPage() {
                 disabled={isLoading}
                 className="hidden"
               />
-              
+
               <label
                 htmlFor="file-input"
                 className={`block ${isLoading ? "cursor-not-allowed" : "cursor-pointer"}`}
               >
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                
+
                 {file ? (
                   <div>
                     <p className="font-medium">{file.name}</p>
@@ -209,9 +204,7 @@ export default function CreateProjectPage() {
                   </div>
                 ) : (
                   <div>
-                    <p className="text-base mb-2">
-                      Drop file here or click to browse
-                    </p>
+                    <p className="text-base mb-2">Drop file here or click to browse</p>
                     <p className="text-sm text-muted-foreground">
                       Supports CSV and Excel files up to 50MB
                     </p>

@@ -2,25 +2,21 @@
  * Remove duplicate rows
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { DeduplicateConfig } from "../types";
 
 export function deduplicate(
   table: ParseResult,
-  config: DeduplicateConfig
+  config: DeduplicateConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   const columnsToCheck = config.columns || table.columns.map((c) => c.name);
 
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
-  const invalidColumns = columnsToCheck.filter(
-    (col) => !columnNames.includes(col)
-  );
+  const invalidColumns = columnsToCheck.filter((col) => !columnNames.includes(col));
 
   if (invalidColumns.length > 0) {
-    throw new Error(
-      `Columns not found: ${invalidColumns.join(", ")}`
-    );
+    throw new Error(`Columns not found: ${invalidColumns.join(", ")}`);
   }
 
   // Use Set to track unique row signatures
@@ -48,7 +44,7 @@ export function deduplicate(
     rows: uniqueRows,
     rowCount: uniqueRows.length,
   };
-  
+
   return {
     table: result,
     columns: result.columns,

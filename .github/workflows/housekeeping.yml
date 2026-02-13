@@ -1,0 +1,141 @@
+name: Daily Housekeeping
+
+on:
+  schedule:
+    # Run daily at 9:00 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  housekeeping:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Full history for better context
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run maintenance checks
+        id: maintenance
+        run: |
+          echo "Running automated housekeeping checks..."
+          
+          # Create maintenance report
+          REPORT_FILE="housekeeping-report-$(date +%Y%m%d).md"
+          echo "# Housekeeping Report - $(date +%Y-%m-%d)" > "$REPORT_FILE"
+          echo "" >> "$REPORT_FILE"
+          
+          # Check for outdated dependencies
+          echo "## 📦 Dependency Status" >> "$REPORT_FILE"
+          npm outdated --json > outdated.json 2>/dev/null || true
+          if [ -s outdated.json ]; then
+            echo "⚠️ Outdated dependencies found" >> "$REPORT_FILE"
+            echo "\`\`\`json" >> "$REPORT_FILE"
+            cat outdated.json >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+          else
+            echo "✅ All dependencies up to date" >> "$REPORT_FILE"
+          fi
+          echo "" >> "$REPORT_FILE"
+          
+          # Check for TODO/FIXME comments
+          echo "## 📝 Code Quality" >> "$REPORT_FILE"
+          TODO_COUNT=$(grep -r "TODO\|FIXME" src/ --exclude-dir=node_modules 2>/dev/null | wc -l || echo "0")
+          echo "- TODO/FIXME comments: $TODO_COUNT" >> "$REPORT_FILE"
+          echo "" >> "$REPORT_FILE"
+          
+          # Check test coverage
+          echo "## 🧪 Test Status" >> "$REPORT_FILE"
+          npm test 2>&1 | tee test-output.txt
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "✅ All tests passing" >> "$REPORT_FILE"
+          else
+            echo "❌ Test failures detected" >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+            tail -20 test-output.txt >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+          fi
+          echo "" >> "$REPORT_FILE"
+          
+          # Check build status
+          echo "## 🏗️ Build Status" >> "$REPORT_FILE"
+          npm run build 2>&1 | tee build-output.txt
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build successful" >> "$REPORT_FILE"
+          else
+            echo "❌ Build failures detected" >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+            tail -20 build-output.txt >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+          fi
+          echo "" >> "$REPORT_FILE"
+          
+          # Check for large files
+          echo "## 📁 Repository Health" >> "$REPORT_FILE"
+          LARGE_FILES=$(find . -type f -size +1M -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/dist/*" 2>/dev/null || true)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "⚠️ Large files detected (>1MB):" >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+            echo "$LARGE_FILES" >> "$REPORT_FILE"
+            echo "\`\`\`" >> "$REPORT_FILE"
+          else
+            echo "✅ No large files detected" >> "$REPORT_FILE"
+          fi
+          echo "" >> "$REPORT_FILE"
+          
+          # Summary
+          echo "## 📊 Summary" >> "$REPORT_FILE"
+          ISSUES_FOUND=0
+          [ -s outdated.json ] && ISSUES_FOUND=$((ISSUES_FOUND + 1))
+          [ $TEST_EXIT_CODE -ne 0 ] && ISSUES_FOUND=$((ISSUES_FOUND + 1))
+          [ $BUILD_EXIT_CODE -ne 0 ] && ISSUES_FOUND=$((ISSUES_FOUND + 1))
+          [ -n "$LARGE_FILES" ] && ISSUES_FOUND=$((ISSUES_FOUND + 1))
+          
+          if [ $ISSUES_FOUND -eq 0 ]; then
+            echo "✅ No issues detected. Repository is healthy!" >> "$REPORT_FILE"
+            echo "needs_pr=false" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ $ISSUES_FOUND issue(s) detected. Review recommended." >> "$REPORT_FILE"
+            echo "needs_pr=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
+          cat "$REPORT_FILE"
+
+      - name: Create Issue if Problems Found
+        if: steps.maintenance.outputs.needs_pr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportFile = '${{ steps.maintenance.outputs.report_file }}';
+            const reportContent = fs.readFileSync(reportFile, 'utf8');
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🧹 Daily Housekeeping Report - ${new Date().toISOString().split('T')[0]}`,
+              body: reportContent,
+              labels: ['housekeeping', 'automated', 'maintenance']
+            });
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f housekeeping-report-*.md outdated.json test-output.txt build-output.txt

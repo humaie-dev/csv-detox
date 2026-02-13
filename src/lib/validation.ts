@@ -19,26 +19,26 @@ export function sanitizeFilename(filename: string): string {
   if (!filename || filename.trim() === "") {
     return `upload_${Date.now()}`;
   }
-  
+
   // Remove any path components - take only the last part
   const basename = filename.split(/[/\\]/).pop();
-  
+
   // If nothing left after path removal, generate default
   if (!basename) {
     return `upload_${Date.now()}`;
   }
-  
+
   // Remove null bytes and control characters
   const cleaned = basename.replace(/[\x00-\x1f\x80-\x9f]/g, "");
-  
+
   // Replace problematic characters with underscores
   const safe = cleaned.replace(/[^a-zA-Z0-9._-]/g, "_");
-  
+
   // Ensure filename is not empty and not a dot file
   if (!safe || safe.startsWith(".")) {
     return `upload_${Date.now()}`;
   }
-  
+
   return safe;
 }
 
@@ -50,12 +50,10 @@ export function validateFileType(filename: string, mimeType: string): boolean {
   if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
     return false;
   }
-  
+
   // Check file extension
-  const hasValidExtension = ALLOWED_EXTENSIONS.some((ext) =>
-    filename.toLowerCase().endsWith(ext)
-  );
-  
+  const hasValidExtension = ALLOWED_EXTENSIONS.some((ext) => filename.toLowerCase().endsWith(ext));
+
   return hasValidExtension;
 }
 

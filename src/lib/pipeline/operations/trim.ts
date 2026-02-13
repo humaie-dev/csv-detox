@@ -2,20 +2,19 @@
  * Trim whitespace from string columns
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { TrimConfig } from "../types";
 
-export function trim(table: ParseResult, config: TrimConfig): { table: ParseResult; columns: ColumnMetadata[] } {
+export function trim(
+  table: ParseResult,
+  config: TrimConfig,
+): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate columns exist
   const columnNames = table.columns.map((c) => c.name);
-  const invalidColumns = config.columns.filter(
-    (col) => !columnNames.includes(col)
-  );
+  const invalidColumns = config.columns.filter((col) => !columnNames.includes(col));
 
   if (invalidColumns.length > 0) {
-    throw new Error(
-      `Columns not found: ${invalidColumns.join(", ")}`
-    );
+    throw new Error(`Columns not found: ${invalidColumns.join(", ")}`);
   }
 
   // Only trim string-type columns
@@ -40,7 +39,7 @@ export function trim(table: ParseResult, config: TrimConfig): { table: ParseResu
     ...table,
     rows: newRows,
   };
-  
+
   return {
     table: result,
     columns: result.columns,

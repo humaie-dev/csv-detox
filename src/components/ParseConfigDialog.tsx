@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useMutation, useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,10 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type ParseConfig = {
   sheetName?: string;
@@ -54,7 +54,7 @@ export function ParseConfigDialog({
   onConfigSaved,
 }: ParseConfigDialogProps) {
   const updateParseConfig = useMutation(api.uploads.updateParseConfig);
-  
+
   // Form state
   const [sheetName, setSheetName] = useState<string>("");
   const [startRow, setStartRow] = useState<string>("");
@@ -70,7 +70,7 @@ export function ParseConfigDialog({
   // Initialize form with current config
   useEffect(() => {
     if (open && currentConfig) {
-      setSheetName(currentConfig.sheetName || (availableSheets[0] || ""));
+      setSheetName(currentConfig.sheetName || availableSheets[0] || "");
       setStartRow(currentConfig.startRow?.toString() || "");
       setEndRow(currentConfig.endRow?.toString() || "");
       setStartColumn(currentConfig.startColumn?.toString() || "");
@@ -113,8 +113,8 @@ export function ParseConfigDialog({
 
     // Validate and add row range
     if (startRow) {
-      const start = parseInt(startRow);
-      if (isNaN(start) || start < 1) {
+      const start = parseInt(startRow, 10);
+      if (Number.isNaN(start) || start < 1) {
         setError("Start row must be a number >= 1");
         return;
       }
@@ -122,8 +122,8 @@ export function ParseConfigDialog({
     }
 
     if (endRow) {
-      const end = parseInt(endRow);
-      if (isNaN(end) || end < 1) {
+      const end = parseInt(endRow, 10);
+      if (Number.isNaN(end) || end < 1) {
         setError("End row must be a number >= 1");
         return;
       }
@@ -137,8 +137,8 @@ export function ParseConfigDialog({
 
     // Validate and add column range
     if (startColumn) {
-      const start = parseInt(startColumn);
-      if (isNaN(start) || start < 1) {
+      const start = parseInt(startColumn, 10);
+      if (Number.isNaN(start) || start < 1) {
         setError("Start column must be a number >= 1");
         return;
       }
@@ -146,8 +146,8 @@ export function ParseConfigDialog({
     }
 
     if (endColumn) {
-      const end = parseInt(endColumn);
-      if (isNaN(end) || end < 1) {
+      const end = parseInt(endColumn, 10);
+      if (Number.isNaN(end) || end < 1) {
         setError("End column must be a number >= 1");
         return;
       }
@@ -181,7 +181,8 @@ export function ParseConfigDialog({
         <DialogHeader>
           <DialogTitle>Configure Data Source</DialogTitle>
           <DialogDescription>
-            Choose which parts of your file to parse. All fields are optional - leave empty to use defaults.
+            Choose which parts of your file to parse. All fields are optional - leave empty to use
+            defaults.
           </DialogDescription>
         </DialogHeader>
 

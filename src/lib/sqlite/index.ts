@@ -2,8 +2,8 @@
  * SQLite module exports
  */
 
-export * from "./types";
-export * from "./database";
-export * from "./schema";
-export * from "./queries";
 export * from "./cache";
+export * from "./database";
+export * from "./queries";
+export * from "./schema";
+export * from "./types";

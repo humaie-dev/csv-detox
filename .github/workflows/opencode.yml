@@ -32,4 +32,8 @@ jobs:
           AZURE_COGNITIVE_SERVICES_API_KEY: ${{ secrets.AZURE_COGNITIVE_SERVICES_API_KEY }}
           AZURE_API_KEY: ${{ secrets.AZURE_COGNITIVE_SERVICES_API_KEY }}
         with:
+          # Multi-agent configuration with keyword-based routing
+          # Default: Build Agent (gpt-5.3-codex)
+          # See .opencode/config.yaml for routing rules
+          config: .opencode/config.yaml
           model: azure-cognitive-services/gpt-5

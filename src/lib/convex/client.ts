@@ -30,25 +30,23 @@ export function getConvexClient(): ConvexHttpClient {
 /**
  * Download a file from Convex Storage
  */
-export async function downloadFileFromConvex(
-  storageId: Id<"_storage">
-): Promise<ArrayBuffer> {
+export async function downloadFileFromConvex(storageId: Id<"_storage">): Promise<ArrayBuffer> {
   const client = getConvexClient();
-  
+
   // Get the file URL
   const url = await client.query(api.uploads.getFileUrl, { storageId });
-  
+
   if (!url) {
     throw new Error("File not found in storage");
   }
-  
+
   // Download the file
   const response = await fetch(url);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to download file: ${response.statusText}`);
   }
-  
+
   return response.arrayBuffer();
 }
 

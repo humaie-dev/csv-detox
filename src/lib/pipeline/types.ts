@@ -2,7 +2,7 @@
  * Type definitions for transformation pipeline
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 
 // Re-export for convenience
 export type { ParseResult, ColumnMetadata };
@@ -79,13 +79,7 @@ export interface DeduplicateConfig {
 export interface FilterConfig {
   type: "filter";
   column: string;
-  operator:
-    | "equals"
-    | "not_equals"
-    | "contains"
-    | "not_contains"
-    | "greater_than"
-    | "less_than";
+  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
   value: string | number | boolean;
 }
 
@@ -234,7 +228,7 @@ export interface PipelineConfig {
  */
 export type OperationFn = (
   table: ParseResult,
-  config: any
+  config: any,
 ) => { table: ParseResult; columns: ColumnMetadata[] };
 
 /**
@@ -245,7 +239,7 @@ export class TransformationError extends Error {
     message: string,
     public readonly stepId: string,
     public readonly operation: TransformationType,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = "TransformationError";

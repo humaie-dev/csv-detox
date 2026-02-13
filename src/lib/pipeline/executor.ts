@@ -2,22 +2,14 @@
  * Pipeline execution engine
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
-import type {
-  TransformationStep,
-  ExecutionResult,
-  StepResult,
-  TransformationError,
-} from "./types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import { getOperation } from "./operations";
+import type { ExecutionResult, StepResult, TransformationStep } from "./types";
 
 /**
  * Execute a complete pipeline
  */
-export function executePipeline(
-  table: ParseResult,
-  steps: TransformationStep[]
-): ExecutionResult {
+export function executePipeline(table: ParseResult, steps: TransformationStep[]): ExecutionResult {
   let currentTable = table;
   const stepResults: StepResult[] = [];
   const typeEvolution: ColumnMetadata[][] = [table.columns]; // Start with original columns
@@ -26,12 +18,12 @@ export function executePipeline(
     try {
       const operation = getOperation(step.type);
       const previousRowCount = currentTable.rowCount;
-      
+
       // Operations now return { table, columns }
       const result = operation(currentTable, step.config);
       currentTable = result.table;
       const columnsAfter = result.columns;
-      
+
       const rowsAffected = Math.abs(currentTable.rowCount - previousRowCount);
 
       // Track column metadata after this step
@@ -44,8 +36,7 @@ export function executePipeline(
         columnsAfter,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
 
       stepResults.push({
         stepId: step.id,
@@ -72,7 +63,7 @@ export function executePipeline(
 export function executeUntilStep(
   table: ParseResult,
   steps: TransformationStep[],
-  stopAtIndex: number
+  stopAtIndex: number,
 ): ExecutionResult {
   // If stopAtIndex is -1, return original table
   if (stopAtIndex < 0) {

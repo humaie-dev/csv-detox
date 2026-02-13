@@ -1,15 +1,32 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  FileSpreadsheet,
+  Layers,
+  Pencil,
+  Plus,
+  Settings,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { use, useEffect, useState } from "react";
+import { AddStepDialog } from "@/components/AddStepDialog";
+import { AssistantChat } from "@/components/AssistantChat";
+import { DataTable } from "@/components/DataTable";
+import { ExportButton } from "@/components/ExportButton";
+import { InteractiveDataTable } from "@/components/InteractiveDataTable";
+import { PipelineSettingsDialog } from "@/components/PipelineSettingsDialog";
+import { SavePipelineDialog } from "@/components/SavePipelineDialog";
 import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,41 +36,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  FileSpreadsheet,
-  Plus,
-  ArrowLeft,
-  Trash2,
-  Layers,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  Pencil,
-  Settings,
-  Sparkles,
-} from "lucide-react";
-import { SavePipelineDialog } from "@/components/SavePipelineDialog";
-import { AddStepDialog } from "@/components/AddStepDialog";
-import { PipelineSettingsDialog } from "@/components/PipelineSettingsDialog";
-import { ExportButton } from "@/components/ExportButton";
-import { AssistantChat } from "@/components/AssistantChat";
-import { useToast } from "@/hooks/use-toast";
-import { DataTable } from "@/components/DataTable";
-import { InteractiveDataTable } from "@/components/InteractiveDataTable";
-import {
-  SidebarProvider,
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
 import type { ColumnMetadata } from "@/lib/parsers/types";
-import type { TransformationType, TransformationConfig, TransformationStep } from "@/lib/pipeline/types";
+import type {
+  TransformationConfig,
+  TransformationStep,
+  TransformationType,
+} from "@/lib/pipeline/types";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
-export default function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ projectId: string }>;
-}) {
+export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId: projectIdString } = use(params);
   const projectId = projectIdString as Id<"projects">;
   const router = useRouter();
@@ -79,11 +79,11 @@ export default function ProjectDetailPage({
   // Queries
   const project = useQuery(api.projects.get, { id: projectId });
   const pipelines = useQuery(api.pipelines.list, { projectId });
-  
+
   // Use "skip" to conditionally call query while maintaining hook order
   const selectedPipeline = useQuery(
     api.pipelines.get,
-    selectedPipelineId ? { id: selectedPipelineId } : "skip"
+    selectedPipelineId ? { id: selectedPipelineId } : "skip",
   );
 
   // Mutations
@@ -93,50 +93,46 @@ export default function ProjectDetailPage({
   const updatePipeline = useMutation(api.pipelines.update);
 
   // Determine if file is Excel (needs to be before useEffect hooks)
-  const isExcelFile = !!(project?.upload?.mimeType?.includes("spreadsheet") || 
-                      project?.upload?.originalName?.match(/\.(xlsx?|xls)$/i));
+  const isExcelFile = !!(
+    project?.upload?.mimeType?.includes("spreadsheet") ||
+    project?.upload?.originalName?.match(/\.(xlsx?|xls)$/i)
+  );
 
   // Parse file on mount if needed
   useEffect(() => {
     if (project && !isParsingFile) {
       checkAndParseFile();
     }
-  }, [project]);
+  }, [project, checkAndParseFile, isParsingFile]);
 
   // Load sheets for Excel files
   useEffect(() => {
     if (project && isExcelFile && availableSheets.length === 0) {
       loadSheets();
     }
-  }, [project, isExcelFile]);
+  }, [project, isExcelFile, availableSheets.length, loadSheets]);
 
   // Load preview data when selection changes
   useEffect(() => {
     if (project) {
       loadPreviewData();
     }
-  }, [selectedPipelineId, selectedPipeline, selectedStepIndex, project, selectedSheet]);
+  }, [project, loadPreviewData]);
 
   const checkAndParseFile = async () => {
     try {
       // Check if data is already parsed
-      const statusResponse = await fetch(
-        `/api/projects/${projectId}/parse`,
-        { method: "GET" }
-      );
+      const statusResponse = await fetch(`/api/projects/${projectId}/parse`, { method: "GET" });
       const status = await statusResponse.json();
 
       if (!status.initialized) {
         setIsParsingFile(true);
         // Parse the file
-        const parseResponse = await fetch(
-          `/api/projects/${projectId}/parse`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          }
-        );
+        const parseResponse = await fetch(`/api/projects/${projectId}/parse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
 
         if (!parseResponse.ok) {
           const error = await parseResponse.json();
@@ -161,7 +157,7 @@ export default function ProjectDetailPage({
 
   const loadSheets = async () => {
     if (!isExcelFile) return;
-    
+
     setLoadingSheets(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/sheets`);
@@ -170,7 +166,7 @@ export default function ProjectDetailPage({
       }
       const data = await response.json();
       setAvailableSheets(data.sheets || []);
-      
+
       // Set first sheet as default if none selected
       if (data.sheets && data.sheets.length > 0 && !selectedSheet) {
         setSelectedSheet(data.sheets[0]);
@@ -201,7 +197,7 @@ export default function ProjectDetailPage({
             body: JSON.stringify({
               upToStep: selectedStepIndex,
             }),
-          }
+          },
         );
 
         if (!response.ok) {
@@ -218,9 +214,7 @@ export default function ProjectDetailPage({
         });
       } else {
         // Load raw data
-        const response = await fetch(
-          `/api/projects/${projectId}/data?limit=100&offset=0`
-        );
+        const response = await fetch(`/api/projects/${projectId}/data?limit=100&offset=0`);
 
         if (!response.ok) {
           const error = await response.json();
@@ -274,7 +268,7 @@ export default function ProjectDetailPage({
     }
   };
 
-  const handleDeletePipeline = async (pipelineId: Id<"pipelines">, name: string) => {
+  const _handleDeletePipeline = async (pipelineId: Id<"pipelines">, name: string) => {
     if (!confirm(`Are you sure you want to delete pipeline "${name}"?`)) {
       return;
     }
@@ -304,7 +298,7 @@ export default function ProjectDetailPage({
 
     if (
       !confirm(
-        `Are you sure you want to delete project "${project.name}"? This will also delete all ${pipelines?.length || 0} pipeline(s).`
+        `Are you sure you want to delete project "${project.name}"? This will also delete all ${pipelines?.length || 0} pipeline(s).`,
       )
     ) {
       return;
@@ -507,20 +501,17 @@ export default function ProjectDetailPage({
 
   const handleSheetChange = async (sheetName: string) => {
     setSelectedSheet(sheetName);
-    
+
     // Re-parse with the new sheet
     try {
       setIsParsingFile(true);
-      const parseResponse = await fetch(
-        `/api/projects/${projectId}/parse`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            parseOptions: { sheetName },
-          }),
-        }
-      );
+      const parseResponse = await fetch(`/api/projects/${projectId}/parse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parseOptions: { sheetName },
+        }),
+      });
 
       if (!parseResponse.ok) {
         const error = await parseResponse.json();
@@ -596,9 +587,7 @@ export default function ProjectDetailPage({
               </Link>
               <div>
                 <h1 className="text-2xl font-bold">{project.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {project.upload?.originalName}
-                </p>
+                <p className="text-sm text-muted-foreground">{project.upload?.originalName}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -613,10 +602,7 @@ export default function ProjectDetailPage({
                 </SidebarTrigger>
               </div>
               {!isParsingFile && (pipelines?.length ?? 0) > 0 && (
-                <ExportButton
-                  projectId={projectId}
-                  exportAll={true}
-                />
+                <ExportButton projectId={projectId} exportAll={true} />
               )}
               <Button variant="destructive" onClick={handleDeleteProject}>
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -638,71 +624,70 @@ export default function ProjectDetailPage({
             </SidebarHeader>
 
             <SidebarContent className="pt-2">
+              {isParsingFile && (
+                <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+                  <Spinner className="mr-2 inline h-4 w-4" />
+                  Parsing file...
+                </div>
+              )}
 
-            {isParsingFile && (
-              <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
-                <Spinner className="mr-2 inline h-4 w-4" />
-                Parsing file...
-              </div>
-            )}
-
-            {pipelines.length === 0 ? (
-              <div className="rounded-md border border-dashed p-4 text-center">
-                <Layers className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No pipelines</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setIsCreateDialogOpen(true)}
-                >
-                  Create one
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setSelectedPipelineId(null);
-                    setSelectedStepIndex(null);
-                  }}
-                  className={`w-full rounded-md p-3 text-left transition-colors ${
-                    selectedPipelineId === null
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background hover:bg-muted"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Raw Data</span>
-                    <FileSpreadsheet className="h-4 w-4" />
-                  </div>
-                  <p className="text-xs opacity-80">Original file data</p>
-                </button>
-
-                {pipelines.map((pipeline) => (
+              {pipelines.length === 0 ? (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <Layers className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No pipelines</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setIsCreateDialogOpen(true)}
+                  >
+                    Create one
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
                   <button
-                    key={pipeline._id}
                     onClick={() => {
-                      setSelectedPipelineId(pipeline._id);
+                      setSelectedPipelineId(null);
                       setSelectedStepIndex(null);
                     }}
                     className={`w-full rounded-md p-3 text-left transition-colors ${
-                      selectedPipelineId === pipeline._id
+                      selectedPipelineId === null
                         ? "bg-primary text-primary-foreground"
                         : "bg-background hover:bg-muted"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="truncate font-medium">{pipeline.name}</span>
-                      <Layers className="h-4 w-4 flex-shrink-0" />
+                      <span className="font-medium">Raw Data</span>
+                      <FileSpreadsheet className="h-4 w-4" />
                     </div>
-                    <p className="text-xs opacity-80">
-                      {pipeline.steps.length} step{pipeline.steps.length !== 1 ? "s" : ""}
-                    </p>
+                    <p className="text-xs opacity-80">Original file data</p>
                   </button>
-                ))}
-              </div>
-            )}
+
+                  {pipelines.map((pipeline) => (
+                    <button
+                      key={pipeline._id}
+                      onClick={() => {
+                        setSelectedPipelineId(pipeline._id);
+                        setSelectedStepIndex(null);
+                      }}
+                      className={`w-full rounded-md p-3 text-left transition-colors ${
+                        selectedPipelineId === pipeline._id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate font-medium">{pipeline.name}</span>
+                        <Layers className="h-4 w-4 flex-shrink-0" />
+                      </div>
+                      <p className="text-xs opacity-80">
+                        {pipeline.steps.length} step{pipeline.steps.length !== 1 ? "s" : ""}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </SidebarContent>
           </Sidebar>
 
@@ -721,10 +706,7 @@ export default function ProjectDetailPage({
                       >
                         <Settings className="h-3 w-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={openAddStepDialog}
-                      >
+                      <Button size="sm" onClick={openAddStepDialog}>
                         <Plus className="mr-2 h-3 w-3" />
                         Add Step
                       </Button>
@@ -758,9 +740,7 @@ export default function ProjectDetailPage({
 
                 {selectedPipeline.steps.length === 0 ? (
                   <div className="rounded-md border border-dashed p-4 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      No transformation steps yet
-                    </p>
+                    <p className="text-sm text-muted-foreground">No transformation steps yet</p>
                     <Button
                       size="sm"
                       variant="outline"
@@ -781,10 +761,7 @@ export default function ProjectDetailPage({
                             : "hover:bg-muted"
                         }`}
                       >
-                        <div
-                          className="cursor-pointer"
-                          onClick={() => setSelectedStepIndex(index)}
-                        >
+                        <div className="cursor-pointer" onClick={() => setSelectedStepIndex(index)}>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
                               {index + 1}
@@ -941,53 +918,49 @@ export default function ProjectDetailPage({
           {/* Right Panel: AI Assistant */}
           <Sidebar side="right" className="w-80">
             <SidebarContent className="p-0 overflow-hidden">
-              <AssistantChat
-                projectId={projectId}
-                pipelineId={selectedPipelineId ?? undefined}
-              />
+              <AssistantChat projectId={projectId} pipelineId={selectedPipelineId ?? undefined} />
             </SidebarContent>
           </Sidebar>
         </div>
 
-      {/* Create Pipeline Dialog */}
-      <SavePipelineDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSave={handleCreatePipeline}
-      />
-
-      {/* Add/Edit Step Dialog */}
-      {selectedPipelineId && selectedPipeline && (
-        <AddStepDialog
-          open={isAddStepDialogOpen}
-          onOpenChange={(open) => {
-            setIsAddStepDialogOpen(open);
-            if (!open) setEditingStepIndex(null);
-          }}
-          onAddStep={handleAddStep}
-          onEditStep={handleEditStep}
-          availableColumns={availableColumns}
-          editingStep={
-            editingStepIndex !== null
-              ? (selectedPipeline.steps[editingStepIndex] as TransformationStep)
-              : null
-          }
-          uploadId={project.uploadId}
+        {/* Create Pipeline Dialog */}
+        <SavePipelineDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onSave={handleCreatePipeline}
         />
-      )}
 
-      {/* Pipeline Settings Dialog */}
-      {selectedPipelineId && selectedPipeline && (
-        <PipelineSettingsDialog
-          open={isSettingsDialogOpen}
-          onOpenChange={setIsSettingsDialogOpen}
-          onSave={handleSaveSettings}
-          currentConfig={selectedPipeline.parseConfig}
-          isExcelFile={isExcelFile}
-          projectId={projectId}
-        />
-      )}
+        {/* Add/Edit Step Dialog */}
+        {selectedPipelineId && selectedPipeline && (
+          <AddStepDialog
+            open={isAddStepDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddStepDialogOpen(open);
+              if (!open) setEditingStepIndex(null);
+            }}
+            onAddStep={handleAddStep}
+            onEditStep={handleEditStep}
+            availableColumns={availableColumns}
+            editingStep={
+              editingStepIndex !== null
+                ? (selectedPipeline.steps[editingStepIndex] as TransformationStep)
+                : null
+            }
+            uploadId={project.uploadId}
+          />
+        )}
 
+        {/* Pipeline Settings Dialog */}
+        {selectedPipelineId && selectedPipeline && (
+          <PipelineSettingsDialog
+            open={isSettingsDialogOpen}
+            onOpenChange={setIsSettingsDialogOpen}
+            onSave={handleSaveSettings}
+            currentConfig={selectedPipeline.parseConfig}
+            isExcelFile={isExcelFile}
+            projectId={projectId}
+          />
+        )}
       </div>
     </SidebarProvider>
   );

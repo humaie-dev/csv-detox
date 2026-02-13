@@ -1,10 +1,10 @@
-import { describe, it } from "node:test";
 import assert from "node:assert";
+import { describe, it } from "node:test";
 import {
-  sanitizeFilename,
-  validateFileType,
-  validateFileSize,
   getMaxFileSize,
+  sanitizeFilename,
+  validateFileSize,
+  validateFileType,
 } from "../validation.js";
 
 describe("sanitizeFilename", () => {
@@ -69,7 +69,7 @@ describe("validateFileType", () => {
   it("should accept XLSX with correct MIME type", () => {
     const result = validateFileType(
       "test.xlsx",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     assert.strictEqual(result, true);
   });

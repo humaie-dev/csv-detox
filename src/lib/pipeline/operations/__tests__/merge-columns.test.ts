@@ -2,11 +2,11 @@
  * Unit tests for merge-columns operation
  */
 
-import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { mergeColumns } from "../merge-columns";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { MergeColumnsConfig } from "@/lib/pipeline/types";
+import { mergeColumns } from "../merge-columns";
 
 describe("mergeColumns", () => {
   it("should merge two columns with space separator", () => {
@@ -16,8 +16,20 @@ describe("mergeColumns", () => {
         { FirstName: "Jane", LastName: "Smith" },
       ],
       columns: [
-        { name: "FirstName", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["John", "Jane"] },
-        { name: "LastName", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["Doe", "Smith"] },
+        {
+          name: "FirstName",
+          type: "string",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: ["John", "Jane"],
+        },
+        {
+          name: "LastName",
+          type: "string",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: ["Doe", "Smith"],
+        },
       ],
       rowCount: 2,
       warnings: [],
@@ -43,8 +55,20 @@ describe("mergeColumns", () => {
     const table: ParseResult = {
       rows: [{ Street: "123 Main", City: "Springfield", State: "IL" }],
       columns: [
-        { name: "Street", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["123 Main"] },
-        { name: "City", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Springfield"] },
+        {
+          name: "Street",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["123 Main"],
+        },
+        {
+          name: "City",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["Springfield"],
+        },
         { name: "State", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["IL"] },
       ],
       rowCount: 1,
@@ -89,7 +113,13 @@ describe("mergeColumns", () => {
     const table: ParseResult = {
       rows: [{ FirstName: "John", MiddleName: null, LastName: "Doe" }],
       columns: [
-        { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
+        {
+          name: "FirstName",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["John"],
+        },
         { name: "MiddleName", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
         { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
       ],
@@ -114,7 +144,13 @@ describe("mergeColumns", () => {
     const table: ParseResult = {
       rows: [{ FirstName: "John", MiddleName: null, LastName: "Doe" }],
       columns: [
-        { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
+        {
+          name: "FirstName",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["John"],
+        },
         { name: "MiddleName", type: "string", nonNullCount: 0, nullCount: 1, sampleValues: [] },
         { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
       ],
@@ -139,7 +175,13 @@ describe("mergeColumns", () => {
     const table: ParseResult = {
       rows: [{ FirstName: "John", LastName: "Doe" }],
       columns: [
-        { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
+        {
+          name: "FirstName",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["John"],
+        },
         { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
       ],
       rowCount: 1,
@@ -236,7 +278,13 @@ describe("mergeColumns", () => {
     const table: ParseResult = {
       rows: [{ FirstName: "John", LastName: "Doe" }],
       columns: [
-        { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
+        {
+          name: "FirstName",
+          type: "string",
+          nonNullCount: 1,
+          nullCount: 0,
+          sampleValues: ["John"],
+        },
         { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
       ],
       rowCount: 1,
@@ -276,7 +324,7 @@ describe("mergeColumns", () => {
 
       assert.throws(
         () => mergeColumns(table, config),
-        /At least one column must be specified for merging/
+        /At least one column must be specified for merging/,
       );
     });
 
@@ -297,18 +345,27 @@ describe("mergeColumns", () => {
         newColumn: "FullName",
       };
 
-      assert.throws(
-        () => mergeColumns(table, config),
-        /Column "InvalidColumn" does not exist/
-      );
+      assert.throws(() => mergeColumns(table, config), /Column "InvalidColumn" does not exist/);
     });
 
     it("should throw error if new column name is empty", () => {
       const table: ParseResult = {
         rows: [{ FirstName: "John", LastName: "Doe" }],
         columns: [
-          { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
-          { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
+          {
+            name: "FirstName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John"],
+          },
+          {
+            name: "LastName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -321,18 +378,27 @@ describe("mergeColumns", () => {
         newColumn: "  ", // Empty
       };
 
-      assert.throws(
-        () => mergeColumns(table, config),
-        /New column name cannot be empty/
-      );
+      assert.throws(() => mergeColumns(table, config), /New column name cannot be empty/);
     });
 
     it("should throw error if new column already exists (and not in merge list)", () => {
       const table: ParseResult = {
         rows: [{ FirstName: "John", LastName: "Doe", Age: 30 }],
         columns: [
-          { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
-          { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
+          {
+            name: "FirstName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John"],
+          },
+          {
+            name: "LastName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["Doe"],
+          },
           { name: "Age", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [30] },
         ],
         rowCount: 1,
@@ -346,18 +412,27 @@ describe("mergeColumns", () => {
         newColumn: "Age", // Already exists
       };
 
-      assert.throws(
-        () => mergeColumns(table, config),
-        /New column "Age" already exists/
-      );
+      assert.throws(() => mergeColumns(table, config), /New column "Age" already exists/);
     });
 
     it("should allow new column name to be one of the merged columns (will be replaced)", () => {
       const table: ParseResult = {
         rows: [{ FirstName: "John", LastName: "Doe" }],
         columns: [
-          { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
-          { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
+          {
+            name: "FirstName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John"],
+          },
+          {
+            name: "LastName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -378,8 +453,20 @@ describe("mergeColumns", () => {
       const table: ParseResult = {
         rows: [{ FirstName: "John", LastName: "Doe" }],
         columns: [
-          { name: "FirstName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["John"] },
-          { name: "LastName", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Doe"] },
+          {
+            name: "FirstName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["John"],
+          },
+          {
+            name: "LastName",
+            type: "string",
+            nonNullCount: 1,
+            nullCount: 0,
+            sampleValues: ["Doe"],
+          },
         ],
         rowCount: 1,
         warnings: [],
@@ -392,10 +479,7 @@ describe("mergeColumns", () => {
         newColumn: "FullName",
       };
 
-      assert.throws(
-        () => mergeColumns(table, config),
-        /Columns to merge must be unique/
-      );
+      assert.throws(() => mergeColumns(table, config), /Columns to merge must be unique/);
     });
   });
 });

@@ -62,7 +62,7 @@ function isDate(value: unknown): boolean {
 
   // Try parsing as date to confirm it's valid
   const parsed = new Date(trimmed);
-  return !isNaN(parsed.getTime());
+  return !Number.isNaN(parsed.getTime());
 }
 
 /**
@@ -91,9 +91,7 @@ function inferValueType(value: unknown): InferredType {
  * - Prioritize more specific types (boolean > number > date > string)
  */
 function inferColumnType(values: unknown[]): InferredType {
-  const nonNullValues = values.filter(
-    (v) => v !== null && v !== undefined && v !== ""
-  );
+  const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== "");
 
   if (nonNullValues.length === 0) {
     return "string"; // Default to string for all-null columns
@@ -136,7 +134,7 @@ function inferColumnType(values: unknown[]): InferredType {
  */
 export function inferColumnTypes(
   rows: Record<string, unknown>[],
-  headers: string[]
+  headers: string[],
 ): ColumnMetadata[] {
   return headers.map((name) => {
     // Extract all values for this column
@@ -146,9 +144,7 @@ export function inferColumnTypes(
     const type = inferColumnType(values);
 
     // Count nulls
-    const nullCount = values.filter(
-      (v) => v === null || v === undefined || v === ""
-    ).length;
+    const nullCount = values.filter((v) => v === null || v === undefined || v === "").length;
     const nonNullCount = values.length - nullCount;
 
     // Get sample values (first 5 non-null)

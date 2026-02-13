@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { Calendar, FileSpreadsheet, Layers, Plus } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { FileSpreadsheet, Plus, Calendar, Layers } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
 
 export default function ProjectsPage() {
   const projects = useQuery(api.projects.list);
@@ -28,9 +28,7 @@ export default function ProjectsPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="mt-2 text-muted-foreground">
-            Manage your data transformation projects
-          </p>
+          <p className="mt-2 text-muted-foreground">Manage your data transformation projects</p>
         </div>
         <Link href="/projects/new">
           <Button>
@@ -58,7 +56,7 @@ export default function ProjectsPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project: typeof projects[number]) => (
+          {projects.map((project: (typeof projects)[number]) => (
             <Link key={project._id} href={`/projects/${project._id}`}>
               <Card className="transition-all hover:shadow-lg">
                 <CardHeader>

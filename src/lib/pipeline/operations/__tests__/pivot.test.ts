@@ -2,11 +2,11 @@
  * Unit tests for pivot operation
  */
 
-import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { pivot } from "../pivot";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { PivotConfig } from "@/lib/pipeline/types";
+import { pivot } from "../pivot";
 
 describe("pivot", () => {
   it("should pivot basic long data to wide format", () => {
@@ -18,9 +18,27 @@ describe("pivot", () => {
         { Name: "Bob", Month: "Feb", Sales: 90 },
       ],
       columns: [
-        { name: "Name", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: ["Alice", "Bob"] },
-        { name: "Month", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: ["Jan", "Feb"] },
-        { name: "Sales", type: "number", nonNullCount: 4, nullCount: 0, sampleValues: [100, 200, 80, 90] },
+        {
+          name: "Name",
+          type: "string",
+          nonNullCount: 4,
+          nullCount: 0,
+          sampleValues: ["Alice", "Bob"],
+        },
+        {
+          name: "Month",
+          type: "string",
+          nonNullCount: 4,
+          nullCount: 0,
+          sampleValues: ["Jan", "Feb"],
+        },
+        {
+          name: "Sales",
+          type: "number",
+          nonNullCount: 4,
+          nullCount: 0,
+          sampleValues: [100, 200, 80, 90],
+        },
       ],
       rowCount: 4,
       warnings: [],
@@ -59,9 +77,27 @@ describe("pivot", () => {
         { Product: "Widget", Quarter: "Q2", Revenue: 1500 },
       ],
       columns: [
-        { name: "Product", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["Widget"] },
-        { name: "Quarter", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["Q1", "Q2"] },
-        { name: "Revenue", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1000, 1500] },
+        {
+          name: "Product",
+          type: "string",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: ["Widget"],
+        },
+        {
+          name: "Quarter",
+          type: "string",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: ["Q1", "Q2"],
+        },
+        {
+          name: "Revenue",
+          type: "number",
+          nonNullCount: 2,
+          nullCount: 0,
+          sampleValues: [1000, 1500],
+        },
       ],
       rowCount: 2,
       warnings: [],
@@ -90,10 +126,34 @@ describe("pivot", () => {
         { Region: "South", Product: "Gadget", Month: "Jan", Sales: 150 },
       ],
       columns: [
-        { name: "Region", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["North", "South"] },
-        { name: "Product", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["Widget", "Gadget"] },
-        { name: "Month", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["Jan", "Feb"] },
-        { name: "Sales", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [100, 200, 150] },
+        {
+          name: "Region",
+          type: "string",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: ["North", "South"],
+        },
+        {
+          name: "Product",
+          type: "string",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: ["Widget", "Gadget"],
+        },
+        {
+          name: "Month",
+          type: "string",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: ["Jan", "Feb"],
+        },
+        {
+          name: "Sales",
+          type: "number",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: [100, 200, 150],
+        },
       ],
       rowCount: 3,
       warnings: [],
@@ -109,7 +169,7 @@ describe("pivot", () => {
     const { table: result } = pivot(table, config);
 
     assert.strictEqual(result.rowCount, 2); // 2 unique combinations
-    
+
     const northRow = result.rows.find((r) => r.Region === "North");
     assert.ok(northRow);
     assert.strictEqual(northRow.Product, "Widget");
@@ -131,9 +191,27 @@ describe("pivot", () => {
         { Name: "Bob", Month: "Feb", Sales: 200 },
       ],
       columns: [
-        { name: "Name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["Alice", "Bob"] },
-        { name: "Month", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["Jan", "Feb", "Mar"] },
-        { name: "Sales", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [100, 300, 200] },
+        {
+          name: "Name",
+          type: "string",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: ["Alice", "Bob"],
+        },
+        {
+          name: "Month",
+          type: "string",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: ["Jan", "Feb", "Mar"],
+        },
+        {
+          name: "Sales",
+          type: "number",
+          nonNullCount: 3,
+          nullCount: 0,
+          sampleValues: [100, 300, 200],
+        },
       ],
       rowCount: 3,
       warnings: [],
@@ -361,9 +439,7 @@ describe("pivot", () => {
 
   it("should preserve index column types", () => {
     const table: ParseResult = {
-      rows: [
-        { ID: 1, Month: "Jan", Sales: 100 },
-      ],
+      rows: [{ ID: 1, Month: "Jan", Sales: 100 }],
       columns: [
         { name: "ID", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [1] },
         { name: "Month", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Jan"] },
@@ -388,9 +464,7 @@ describe("pivot", () => {
 
   it("should infer new column type from value source", () => {
     const table: ParseResult = {
-      rows: [
-        { Name: "Alice", Month: "Jan", Sales: 100 },
-      ],
+      rows: [{ Name: "Alice", Month: "Jan", Sales: 100 }],
       columns: [
         { name: "Name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Alice"] },
         { name: "Month", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["Jan"] },
@@ -431,10 +505,7 @@ describe("pivot", () => {
       valueSource: "Sales",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /At least one index column must be specified/
-    );
+    assert.throws(() => pivot(table, config), /At least one index column must be specified/);
   });
 
   it("should throw error if index column does not exist", () => {
@@ -455,10 +526,7 @@ describe("pivot", () => {
       valueSource: "Sales",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /Index column "InvalidColumn" does not exist/
-    );
+    assert.throws(() => pivot(table, config), /Index column "InvalidColumn" does not exist/);
   });
 
   it("should throw error if column source does not exist", () => {
@@ -479,10 +547,7 @@ describe("pivot", () => {
       valueSource: "Sales",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /Column source "InvalidColumn" does not exist/
-    );
+    assert.throws(() => pivot(table, config), /Column source "InvalidColumn" does not exist/);
   });
 
   it("should throw error if value source does not exist", () => {
@@ -503,10 +568,7 @@ describe("pivot", () => {
       valueSource: "InvalidColumn",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /Value source "InvalidColumn" does not exist/
-    );
+    assert.throws(() => pivot(table, config), /Value source "InvalidColumn" does not exist/);
   });
 
   it("should throw error if column source is in index columns", () => {
@@ -528,10 +590,7 @@ describe("pivot", () => {
       valueSource: "Sales",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /Column source cannot be an index column/
-    );
+    assert.throws(() => pivot(table, config), /Column source cannot be an index column/);
   });
 
   it("should throw error if column source and value source are the same", () => {
@@ -552,9 +611,6 @@ describe("pivot", () => {
       valueSource: "Sales",
     };
 
-    assert.throws(
-      () => pivot(table, config),
-      /Column source and value source must be different/
-    );
+    assert.throws(() => pivot(table, config), /Column source and value source must be different/);
   });
 });

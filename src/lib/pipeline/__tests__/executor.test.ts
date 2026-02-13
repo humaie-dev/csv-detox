@@ -1,7 +1,7 @@
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { executePipeline, executeUntilStep } from "../executor";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
+import { executePipeline, executeUntilStep } from "../executor";
 import type { TransformationStep } from "../types";
 
 describe("executePipeline", () => {
@@ -29,9 +29,7 @@ describe("executePipeline", () => {
   it("should execute single step successfully", () => {
     const table: ParseResult = {
       rows: [{ name: "  Alice  " }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -150,9 +148,7 @@ describe("executePipeline", () => {
   it("should stop execution on error and report failed step", () => {
     const table: ParseResult = {
       rows: [{ name: "Alice" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -264,9 +260,7 @@ describe("executeUntilStep", () => {
   it("should return original table when stopAtIndex is -1", () => {
     const table: ParseResult = {
       rows: [{ name: "  Alice  " }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -292,9 +286,7 @@ describe("executeUntilStep", () => {
   it("should execute only first step when stopAtIndex is 0", () => {
     const table: ParseResult = {
       rows: [{ name: "  alice  " }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -375,9 +367,7 @@ describe("executeUntilStep", () => {
   it("should execute all steps when stopAtIndex equals steps length - 1", () => {
     const table: ParseResult = {
       rows: [{ name: "  alice  " }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };
@@ -410,9 +400,7 @@ describe("executeUntilStep", () => {
   it("should stop at error even if stopAtIndex is higher", () => {
     const table: ParseResult = {
       rows: [{ name: "Alice" }],
-      columns: [
-        { name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] },
-      ],
+      columns: [{ name: "name", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: [] }],
       rowCount: 1,
       warnings: [],
     };

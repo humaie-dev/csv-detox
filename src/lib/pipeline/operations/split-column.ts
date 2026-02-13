@@ -8,12 +8,12 @@
  *   Output: {FirstName: "John", LastName: "Doe"}
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { SplitColumnConfig } from "@/lib/pipeline/types";
 
 export function splitColumn(
   table: ParseResult,
-  config: SplitColumnConfig
+  config: SplitColumnConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);
@@ -104,7 +104,7 @@ export function splitColumn(
     rowCount: newRows.length,
     warnings: table.warnings,
   };
-  
+
   return {
     table: result,
     columns: newColumnsMetadata,
@@ -114,11 +114,7 @@ export function splitColumn(
 /**
  * Split string by delimiter
  */
-function splitByDelimiter(
-  value: string,
-  delimiter: string,
-  maxSplits?: number
-): string[] {
+function splitByDelimiter(value: string, delimiter: string, maxSplits?: number): string[] {
   if (!value) return [""];
 
   if (maxSplits === undefined) {
@@ -167,11 +163,7 @@ function splitByPosition(value: string, positions: number[]): string[] {
 /**
  * Split string by regex pattern
  */
-function splitByRegex(
-  value: string,
-  pattern: string,
-  maxSplits?: number
-): string[] {
+function splitByRegex(value: string, pattern: string, maxSplits?: number): string[] {
   if (!value) return [""];
 
   try {
@@ -203,7 +195,7 @@ function splitByRegex(
     throw new Error(
       `Invalid regex pattern "${pattern}": ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -212,14 +204,7 @@ function splitByRegex(
  * Validate split column configuration
  */
 function validateConfig(table: ParseResult, config: SplitColumnConfig): void {
-  const {
-    column,
-    method,
-    delimiter,
-    positions,
-    pattern,
-    newColumns,
-  } = config;
+  const { column, method, delimiter, positions, pattern, newColumns } = config;
 
   // Check column exists
   if (!table.columns.find((c) => c.name === column)) {
@@ -285,7 +270,7 @@ function validateConfig(table: ParseResult, config: SplitColumnConfig): void {
         throw new Error(
           `Invalid regex pattern "${pattern}": ${
             error instanceof Error ? error.message : String(error)
-          }`
+          }`,
         );
       }
       break;

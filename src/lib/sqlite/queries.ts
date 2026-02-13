@@ -3,7 +3,7 @@
  */
 
 import type { Database } from "better-sqlite3";
-import type { ColumnStats, ColumnDistribution } from "./types";
+import type { ColumnDistribution, ColumnStats } from "./types";
 
 /**
  * Get random sample of rows
@@ -11,7 +11,7 @@ import type { ColumnStats, ColumnDistribution } from "./types";
 export function getRandomSample(
   db: Database,
   tableName: string = "raw_data",
-  limit: number = 100
+  limit: number = 100,
 ): Array<Record<string, unknown>> {
   const stmt = db.prepare(`
     SELECT data
@@ -31,7 +31,7 @@ export function getRowRange(
   db: Database,
   startRow: number,
   endRow: number,
-  tableName: string = "raw_data"
+  tableName: string = "raw_data",
 ): Array<Record<string, unknown>> {
   const stmt = db.prepare(`
     SELECT data
@@ -52,7 +52,7 @@ export function getColumnStats(
   db: Database,
   columnName: string,
   tableName: string = "raw_data",
-  sampleSize: number = 10000
+  sampleSize: number = 10000,
 ): ColumnStats {
   // Get sample of data
   const stmt = db.prepare(`
@@ -115,7 +115,7 @@ export function getColumnDistribution(
   columnName: string,
   tableName: string = "raw_data",
   limit: number = 20,
-  sampleSize: number = 10000
+  sampleSize: number = 10000,
 ): ColumnDistribution {
   // Get sample of data
   const stmt = db.prepare(`
@@ -161,7 +161,7 @@ export function searchColumnValues(
   columnName: string,
   pattern: string,
   tableName: string = "raw_data",
-  limit: number = 100
+  limit: number = 100,
 ): Array<Record<string, unknown>> {
   // Use JSON extract for searching
   const stmt = db.prepare(`
@@ -182,7 +182,7 @@ export function countRowsWhere(
   db: Database,
   columnName: string,
   value: unknown,
-  tableName: string = "raw_data"
+  tableName: string = "raw_data",
 ): number {
   const stmt = db.prepare(`
     SELECT COUNT(*) as count
@@ -201,7 +201,7 @@ export function getDistinctValues(
   db: Database,
   columnName: string,
   tableName: string = "raw_data",
-  limit: number = 100
+  limit: number = 100,
 ): Array<string | number | null> {
   const stmt = db.prepare(`
     SELECT DISTINCT json_extract(data, '$.${columnName}') as value

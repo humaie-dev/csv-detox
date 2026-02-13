@@ -3,26 +3,23 @@
  * Convert column values to a specific type with validation
  */
 
-import type { ParseResult, ColumnMetadata, InferredType } from "@/lib/parsers/types";
+import type { ColumnMetadata, InferredType, ParseResult } from "@/lib/parsers/types";
+import { tryCast } from "../casting/types";
 import type { CastColumnConfig } from "../types";
 import { TransformationError } from "../types";
-import { tryCast } from "../casting/types";
 
 export function castColumn(
   table: ParseResult,
-  config: CastColumnConfig
+  config: CastColumnConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   const { column, targetType, onError, format } = config;
 
   // Validate column exists
   const columnExists = table.columns.some((col) => col.name === column);
   if (!columnExists) {
-    throw new TransformationError(
-      `Column "${column}" not found`,
-      "cast_column",
-      "cast_column",
-      { availableColumns: table.columns.map((c) => c.name) }
-    );
+    throw new TransformationError(`Column "${column}" not found`, "cast_column", "cast_column", {
+      availableColumns: table.columns.map((c) => c.name),
+    });
   }
 
   const newRows: Record<string, unknown>[] = [];
@@ -52,7 +49,7 @@ export function castColumn(
             value,
             targetType,
             error: castResult.error,
-          }
+          },
         );
       } else if (onError === "null") {
         // Set to null and continue
@@ -60,7 +57,6 @@ export function castColumn(
       } else if (onError === "skip") {
         // Skip this row
         skippedRows++;
-        continue;
       }
     } else {
       // Cast succeeded
@@ -72,8 +68,8 @@ export function castColumn(
   const newColumns = table.columns.map((col) => {
     if (col.name === column) {
       // Update type for casted column
-      let newType: InferredType = targetType as InferredType;
-      
+      const newType: InferredType = targetType as InferredType;
+
       // Count nulls after casting
       const nullCount = newRows.filter((row) => row[column] === null).length;
       const nonNullCount = newRows.length - nullCount;

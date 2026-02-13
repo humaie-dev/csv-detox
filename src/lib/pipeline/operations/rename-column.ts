@@ -2,12 +2,12 @@
  * Rename a column
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { RenameColumnConfig } from "../types";
 
 export function renameColumn(
   table: ParseResult,
-  config: RenameColumnConfig
+  config: RenameColumnConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate old column exists
   const columnNames = table.columns.map((c) => c.name);
@@ -22,7 +22,7 @@ export function renameColumn(
 
   // Update column metadata
   const newColumns = table.columns.map((col) =>
-    col.name === config.oldName ? { ...col, name: config.newName } : col
+    col.name === config.oldName ? { ...col, name: config.newName } : col,
   );
 
   // Update rows
@@ -40,7 +40,7 @@ export function renameColumn(
     columns: newColumns,
     rows: newRows,
   };
-  
+
   return {
     table: result,
     columns: newColumns,

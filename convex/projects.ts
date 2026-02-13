@@ -11,11 +11,7 @@ import { mutation, query } from "./_generated/server";
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_created")
-      .order("desc")
-      .collect();
+    const projects = await ctx.db.query("projects").withIndex("by_created").order("desc").collect();
 
     // Enrich with upload information
     const enrichedProjects = await Promise.all(
@@ -31,7 +27,7 @@ export const list = query({
               }
             : null,
         };
-      })
+      }),
     );
 
     return enrichedProjects;

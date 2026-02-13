@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,18 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type ParseConfig = {
   sheetName?: string;
@@ -50,7 +46,7 @@ export function ParseConfigPanel({
   onConfigChanged,
 }: ParseConfigPanelProps) {
   const updateParseConfig = useMutation(api.uploads.updateParseConfig);
-  
+
   // Form state
   const [sheetName, setSheetName] = useState<string>("");
   const [startRow, setStartRow] = useState<string>("");
@@ -67,7 +63,7 @@ export function ParseConfigPanel({
   // Initialize form with current config
   useEffect(() => {
     if (currentConfig) {
-      setSheetName(currentConfig.sheetName || (availableSheets[0] || ""));
+      setSheetName(currentConfig.sheetName || availableSheets[0] || "");
       setStartRow(currentConfig.startRow?.toString() || "");
       setEndRow(currentConfig.endRow?.toString() || "");
       setStartColumn(currentConfig.startColumn?.toString() || "");
@@ -117,8 +113,8 @@ export function ParseConfigPanel({
 
       // Validate and add row range
       if (startRow) {
-        const start = parseInt(startRow);
-        if (isNaN(start) || start < 1) {
+        const start = parseInt(startRow, 10);
+        if (Number.isNaN(start) || start < 1) {
           setError("Start row must be a number >= 1");
           return;
         }
@@ -126,8 +122,8 @@ export function ParseConfigPanel({
       }
 
       if (endRow) {
-        const end = parseInt(endRow);
-        if (isNaN(end) || end < 1) {
+        const end = parseInt(endRow, 10);
+        if (Number.isNaN(end) || end < 1) {
           setError("End row must be a number >= 1");
           return;
         }
@@ -141,8 +137,8 @@ export function ParseConfigPanel({
 
       // Validate and add column range
       if (startColumn) {
-        const start = parseInt(startColumn);
-        if (isNaN(start) || start < 1) {
+        const start = parseInt(startColumn, 10);
+        if (Number.isNaN(start) || start < 1) {
           setError("Start column must be a number >= 1");
           return;
         }
@@ -150,8 +146,8 @@ export function ParseConfigPanel({
       }
 
       if (endColumn) {
-        const end = parseInt(endColumn);
-        if (isNaN(end) || end < 1) {
+        const end = parseInt(endColumn, 10);
+        if (Number.isNaN(end) || end < 1) {
           setError("End column must be a number >= 1");
           return;
         }
@@ -189,10 +185,10 @@ export function ParseConfigPanel({
       sheetIndex: availableSheets.indexOf(value),
     };
     // Include existing row/column ranges if set
-    if (startRow) config.startRow = parseInt(startRow);
-    if (endRow) config.endRow = parseInt(endRow);
-    if (startColumn) config.startColumn = parseInt(startColumn);
-    if (endColumn) config.endColumn = parseInt(endColumn);
+    if (startRow) config.startRow = parseInt(startRow, 10);
+    if (endRow) config.endRow = parseInt(endRow, 10);
+    if (startColumn) config.startColumn = parseInt(startColumn, 10);
+    if (endColumn) config.endColumn = parseInt(endColumn, 10);
     await saveConfig(config);
   };
 
@@ -209,10 +205,10 @@ export function ParseConfigPanel({
       config.sheetIndex = availableSheets.indexOf(sheetName);
     }
     // Include existing row/column ranges if set
-    if (startRow) config.startRow = parseInt(startRow);
-    if (endRow) config.endRow = parseInt(endRow);
-    if (startColumn) config.startColumn = parseInt(startColumn);
-    if (endColumn) config.endColumn = parseInt(endColumn);
+    if (startRow) config.startRow = parseInt(startRow, 10);
+    if (endRow) config.endRow = parseInt(endRow, 10);
+    if (startColumn) config.startColumn = parseInt(startColumn, 10);
+    if (endColumn) config.endColumn = parseInt(endColumn, 10);
     await saveConfig(config);
   };
 
@@ -229,11 +225,7 @@ export function ParseConfigPanel({
             </div>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-9 p-0">
-                {isOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 <span className="sr-only">Toggle</span>
               </Button>
             </CollapsibleTrigger>

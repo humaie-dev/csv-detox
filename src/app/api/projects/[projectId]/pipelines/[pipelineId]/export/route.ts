@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/sqlite/database";
+import type Database from "better-sqlite3";
+import { type NextRequest, NextResponse } from "next/server";
 import { getConvexClient } from "@/lib/convex/client";
+import { getDatabase } from "@/lib/sqlite/database";
+import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
 import { api } from "../../../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../../../convex/_generated/dataModel";
-import Database from "better-sqlite3";
-import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
 
 /**
  * Export pipeline results or raw data as CSV
  * GET /api/projects/[projectId]/pipelines/[pipelineId]/export
- * 
+ *
  * Query params:
  * - raw=true: Export raw data instead of pipeline results
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> }
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   try {
     const { projectId, pipelineId } = await params;
@@ -38,17 +38,14 @@ export async function GET(
     });
 
     if (!pipeline) {
-      return NextResponse.json(
-        { error: "Pipeline not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pipeline not found" }, { status: 404 });
     }
 
     // Verify pipeline belongs to project
     if (pipeline.projectId !== projectId) {
       return NextResponse.json(
         { error: "Pipeline does not belong to this project" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,9 +70,7 @@ export async function GET(
 
       // Check if pipeline has been executed
       const tableExists = db
-        .prepare(
-          `SELECT name FROM sqlite_master WHERE type='table' AND name=?`
-        )
+        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
         .get(tableName);
 
       if (!tableExists) {
@@ -84,7 +79,7 @@ export async function GET(
             error: "Pipeline results not found. Please execute the pipeline first.",
             executed: false,
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -99,15 +94,15 @@ export async function GET(
         try {
           // Write CSV header row
           const headerRow = columns.map((col) => escapeCSVField(col.name)).join(",");
-          controller.enqueue(encoder.encode(headerRow + "\r\n"));
+          controller.enqueue(encoder.encode(`${headerRow}\r\n`));
 
           // Stream data in batches
           const BATCH_SIZE = 1000;
           const totalRows = getRowCount(db, tableName);
-          
+
           for (let offset = 0; offset < totalRows; offset += BATCH_SIZE) {
             const rows = getRows(db, tableName, offset, BATCH_SIZE);
-            
+
             for (const row of rows) {
               const rowData = row.data;
               const csvRow = columns
@@ -116,7 +111,7 @@ export async function GET(
                   return escapeCSVField(formatCSVValue(value));
                 })
                 .join(",");
-              controller.enqueue(encoder.encode(csvRow + "\r\n"));
+              controller.enqueue(encoder.encode(`${csvRow}\r\n`));
             }
           }
 
@@ -142,7 +137,7 @@ export async function GET(
         error: "Failed to export CSV",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -174,10 +169,7 @@ function getRawDataColumns(db: Database.Database): ColumnMetadata[] {
 /**
  * Helper: Get pipeline columns
  */
-function getPipelineColumns(
-  db: Database.Database,
-  columnsTableName: string
-): ColumnMetadata[] {
+function getPipelineColumns(db: Database.Database, columnsTableName: string): ColumnMetadata[] {
   const stmt = db.prepare(`
     SELECT name, type, null_count, sample_values
     FROM ${columnsTableName}
@@ -214,7 +206,7 @@ function getRows(
   db: Database.Database,
   tableName: string,
   offset: number,
-  limit: number
+  limit: number,
 ): RawDataRow[] {
   const stmt = db.prepare(`
     SELECT row_id, data

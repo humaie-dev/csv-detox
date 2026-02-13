@@ -139,10 +139,7 @@ export function getRawDataRowCount(db: Database): number {
 /**
  * Get row count from pipeline result
  */
-export function getPipelineResultRowCount(
-  db: Database,
-  pipelineId: string
-): number {
+export function getPipelineResultRowCount(db: Database, pipelineId: string): number {
   const sanitized = sanitizePipelineId(pipelineId);
   const tableName = `pipeline_${sanitized}_result`;
   const stmt = db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`);

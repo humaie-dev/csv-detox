@@ -8,23 +8,17 @@
  *   Output: {FullName: "John Doe"}
  */
 
-import type { ParseResult, ColumnMetadata } from "@/lib/parsers/types";
+import type { ColumnMetadata, ParseResult } from "@/lib/parsers/types";
 import type { MergeColumnsConfig } from "@/lib/pipeline/types";
 
 export function mergeColumns(
   table: ParseResult,
-  config: MergeColumnsConfig
+  config: MergeColumnsConfig,
 ): { table: ParseResult; columns: ColumnMetadata[] } {
   // Validate configuration
   validateConfig(table, config);
 
-  const {
-    columns,
-    separator,
-    newColumn,
-    skipNull = true,
-    keepOriginal = false,
-  } = config;
+  const { columns, separator, newColumn, skipNull = true, keepOriginal = false } = config;
 
   // Build new rows
   const newRows: Record<string, unknown>[] = [];
@@ -68,9 +62,7 @@ export function mergeColumns(
   const newColumnsMetadata: ColumnMetadata[] = [];
 
   // Find the position of the first column to merge
-  const firstColumnIndex = table.columns.findIndex((c) =>
-    columns.includes(c.name)
-  );
+  const _firstColumnIndex = table.columns.findIndex((c) => columns.includes(c.name));
 
   // Add columns in order, replacing the first merged column with the new merged column
   let mergedColumnAdded = false;
@@ -106,7 +98,7 @@ export function mergeColumns(
     rowCount: newRows.length,
     warnings: table.warnings,
   };
-  
+
   return {
     table: result,
     columns: newColumnsMetadata,

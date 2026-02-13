@@ -2,12 +2,12 @@
  * Tests for cast-column operation
  */
 
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { castColumn } from "../cast-column";
+import { describe, it } from "node:test";
 import type { ParseResult } from "@/lib/parsers/types";
 import type { CastColumnConfig } from "../../types";
 import { TransformationError } from "../../types";
+import { castColumn } from "../cast-column";
 
 describe("castColumn operation", () => {
   describe("basic casting to string", () => {
@@ -20,7 +20,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [100, 200, 300] },
+          {
+            name: "value",
+            type: "number",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: [100, 200, 300],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -39,7 +45,7 @@ describe("castColumn operation", () => {
       assert.equal(result.rows[0].value, "100");
       assert.equal(result.rows[1].value, "200");
       assert.equal(result.rows[2].value, "300");
-      
+
       // Check column metadata updated
       const valueCol = columns.find((col) => col.name === "value");
       assert.equal(valueCol?.type, "string");
@@ -56,7 +62,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "number", nonNullCount: 2, nullCount: 1, sampleValues: [100, 300] },
+          {
+            name: "value",
+            type: "number",
+            nonNullCount: 2,
+            nullCount: 1,
+            sampleValues: [100, 300],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -88,7 +100,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "price", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "200.50", "300"] },
+          {
+            name: "price",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "200.50", "300"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -105,9 +123,9 @@ describe("castColumn operation", () => {
 
       assert.equal(result.rowCount, 3);
       assert.equal(result.rows[0].price, 100);
-      assert.equal(result.rows[1].price, 200.50);
+      assert.equal(result.rows[1].price, 200.5);
       assert.equal(result.rows[2].price, 300);
-      
+
       // Check column metadata updated
       const priceCol = columns.find((col) => col.name === "price");
       assert.equal(priceCol?.type, "number");
@@ -123,7 +141,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1, 2] },
-          { name: "price", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["1,000", "2,500.50"] },
+          {
+            name: "price",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["1,000", "2,500.50"],
+          },
         ],
         rowCount: 2,
         warnings: [],
@@ -139,7 +163,7 @@ describe("castColumn operation", () => {
       const { table: result } = castColumn(table, config);
 
       assert.equal(result.rows[0].price, 1000);
-      assert.equal(result.rows[1].price, 2500.50);
+      assert.equal(result.rows[1].price, 2500.5);
     });
   });
 
@@ -154,7 +178,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 4, nullCount: 0, sampleValues: [1, 2, 3, 4] },
-          { name: "active", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: ["true", "false", "yes", "no"] },
+          {
+            name: "active",
+            type: "string",
+            nonNullCount: 4,
+            nullCount: 0,
+            sampleValues: ["true", "false", "yes", "no"],
+          },
         ],
         rowCount: 4,
         warnings: [],
@@ -174,7 +204,7 @@ describe("castColumn operation", () => {
       assert.equal(result.rows[1].active, false);
       assert.equal(result.rows[2].active, true);
       assert.equal(result.rows[3].active, false);
-      
+
       // Check column metadata updated
       const activeCol = columns.find((col) => col.name === "active");
       assert.equal(activeCol?.type, "boolean");
@@ -217,7 +247,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1, 2] },
-          { name: "created", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["2023-01-15", "2023-06-20"] },
+          {
+            name: "created",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["2023-01-15", "2023-06-20"],
+          },
         ],
         rowCount: 2,
         warnings: [],
@@ -235,7 +271,7 @@ describe("castColumn operation", () => {
       assert.equal(result.rowCount, 2);
       assert.ok(result.rows[0].created instanceof Date);
       assert.ok(result.rows[1].created instanceof Date);
-      
+
       // Check column metadata updated
       const createdCol = columns.find((col) => col.name === "created");
       assert.equal(createdCol?.type, "date");
@@ -250,7 +286,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "date", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["2023-01-15", "01/15/2023", "Jan 15, 2023"] },
+          {
+            name: "date",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["2023-01-15", "01/15/2023", "Jan 15, 2023"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -282,7 +324,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "invalid", "300"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "300"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -301,7 +349,7 @@ describe("castColumn operation", () => {
           assert.ok(error instanceof TransformationError);
           assert.ok(error.message.includes("Failed to cast value in row 2"));
           return true;
-        }
+        },
       );
     });
 
@@ -313,7 +361,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1, 2] },
-          { name: "value", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["invalid1", "invalid2"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["invalid1", "invalid2"],
+          },
         ],
         rowCount: 2,
         warnings: [],
@@ -332,7 +386,7 @@ describe("castColumn operation", () => {
           assert.ok(error instanceof TransformationError);
           assert.ok(error.message.includes("row 1"));
           return true;
-        }
+        },
       );
     });
   });
@@ -347,7 +401,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "invalid", "300"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "300"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -366,7 +426,7 @@ describe("castColumn operation", () => {
       assert.equal(result.rows[0].value, 100);
       assert.equal(result.rows[1].value, null);
       assert.equal(result.rows[2].value, 300);
-      
+
       // Check null counts updated
       const valueCol = columns.find((col) => col.name === "value");
       assert.equal(valueCol?.nullCount, 1);
@@ -382,7 +442,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "invalid", "also-invalid"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "also-invalid"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -411,7 +477,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["invalid1", "200", "invalid2"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["invalid1", "200", "invalid2"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -443,7 +515,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "invalid", "300"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "300"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -474,7 +552,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 3, nullCount: 0, sampleValues: [1, 2, 3] },
-          { name: "value", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: ["100", "invalid", "also-invalid"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 3,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "also-invalid"],
+          },
         ],
         rowCount: 3,
         warnings: [],
@@ -503,7 +587,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1, 2] },
-          { name: "value", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["invalid1", "invalid2"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["invalid1", "invalid2"],
+          },
         ],
         rowCount: 2,
         warnings: [],
@@ -548,7 +638,7 @@ describe("castColumn operation", () => {
           assert.ok(error instanceof TransformationError);
           assert.ok(error.message.includes('Column "nonexistent" not found'));
           return true;
-        }
+        },
       );
     });
   });
@@ -565,8 +655,20 @@ describe("castColumn operation", () => {
           { id: 6, value: "600" },
         ],
         columns: [
-          { name: "id", type: "number", nonNullCount: 6, nullCount: 0, sampleValues: [1, 2, 3, 4, 5, 6] },
-          { name: "value", type: "string", nonNullCount: 6, nullCount: 0, sampleValues: ["100", "200", "300", "400", "500", "600"] },
+          {
+            name: "id",
+            type: "number",
+            nonNullCount: 6,
+            nullCount: 0,
+            sampleValues: [1, 2, 3, 4, 5, 6],
+          },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 6,
+            nullCount: 0,
+            sampleValues: ["100", "200", "300", "400", "500", "600"],
+          },
         ],
         rowCount: 6,
         warnings: [],
@@ -589,9 +691,7 @@ describe("castColumn operation", () => {
 
     it("should preserve other column metadata", () => {
       const table: ParseResult = {
-        rows: [
-          { id: 1, value: "100", name: "test" },
-        ],
+        rows: [{ id: 1, value: "100", name: "test" }],
         columns: [
           { name: "id", type: "number", nonNullCount: 1, nullCount: 0, sampleValues: [1] },
           { name: "value", type: "string", nonNullCount: 1, nullCount: 0, sampleValues: ["100"] },
@@ -613,7 +713,7 @@ describe("castColumn operation", () => {
       // Check that other columns are unchanged
       const idCol = columns.find((col) => col.name === "id");
       const nameCol = columns.find((col) => col.name === "name");
-      
+
       assert.equal(idCol?.type, "number");
       assert.equal(nameCol?.type, "string");
     });
@@ -628,7 +728,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 4, nullCount: 0, sampleValues: [1, 2, 3, 4] },
-          { name: "value", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: ["100", "invalid", "300", "400"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 4,
+            nullCount: 0,
+            sampleValues: ["100", "invalid", "300", "400"],
+          },
         ],
         rowCount: 4,
         warnings: [],
@@ -702,7 +808,7 @@ describe("castColumn operation", () => {
       assert.equal(result.rowCount, 2);
       assert.equal(result.rows[0].value, null);
       assert.equal(result.rows[1].value, null);
-      
+
       const valueCol = columns.find((col) => col.name === "value");
       assert.equal(valueCol?.nullCount, 2);
       assert.equal(valueCol?.nonNullCount, 0);
@@ -740,7 +846,13 @@ describe("castColumn operation", () => {
         ],
         columns: [
           { name: "id", type: "number", nonNullCount: 2, nullCount: 0, sampleValues: [1, 2] },
-          { name: "value", type: "string", nonNullCount: 2, nullCount: 0, sampleValues: ["100", "200"] },
+          {
+            name: "value",
+            type: "string",
+            nonNullCount: 2,
+            nullCount: 0,
+            sampleValues: ["100", "200"],
+          },
         ],
         rowCount: 2,
         warnings: [],

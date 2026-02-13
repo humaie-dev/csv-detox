@@ -2,14 +2,14 @@
  * Tests for CSV export functionality
  */
 
-import { describe, test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { getDatabase, closeDatabase } from "../database";
-import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { initializeSchema, createPipelineTables, dropPipelineTables } from "../schema";
-import type { RawDataRow, ColumnMetadata } from "../types";
+import path from "node:path";
+import { afterEach, beforeEach, describe, test } from "node:test";
+import { closeDatabase, getDatabase } from "../database";
+import { createPipelineTables, dropPipelineTables, initializeSchema } from "../schema";
+import type { ColumnMetadata, RawDataRow } from "../types";
 
 describe("CSV Export Utilities", () => {
   let testDir: string;
@@ -282,7 +282,7 @@ describe("CSV Export Utilities", () => {
               id: i,
               name: `User ${i}`,
               email: `user${i}@example.com`,
-            })
+            }),
           );
         }
       });
@@ -349,12 +349,7 @@ function formatCSVValue(value: unknown): string {
 }
 
 function escapeCSVField(field: string): string {
-  if (
-    field.includes('"') ||
-    field.includes(",") ||
-    field.includes("\n") ||
-    field.includes("\r")
-  ) {
+  if (field.includes('"') || field.includes(",") || field.includes("\n") || field.includes("\r")) {
     const escaped = field.replace(/"/g, '""');
     return `"${escaped}"`;
   }
@@ -365,7 +360,7 @@ function escapeCSVField(field: string): string {
 function generateCSV(
   db: import("better-sqlite3").Database,
   tableName: string,
-  columns: Array<{ name: string; type: string; nullCount: number }>
+  columns: Array<{ name: string; type: string; nullCount: number }>,
 ): string {
   const lines: string[] = [];
 
@@ -393,5 +388,5 @@ function generateCSV(
     lines.push(csvRow);
   }
 
-  return lines.join("\r\n") + "\r\n";
+  return `${lines.join("\r\n")}\r\n`;
 }

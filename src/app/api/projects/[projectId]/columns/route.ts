@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDatabase, getColumns } from "@/lib/sqlite/database";
-import { isInitialized } from "@/lib/sqlite/schema";
+import { type NextRequest, NextResponse } from "next/server";
 import { getConvexClient } from "@/lib/convex/client";
+import { getColumns, getDatabase } from "@/lib/sqlite/database";
+import { isInitialized } from "@/lib/sqlite/schema";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -30,7 +30,7 @@ export async function GET(
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,9 +40,6 @@ export async function GET(
     return NextResponse.json({ columns });
   } catch (error) {
     console.error("Error fetching project columns:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch project columns" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch project columns" }, { status: 500 });
   }
 }
