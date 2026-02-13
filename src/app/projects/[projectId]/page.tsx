@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { AddStepDialog } from "@/components/AddStepDialog";
 import { AssistantChat } from "@/components/AssistantChat";
 import { DataTable } from "@/components/DataTable";
@@ -98,28 +98,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     project?.upload?.originalName?.match(/\.(xlsx?|xls)$/i)
   );
 
-  // Parse file on mount if needed
-  useEffect(() => {
-    if (project && !isParsingFile) {
-      checkAndParseFile();
-    }
-  }, [project, checkAndParseFile, isParsingFile]);
-
-  // Load sheets for Excel files
-  useEffect(() => {
-    if (project && isExcelFile && availableSheets.length === 0) {
-      loadSheets();
-    }
-  }, [project, isExcelFile, availableSheets.length, loadSheets]);
-
-  // Load preview data when selection changes
-  useEffect(() => {
-    if (project) {
-      loadPreviewData();
-    }
-  }, [project, loadPreviewData]);
-
-  const checkAndParseFile = async () => {
+  const checkAndParseFile = useCallback(async () => {
     try {
       // Check if data is already parsed
       const statusResponse = await fetch(`/api/projects/${projectId}/parse`, { method: "GET" });
@@ -153,9 +132,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     } finally {
       setIsParsingFile(false);
     }
-  };
+  }, [projectId, toast]);
 
-  const loadSheets = async () => {
+  const loadSheets = useCallback(async () => {
     if (!isExcelFile) return;
 
     setLoadingSheets(true);
@@ -181,9 +160,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     } finally {
       setLoadingSheets(false);
     }
-  };
+  }, [isExcelFile, projectId, selectedSheet, toast]);
 
-  const loadPreviewData = async () => {
+  const loadPreviewData = useCallback(async () => {
     setPreviewData((prev) => ({ ...prev, loading: true }));
 
     try {
@@ -242,7 +221,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       });
       setPreviewData((prev) => ({ ...prev, loading: false }));
     }
-  };
+  }, [selectedPipelineId, selectedPipeline, projectId, selectedStepIndex, toast]);
+
+  // Parse file on mount if needed
+  useEffect(() => {
+    if (project && !isParsingFile) {
+      checkAndParseFile();
+    }
+  }, [project, isParsingFile, checkAndParseFile]);
+
+  // Load sheets for Excel files
+  useEffect(() => {
+    if (project && isExcelFile && availableSheets.length === 0) {
+      loadSheets();
+    }
+  }, [project, isExcelFile, availableSheets.length, loadSheets]);
+
+  // Load preview data when selection changes
+  useEffect(() => {
+    if (project) {
+      loadPreviewData();
+    }
+  }, [project, loadPreviewData]);
 
   const handleCreatePipeline = async (name: string) => {
     try {

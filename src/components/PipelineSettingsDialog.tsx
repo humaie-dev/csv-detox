@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,14 +56,7 @@ export function PipelineSettingsDialog({
   const [sheets, setSheets] = useState<string[]>([]);
   const [loadingSheets, setLoadingSheets] = useState(false);
 
-  // Fetch sheet names when dialog opens for Excel files
-  useEffect(() => {
-    if (open && isExcelFile) {
-      fetchSheetNames();
-    }
-  }, [open, isExcelFile, fetchSheetNames]);
-
-  const fetchSheetNames = async () => {
+  const fetchSheetNames = useCallback(async () => {
     setLoadingSheets(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/sheets`);
@@ -76,7 +69,14 @@ export function PipelineSettingsDialog({
     } finally {
       setLoadingSheets(false);
     }
-  };
+  }, [projectId]);
+
+  // Fetch sheet names when dialog opens for Excel files
+  useEffect(() => {
+    if (open && isExcelFile) {
+      fetchSheetNames();
+    }
+  }, [open, isExcelFile, fetchSheetNames]);
 
   useEffect(() => {
     if (open) {
