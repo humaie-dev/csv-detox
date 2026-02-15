@@ -1,7 +1,7 @@
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
 import { listSheets } from "@/lib/parsers/excel";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export async function GET(
   _request: NextRequest,

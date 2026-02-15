@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useMutation } from "convex/react";
 import { ArrowLeft, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -9,8 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 
 export default function CreateProjectPage() {
   const router = useRouter();

@@ -48,6 +48,7 @@ describe("SQLite Database Operations", () => {
     it("should create a new database", () => {
       const db = getDatabase(TEST_PROJECT_ID);
       assert.ok(db, "Database should be created");
+      db.exec("CREATE TABLE IF NOT EXISTS _smoke_test (id INTEGER PRIMARY KEY)");
       assert.ok(databaseExists(TEST_PROJECT_ID), "Database file should exist");
       closeDatabase(TEST_PROJECT_ID);
     });

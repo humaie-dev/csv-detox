@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import {
   ArrowLeft,
@@ -50,8 +52,6 @@ import type {
   TransformationStep,
   TransformationType,
 } from "@/lib/pipeline/types";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId: projectIdString } = use(params);

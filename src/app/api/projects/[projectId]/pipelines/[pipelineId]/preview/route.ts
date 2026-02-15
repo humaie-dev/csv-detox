@@ -1,3 +1,5 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
@@ -6,10 +8,10 @@ import { parseExcel } from "@/lib/parsers/excel";
 import type { ParseOptions, ParseResult } from "@/lib/parsers/types";
 import { executePipeline, executeUntilStep } from "@/lib/pipeline/executor";
 import type { ExecutionResult, TransformationStep } from "@/lib/pipeline/types";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
-import { getParseConfig, isInitialized } from "@/lib/sqlite/schema";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
+import { getParseConfig } from "@/lib/sqlite/schema";
 
 const requestSchema = z.object({
   upToStep: z.number().int().min(-1).nullable().optional(), // -1 means raw data, null/undefined means all steps
@@ -66,16 +68,17 @@ export async function POST(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
         { status: 400 },
       );
     }
+
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
 
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);

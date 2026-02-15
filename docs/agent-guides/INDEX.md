@@ -15,6 +15,7 @@
 | Review workflow | [WORKFLOW.md](./WORKFLOW.md) |
 | Do housekeeping | [HOUSEKEEPING.md](./HOUSEKEEPING.md) |
 | Use a skill | [SKILLS_REFERENCE.md](./SKILLS_REFERENCE.md) |
+| Debug production issues | [TRIAGE.md](./TRIAGE.md) |
 
 ---
 
@@ -31,6 +32,9 @@
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Tech stack, folder structure, data flow
 - **[COMMON_TASKS.md](./COMMON_TASKS.md)** — How-to guides for frequent tasks
 - **[SKILLS_REFERENCE.md](./SKILLS_REFERENCE.md)** — Available OpenCode skills
+
+### Operations
+- **[TRIAGE.md](./TRIAGE.md)** — Production monitoring, log review, issue triage
 
 ### Maintenance
 - **[HOUSEKEEPING.md](./HOUSEKEEPING.md)** — Repository maintenance

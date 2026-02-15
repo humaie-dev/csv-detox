@@ -1,3 +1,5 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import type Database from "better-sqlite3";
 import { type NextRequest, NextResponse } from "next/server";
 import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
@@ -6,15 +8,14 @@ import { parseExcel } from "@/lib/parsers/excel";
 import type { ColumnMetadata, ParseOptions, ParseResult } from "@/lib/parsers/types";
 import { executePipeline } from "@/lib/pipeline/executor";
 import type { TransformationStep } from "@/lib/pipeline/types";
-import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
 import {
-  createPipelineTables,
-  dropPipelineTables,
-  getParseConfig,
-  isInitialized,
-} from "@/lib/sqlite/schema";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
+  ensureLocalDatabase,
+  finalizeDatabaseForArtifact,
+  storeDatabaseArtifact,
+} from "@/lib/sqlite/artifacts";
+import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
+import { createPipelineTables, dropPipelineTables, getParseConfig } from "@/lib/sqlite/schema";
 
 /**
  * Execute full pipeline and store results in SQLite
@@ -57,16 +58,17 @@ export async function POST(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
         { status: 400 },
       );
     }
+
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
 
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);
@@ -131,6 +133,14 @@ export async function POST(
 
       const duration = Date.now() - startTime;
 
+      finalizeDatabaseForArtifact(projectIdTyped, db);
+      await storeDatabaseArtifact({
+        projectId: projectIdTyped,
+        uploadId: project.uploadId,
+        parseOptions: undefined,
+        databaseProjectId: projectId,
+      });
+
       return NextResponse.json({
         success: true,
         rowCount: parseResult.rowCount,
@@ -174,6 +184,14 @@ export async function POST(
 
     // Store results in SQLite
     storePipelineResults(db, pipelineId, executionResult.table.rows, executionResult.table.columns);
+
+    finalizeDatabaseForArtifact(projectIdTyped, db);
+    await storeDatabaseArtifact({
+      projectId: projectIdTyped,
+      uploadId: project.uploadId,
+      parseOptions: undefined,
+      databaseProjectId: projectId,
+    });
 
     const duration = Date.now() - startTime;
 

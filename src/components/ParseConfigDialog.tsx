@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 
 type ParseConfig = {
   sheetName?: string;

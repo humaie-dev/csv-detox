@@ -207,6 +207,7 @@ Convex stores project metadata, pipeline definitions, and file references.
 - `uploads` — File metadata and Convex storage references
 - `projects` — Project definitions linked to uploads
 - `pipelines` — Transformation pipeline steps
+- `sqliteArtifacts` — SQLite snapshot metadata (Convex storage ID + checksum)
 
 See `convex/schema.ts` for complete type definitions and validators.
 
@@ -217,13 +218,19 @@ See `convex/schema.ts` for complete type definitions and validators.
 **How it works**:
 1. Raw file data is downloaded from Convex Storage
 2. Parsed into structured format (headers + rows)
-3. Loaded into SQLite in-memory or file-based database
-4. Transformations applied via SQL operations
-5. Results queried and returned (preview limited to 5,000 rows)
+3. Loaded into SQLite file on `/tmp` (serverless-safe)
+4. SQLite database file is uploaded to Convex Storage as an artifact
+5. Future requests download the artifact into `/tmp` if missing/outdated
+6. Transformations applied via SQL operations
+7. Results queried and returned (preview limited to 5,000 rows)
 
 **Storage modes**:
-- **In-memory** (`:memory:`) — Fast, temporary, for previews
-- **File-based** (`temp-*.db`) — Persistent during request, for larger operations
+- **Artifact-backed** (`/tmp/<projectId>.db`) — Cached per request, hydrated from Convex Storage
+
+**Artifact cache behavior**:
+- Source of truth: `sqliteArtifacts` metadata + Convex storage file
+- `/tmp` cache is rehydrated when metadata mismatch is detected
+- Safe to rebuild at any time (serverless ephemeral storage)
 
 **Table structure**:
 ```sql

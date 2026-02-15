@@ -1,9 +1,10 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { getConvexClient } from "@/lib/convex/client";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getColumns, getDatabase } from "@/lib/sqlite/database";
-import { isInitialized } from "@/lib/sqlite/schema";
-import { api } from "../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
 
 export async function GET(
   _request: NextRequest,
@@ -23,16 +24,17 @@ export async function GET(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
         { status: 400 },
       );
     }
+
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
 
     // Get columns
     const columns = getColumns(db);

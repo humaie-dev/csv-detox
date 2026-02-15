@@ -1,8 +1,12 @@
 import { createAzure } from "@ai-sdk/azure";
+import { api } from "@convex/api";
+import type { Doc, Id } from "@convex/dataModel";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { z } from "zod";
 import { getConvexClient } from "@/lib/convex/client";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getDatabase } from "@/lib/sqlite/database";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
 import {
   getColumnStats,
   getDataSummary,
@@ -11,8 +15,6 @@ import {
   sampleRows,
   searchColumn,
 } from "@/lib/sqlite/sampling";
-import { api } from "../../../../../convex/_generated/api";
-import type { Doc, Id } from "../../../../../convex/_generated/dataModel";
 
 // Initialize Azure OpenAI
 const azure = createAzure({
@@ -54,6 +56,16 @@ export async function POST(req: Request) {
     }
 
     // Get database
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
+    if (!initialized) {
+      return Response.json(
+        { error: "Project data not initialized. Please parse the file first." },
+        { status: 400 },
+      );
+    }
+
+    await ensureLocalDatabase(projectIdTyped);
     const db = getDatabase(projectId);
 
     // Build system context

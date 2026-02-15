@@ -6,7 +6,7 @@ Catalog of available skills and when to use them.
 
 ## Overview
 
-Skills provide specialized domain knowledge for AI agents. CSV Detox has **6 skills** available, plus 1 global skill (find-skills).
+Skills provide specialized domain knowledge for AI agents. CSV Detox has **9 skills** available, plus 1 global skill (find-skills).
 
 ### What are Skills?
 
@@ -353,7 +353,144 @@ export default defineSchema({
 
 ---
 
-### 7. **find-skills** (Global) 🔍
+### 7. **convex-logs** 📋
+
+**Location**: `.agents/skills/convex-logs/`  
+**Used by**: Triage Agent
+
+#### Purpose
+
+Check and stream Convex deployment logs from the CLI for debugging.
+
+#### When to Use
+
+- Debugging Convex actions and queries
+- Investigating 401/500 errors
+- Failed queries or mutations
+- Confirming which deployment is active (dev vs prod)
+- Checking function execution times
+- Environment variable verification
+
+#### Key Topics
+
+- Streaming logs (`npx convex logs`)
+- Historical log retrieval (`--history` flag)
+- Production vs dev deployment targeting (`--prod`)
+- Environment variable inspection (`npx convex env list`)
+- Log filtering and analysis
+- Timeout debugging
+
+#### Example Use Case
+
+```bash
+# Stream production logs to debug 401 errors
+npx convex logs --prod
+
+# Get last 50 log entries for quick check
+npx convex logs --prod --history 50 --success
+
+# Check environment variables
+npx convex env list --prod
+npx convex env get OA_INTERNAL_KEY --prod
+```
+
+**Trigger words**: "Convex logs", "deployment logs", "401 error", "function failed"
+
+---
+
+### 8. **github** 🔀
+
+**Location**: `.agents/skills/github/`  
+**Used by**: Build Agent
+
+#### Purpose
+
+GitHub patterns using gh CLI for pull requests, stacked PRs, code review, and repository automation.
+
+#### When to Use
+
+- Creating pull requests
+- Merging stacked PRs
+- Managing branches and PRs
+- Code review workflows
+- Repository automation tasks
+- GitHub CLI operations
+
+#### Key Topics
+
+- Pull request creation and management
+- Stacked PR workflows (merge as individual squash commits)
+- Branch strategies
+- Squash and rebase patterns
+- Code review automation
+- GitHub CLI (`gh`) commands
+
+#### Example Use Case
+
+```bash
+# Create a pull request
+gh pr create --title "Add new feature" --body "Description"
+
+# List open PRs
+gh pr list
+
+# Merge stacked PRs cleanly
+# (See stacked-pr-workflow.md for detailed steps)
+
+# View PR details
+gh pr view 123
+
+# Check out a PR locally
+gh pr checkout 123
+```
+
+**Trigger words**: "pull request", "PR", "stacked PR", "GitHub", "gh CLI", "merge"
+
+---
+
+### 9. **vercel-observability** 📊
+
+**Location**: `.agents/skills/vercel-observability/`  
+**Used by**: Triage Agent
+
+#### Purpose
+
+Vercel observability for Web Analytics, Speed Insights, logs, tracing, and alerts.
+
+#### When to Use
+
+- Monitoring application performance
+- Debugging production behavior on Vercel
+- Tracking Core Web Vitals
+- Setting up alerts for availability and errors
+- Investigating slow page loads
+- Analyzing traffic patterns
+
+#### Key Topics
+
+- Web Analytics (traffic and usage insights)
+- Speed Insights (Core Web Vitals, LCP, FID, CLS)
+- Logs (runtime errors and behavior)
+- Tracing (request performance and diagnostics)
+- Alerts (operational thresholds)
+- Performance monitoring
+
+#### Example Use Case
+
+```markdown
+Monitoring production performance:
+1. Check Speed Insights for Core Web Vitals trends
+2. Review logs for runtime errors
+3. Use tracing for slow request diagnostics
+4. Configure alerts for error rate spikes
+5. Analyze Web Analytics for traffic anomalies
+```
+
+**Trigger words**: "Vercel logs", "performance", "Core Web Vitals", "analytics", "monitoring"
+
+---
+
+### 10. **find-skills** (Global) 🔍
 
 **Location**: System skill (not in this repo)  
 **Used by**: All agents (on-demand)
@@ -378,9 +515,10 @@ Helps discover and install new agent skills.
 
 | Agent | Skills Available | Why? |
 |-------|------------------|------|
-| **Build** | All 6 skills | Needs full context for implementation |
+| **Build** | All 7 core skills + github | Needs full context for implementation and PR creation |
 | **Plan** | avoid-feature-creep, convex-best-practices | Focus on design and scope |
 | **Test** | ai-sdk | For testing AI assistant features |
+| **Triage** | convex-logs, vercel-observability, convex-best-practices | Production monitoring and debugging |
 | **Maintenance** | None | Specialized for housekeeping |
 
 ### By Task Type
@@ -394,6 +532,12 @@ Helps discover and install new agent skills.
 | Webhooks/APIs | convex-http-actions |
 | Feature planning | avoid-feature-creep |
 | Schema changes | convex-schema-validator |
+| Production debugging | convex-logs, vercel-observability |
+| Performance monitoring | vercel-observability |
+| Log analysis | convex-logs |
+| Pull requests | github |
+| Stacked PRs | github |
+| Code review automation | github |
 
 ---
 
@@ -412,6 +556,7 @@ skills:
   - convex-http-actions
   - convex-realtime
   - convex-schema-validator
+  - github
 ```
 
 ### Explicit Invocation
@@ -438,10 +583,11 @@ Each skill provides:
 If you need to add a new skill:
 
 1. **Create skill directory**: `.agents/skills/my-skill/`
-2. **Add SKILL.md**: Document the skill
-3. **Create symlink**: `.opencode/skills/my-skill -> ../../.agents/skills/my-skill`
-4. **Update agent configs**: Add skill to relevant agents
-5. **Update this file**: Document the new skill
+2. **Add SKILL.md**: Document the skill with frontmatter
+3. **Update agent configs**: Add skill to relevant agents in `.opencode/agents/`
+4. **Update this file**: Document the new skill
+
+Note: No symlinks needed - OpenCode reads directly from `.agents/skills/` (configured in `.opencode/config.yaml`).
 
 ---
 
@@ -452,6 +598,7 @@ If you need to add a new skill:
 1. **convex-best-practices** — Almost every Convex interaction
 2. **ai-sdk** — All AI assistant work
 3. **convex-schema-validator** — Schema changes
+4. **convex-logs** — Production debugging and monitoring
 
 ### When in Doubt
 
@@ -461,6 +608,9 @@ If you need to add a new skill:
 - **Need real-time updates?** → Use `convex-realtime`
 - **Creating webhooks?** → Use `convex-http-actions`
 - **Changing schema?** → Use `convex-schema-validator`
+- **Debugging production?** → Use `convex-logs` and `vercel-observability`
+- **Monitoring performance?** → Use `vercel-observability`
+- **Creating PRs?** → Use `github`
 
 ---
 

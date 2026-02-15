@@ -17,7 +17,7 @@ describe("CSV Export Utilities", () => {
   beforeEach(() => {
     // Create temp directory
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), "csv-export-test-"));
-    process.env.SQLITE_DATA_DIR = testDir;
+    process.env.SQLITE_DB_DIR = testDir;
   });
 
   afterEach(() => {

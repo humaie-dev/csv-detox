@@ -1,10 +1,11 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getConvexClient } from "@/lib/convex/client";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
-import { isInitialized } from "@/lib/sqlite/schema";
-import { api } from "../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(100),
@@ -45,16 +46,17 @@ export async function GET(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
         { status: 400 },
       );
     }
+
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
 
     // Get paginated data
     const rawData = getRawData(db, offset, limit);

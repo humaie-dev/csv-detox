@@ -6,7 +6,7 @@ import assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, before, describe, it } from "node:test";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from "@convex/dataModel";
 import { resetDatabaseCache } from "../cache";
 import { deleteDatabase, getColumns, getDatabase, getRawData, getRowCount } from "../database";
 import { isProjectDataInitialized, parseAndStoreFile } from "../parser";
@@ -82,7 +82,7 @@ Charlie,35,Chicago`;
     });
 
     it("should detect project as initialized", async () => {
-      const initialized = isProjectDataInitialized(TEST_PROJECT_ID);
+      const initialized = await isProjectDataInitialized(TEST_PROJECT_ID);
       assert.strictEqual(initialized, true, "Project should be initialized");
     });
   });

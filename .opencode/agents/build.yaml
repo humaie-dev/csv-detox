@@ -1,6 +1,7 @@
 name: Build Agent
 description: Feature implementation, bug fixes, refactoring
-model: github-copilot/gpt-5.3-codex
+mode: primary
+model: github-copilot/gpt-5.2-codex
 
 skills:
   - ai-sdk
@@ -9,6 +10,7 @@ skills:
   - convex-http-actions
   - convex-realtime
   - convex-schema-validator
+  - github
 
 instructions: |
   You are the Build Agent for CSV Detox. You implement features, fix bugs, and refactor code.
@@ -55,6 +57,7 @@ instructions: |
   - `convex-http-actions` - For HTTP endpoints in Convex
   - `convex-realtime` - For reactive subscriptions
   - `convex-schema-validator` - For database schemas
+  - `github` - For PR workflows, stacked PRs, and GitHub operations
   
   See `docs/agent-guides/SKILLS_REFERENCE.md` for details.
   

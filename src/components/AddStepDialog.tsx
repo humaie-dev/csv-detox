@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useAction } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +30,6 @@ import type {
   TransformationStep,
   TransformationType,
 } from "@/lib/pipeline/types";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 
 interface AddStepDialogProps {
   open: boolean;

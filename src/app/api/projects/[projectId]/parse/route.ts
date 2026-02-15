@@ -3,14 +3,15 @@
  * Parse uploaded file and store in SQLite database
  */
 
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
 import type { ParseOptions } from "@/lib/parsers/types";
-import { getDatabase } from "@/lib/sqlite/database";
-import { isProjectDataInitialized, parseAndStoreFile } from "@/lib/sqlite/parser";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
+import { getColumns, getDatabase, getRowCount } from "@/lib/sqlite/database";
+import { isProjectDataInitialized, parseStoreAndPersist } from "@/lib/sqlite/parser";
 import { getParseConfig } from "@/lib/sqlite/schema";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 // Validation schema for request body
 const ParseRequestSchema = z.object({
@@ -51,14 +52,19 @@ export async function POST(
     }
 
     const { force, parseOptions } = parsed.data;
+    const normalizedParseOptions =
+      parseOptions?.sheetIndex !== undefined && parseOptions.sheetName === undefined
+        ? { ...parseOptions, sheetName: `sheet:${parseOptions.sheetIndex}` }
+        : parseOptions;
 
     // Check if sheet has changed (auto-force re-parse if so)
     let shouldForce = force || false;
-    if (parseOptions?.sheetName && isProjectDataInitialized(projectId)) {
+    if (normalizedParseOptions?.sheetName && (await isProjectDataInitialized(projectId))) {
       try {
+        await ensureLocalDatabase(projectId);
         const db = getDatabase(projectId);
         const currentConfig = getParseConfig(db);
-        if (currentConfig && currentConfig.sheetName !== parseOptions.sheetName) {
+        if (currentConfig && currentConfig.sheetName !== normalizedParseOptions.sheetName) {
           shouldForce = true;
         }
       } catch (error) {
@@ -68,7 +74,8 @@ export async function POST(
     }
 
     // Check if already initialized (unless force=true or sheet changed)
-    if (!shouldForce && isProjectDataInitialized(projectId)) {
+    if (!shouldForce && (await isProjectDataInitialized(projectId))) {
+      await ensureLocalDatabase(projectId);
       return NextResponse.json(
         {
           success: true,
@@ -99,13 +106,14 @@ export async function POST(
     // Merge parse options (request options override upload options)
     const finalParseOptions: ParseOptions = {
       ...upload.parseConfig,
-      ...parseOptions,
+      ...normalizedParseOptions,
     };
 
     // Parse and store in SQLite
     const startTime = Date.now();
-    const result = await parseAndStoreFile(
+    await parseStoreAndPersist(
       projectId,
+      project.uploadId,
       fileBuffer,
       upload.originalName,
       upload.mimeType,
@@ -113,11 +121,16 @@ export async function POST(
     );
     const duration = Date.now() - startTime;
 
+    await ensureLocalDatabase(projectId);
+    const db = getDatabase(projectId);
+    const columns = getColumns(db);
+    const rowCount = getRowCount(db);
+
     return NextResponse.json({
       success: true,
-      rowCount: result.rowCount,
-      columnCount: result.columns.length,
-      columns: result.columns,
+      rowCount,
+      columnCount: columns.length,
+      columns,
       parseTimeMs: duration,
     });
   } catch (error) {
@@ -142,7 +155,10 @@ export async function GET(
     const params = await context.params;
     const projectId = params.projectId as Id<"projects">;
 
-    const initialized = isProjectDataInitialized(projectId);
+    const initialized = await isProjectDataInitialized(projectId);
+    if (initialized) {
+      await ensureLocalDatabase(projectId);
+    }
 
     return NextResponse.json({
       initialized,
