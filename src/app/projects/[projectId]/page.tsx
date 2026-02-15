@@ -98,7 +98,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     project?.upload?.originalName?.match(/\.(xlsx?|xls)$/i)
   );
 
-  const checkAndParseFile = useCallback(async () => {
+  const checkAndParseFile = useCallback(async (): Promise<boolean> => {
     try {
       // Check if data is already parsed
       const statusResponse = await fetch(`/api/projects/${projectId}/parse`, { method: "GET" });
@@ -123,12 +123,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
           description: "Project data is now ready for preview.",
         });
       }
+
+      return true;
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to parse file",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsParsingFile(false);
     }
@@ -162,66 +165,94 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     }
   }, [isExcelFile, projectId, selectedSheet, toast]);
 
-  const loadPreviewData = useCallback(async () => {
-    setPreviewData((prev) => ({ ...prev, loading: true }));
-
-    try {
-      if (selectedPipelineId && selectedPipeline) {
-        // Load pipeline preview
-        const response = await fetch(
-          `/api/projects/${projectId}/pipelines/${selectedPipelineId}/preview`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              upToStep: selectedStepIndex,
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to load pipeline preview");
+  const loadPreviewData = useCallback(
+    async (hasRetried: boolean = false) => {
+      const handleNotInitialized = async (): Promise<boolean> => {
+        if (hasRetried) {
+          setPreviewData({ rows: [], columns: [], rowCount: 0, loading: false });
+          return false;
         }
 
-        const data = await response.json();
-        setPreviewData({
-          rows: data.data,
-          columns: data.columns,
-          rowCount: data.rowCount,
-          loading: false,
-        });
-      } else {
-        // Load raw data
-        const response = await fetch(`/api/projects/${projectId}/data?limit=100&offset=0`);
+        const initialized = await checkAndParseFile();
+        if (!initialized) {
+          setPreviewData({ rows: [], columns: [], rowCount: 0, loading: false });
+          return false;
+        }
 
-        if (!response.ok) {
-          const error = await response.json();
-          // If data not initialized, don't show error
-          if (error.error.includes("not initialized")) {
-            setPreviewData({ rows: [], columns: [], rowCount: 0, loading: false });
-            return;
+        await loadPreviewData(true);
+        return true;
+      };
+
+      setPreviewData((prev) => ({ ...prev, loading: true }));
+
+      try {
+        if (selectedPipelineId && selectedPipeline) {
+          // Load pipeline preview
+          const response = await fetch(
+            `/api/projects/${projectId}/pipelines/${selectedPipelineId}/preview`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                upToStep: selectedStepIndex,
+              }),
+            },
+          );
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            const errorMessage =
+              typeof errorBody?.error === "string"
+                ? errorBody.error
+                : "Failed to load pipeline preview";
+            if (errorMessage.toLowerCase().includes("not initialized")) {
+              await handleNotInitialized();
+              return;
+            }
+            throw new Error(errorMessage);
           }
-          throw new Error(error.error || "Failed to load data");
-        }
 
-        const data = await response.json();
-        setPreviewData({
-          rows: data.data,
-          columns: data.columns,
-          rowCount: data.pagination.total,
-          loading: false,
+          const data = await response.json();
+          setPreviewData({
+            rows: data.data,
+            columns: data.columns,
+            rowCount: data.rowCount,
+            loading: false,
+          });
+        } else {
+          // Load raw data
+          const response = await fetch(`/api/projects/${projectId}/data?limit=100&offset=0`);
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            const errorMessage =
+              typeof errorBody?.error === "string" ? errorBody.error : "Failed to load data";
+            if (errorMessage.toLowerCase().includes("not initialized")) {
+              await handleNotInitialized();
+              return;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const data = await response.json();
+          setPreviewData({
+            rows: data.data,
+            columns: data.columns,
+            rowCount: data.pagination.total,
+            loading: false,
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to load preview",
+          variant: "destructive",
         });
+        setPreviewData((prev) => ({ ...prev, loading: false }));
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load preview",
-        variant: "destructive",
-      });
-      setPreviewData((prev) => ({ ...prev, loading: false }));
-    }
-  }, [selectedPipelineId, selectedPipeline, projectId, selectedStepIndex, toast]);
+    },
+    [selectedPipelineId, selectedPipeline, projectId, selectedStepIndex, toast, checkAndParseFile],
+  );
 
   // Parse file on mount if needed
   useEffect(() => {
