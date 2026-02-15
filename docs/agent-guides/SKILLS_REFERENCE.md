@@ -520,6 +520,7 @@ Helps discover and install new agent skills.
 | **Test** | ai-sdk | For testing AI assistant features |
 | **Triage** | convex-logs, vercel-observability, convex-best-practices | Production monitoring and debugging |
 | **Maintenance** | None | Specialized for housekeeping |
+| **Code Review** | github | For automated PR review comments |
 
 ### By Task Type
 

@@ -29,7 +29,7 @@ Guidelines for maintaining and updating agent documentation.
 
 **What Belongs in AGENTS.md**:
 - ✅ Link to docs/agent-guides/INDEX.md
-- ✅ Multi-agent system table (4 agents, one-line purposes)
+- ✅ Multi-agent system table (one-line purposes)
 - ✅ Essential commands (4-5 most common)
 - ✅ Quick links table to agent guides
 

@@ -268,6 +268,11 @@ Use keywords in your prompt:
 - "update documentation"
 - "housekeeping"
 
+**Code Review Agent** (GPT-5.2-Codex):
+- "review this PR"
+- "run automated code review"
+- "check PR for issues"
+
 ### Explicit Selection
 
 Or explicitly mention the agent:
@@ -275,6 +280,7 @@ Or explicitly mention the agent:
 @plan-agent How should we approach adding real-time updates?
 @test-agent Write E2E tests for the upload flow
 @maintenance-agent Review and update outdated docs
+@code-review-agent Review this PR and flag issues
 ```
 
 ---

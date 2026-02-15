@@ -13,6 +13,7 @@
 | Plan architecture | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | Write tests | [TESTING.md](./TESTING.md) |
 | Review workflow | [WORKFLOW.md](./WORKFLOW.md) |
+| Run automated code review | [CODE_REVIEW.md](./CODE_REVIEW.md) |
 | Do housekeeping | [HOUSEKEEPING.md](./HOUSEKEEPING.md) |
 | Use a skill | [SKILLS_REFERENCE.md](./SKILLS_REFERENCE.md) |
 | Debug production issues | [TRIAGE.md](./TRIAGE.md) |
@@ -27,6 +28,7 @@
 ### Code Quality
 - **[CODE_STYLE.md](./CODE_STYLE.md)** — TypeScript/React conventions, Biome config
 - **[TESTING.md](./TESTING.md)** — Unit + E2E testing
+- **[CODE_REVIEW.md](./CODE_REVIEW.md)** — Automated PR review agent
 
 ### System Knowledge
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Tech stack, folder structure, data flow

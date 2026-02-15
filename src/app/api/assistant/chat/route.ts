@@ -233,14 +233,27 @@ export async function POST(req: Request) {
  * Build system context for the AI assistant
  */
 function buildSystemContext(
-  project: Doc<"projects">,
+  project: ProjectWithUpload,
   pipelines: Doc<"pipelines">[],
   selectedPipeline: Doc<"pipelines"> | null,
 ): string {
+  const upload = project.upload ?? null;
+  const fileContext = upload
+    ? `**Uploaded File Context:**
+- Original name: ${upload.originalName}
+- File type: ${upload.mimeType}
+- Size: ${upload.size} bytes
+- Storage id: ${upload.convexStorageId}
+- Parse config: ${upload.parseConfig ? JSON.stringify(upload.parseConfig) : "none"}
+`
+    : "**Uploaded File Context:** none";
+
   const context = `You are an AI assistant for CSV Detox, a data transformation tool. You're helping the user analyze and transform their data.
 
 **Current Project:**
 - Name: ${project.name}
+
+${fileContext}
 
 **Available Pipelines:** ${pipelines.length}
 ${pipelines.map((p, i) => `${i + 1}. ${p.name} (${p.steps.length} steps)`).join("\n")}
@@ -257,6 +270,12 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 1. **Data Analysis:** Use tools to sample data, analyze columns, find patterns, get statistics
 2. **Pipeline Assistance:** Help users understand pipelines and suggest transformations
 3. **Data Insights:** Answer questions about the data structure and content
+
+**User Context Rules:**
+- The user always speaks in the context of the original uploaded file, not SQLite tables.
+- Translate user requests about the file/sheets into the appropriate tool calls.
+- Use SQLite-backed tools to inspect data; do not attempt to load full sheets into context.
+- If a request requires too much data to include and cannot be answered via sampling or aggregation, clearly explain the limitation.
 
 **Available Transformation Types:**
 - filter_rows: Filter rows based on conditions
@@ -285,3 +304,13 @@ When the user asks for help with transformations, analyze their data first, then
 
   return context;
 }
+
+type ProjectWithUpload = Doc<"projects"> & {
+  upload?: {
+    originalName: string;
+    mimeType: string;
+    size: number;
+    convexStorageId: Id<"_storage">;
+    parseConfig?: Doc<"uploads">["parseConfig"];
+  } | null;
+};
