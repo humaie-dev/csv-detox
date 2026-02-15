@@ -1,12 +1,29 @@
+import crypto from "node:crypto";
 import { createAzure } from "@ai-sdk/azure";
 import { api } from "@convex/api";
 import type { Doc, Id } from "@convex/dataModel";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { z } from "zod";
-import { getConvexClient } from "@/lib/convex/client";
-import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
-import { getDatabase } from "@/lib/sqlite/database";
-import { isProjectDataInitialized } from "@/lib/sqlite/parser";
+import {
+  downloadFileFromConvex,
+  getConvexClient,
+  getUpload,
+  listSheets,
+} from "@/lib/convex/client";
+import {
+  ensureLocalDatabase,
+  ensureLocalDatabaseForArtifact,
+  getArtifactForParseOptions,
+  getLocalDatabasePathForArtifact,
+  getParseOptionsJson,
+} from "@/lib/sqlite/artifacts";
+import {
+  closeDatabaseByKey,
+  deleteDatabase,
+  getDatabase,
+  getDatabaseFromPath,
+} from "@/lib/sqlite/database";
+import { isProjectDataInitialized, parseAndStoreFile } from "@/lib/sqlite/parser";
 import {
   getColumnStats,
   getDataSummary,
@@ -15,6 +32,7 @@ import {
   sampleRows,
   searchColumn,
 } from "@/lib/sqlite/sampling";
+import { getParseConfig } from "@/lib/sqlite/schema";
 
 // Initialize Azure OpenAI
 const azure = createAzure({
@@ -67,11 +85,130 @@ export async function POST(req: Request) {
 
     await ensureLocalDatabase(projectIdTyped);
     const db = getDatabase(projectId);
+    const projectUploadId = project.uploadId;
 
     // Build system context
     const systemContext = buildSystemContext(project, pipelines, selectedPipeline);
 
     const tools = {
+      listSheets: {
+        description: "List sheet names in the uploaded Excel workbook",
+        inputSchema: z.object({}),
+        execute: async () => {
+          if (!projectUploadId) {
+            return { sheets: [], message: "No upload available for this project." };
+          }
+          try {
+            const sheets = await listSheets(projectUploadId as Id<"uploads">);
+            return { sheets };
+          } catch (error) {
+            return {
+              sheets: [],
+              message:
+                error instanceof Error ? error.message : "Unable to list sheets for this file.",
+            };
+          }
+        },
+      },
+      getSheetSummary: {
+        description:
+          "Get summary data for a specific sheet in the uploaded file (parses on-demand)",
+        inputSchema: z.object({
+          sheetName: z.string(),
+          sampleSize: z.number().optional(),
+        }),
+        execute: async (params: { sheetName: string; sampleSize?: number }) => {
+          if (!projectUploadId) {
+            return { error: "No upload available for this project." };
+          }
+
+          const upload = await getUpload(projectUploadId as Id<"uploads">);
+          if (!upload) {
+            return { error: "Upload not found." };
+          }
+
+          const isExcel =
+            upload.mimeType ===
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+            upload.mimeType === "application/vnd.ms-excel";
+
+          if (!isExcel) {
+            return {
+              error: "This file is not an Excel workbook. CSV files do not have sheets.",
+            };
+          }
+
+          const parseOptions = {
+            ...upload.parseConfig,
+            sheetName: params.sheetName,
+          };
+          const parseOptionsJson = getParseOptionsJson(parseOptions);
+
+          const currentConfig = getParseConfig(db);
+          if (currentConfig?.sheetName === params.sheetName) {
+            const sampleSize = params.sampleSize ?? 5;
+            return getDataSummary(db, "raw_data", sampleSize);
+          }
+
+          const artifact = await getArtifactForParseOptions(projectIdTyped, parseOptions);
+          if (artifact) {
+            await ensureLocalDatabaseForArtifact(projectIdTyped, artifact);
+            const cacheKey = `${projectId}-sheet-${parseOptionsJson}`;
+            const sheetDb = getDatabaseFromPath(
+              getLocalDatabasePathForArtifact(projectIdTyped, artifact.artifactKey),
+              cacheKey,
+            );
+            try {
+              const sampleSize = params.sampleSize ?? 5;
+              return getDataSummary(sheetDb, "raw_data", sampleSize);
+            } finally {
+              closeDatabaseByKey(cacheKey);
+            }
+          }
+
+          const fileBuffer = await downloadFileFromConvex(upload.convexStorageId);
+          const parseHash = crypto
+            .createHash("sha256")
+            .update(parseOptionsJson)
+            .digest("hex")
+            .slice(0, 12);
+          const tempProjectId = `${projectId}-sheet-${parseHash}`;
+
+          await parseAndStoreFile(
+            tempProjectId as Id<"projects">,
+            fileBuffer,
+            upload.originalName,
+            upload.mimeType,
+            parseOptions,
+          );
+
+          const tempDb = getDatabase(tempProjectId);
+          try {
+            const sampleSize = params.sampleSize ?? 5;
+            return getDataSummary(tempDb, "raw_data", sampleSize);
+          } finally {
+            closeDatabaseByKey(tempProjectId);
+            deleteDatabase(tempProjectId);
+          }
+        },
+      },
+      getSheetColumnInfo: {
+        description:
+          "Get column metadata for a specific sheet in the uploaded file (parses on-demand)",
+        inputSchema: z.object({
+          sheetName: z.string(),
+        }),
+        execute: async (params: { sheetName: string }) => {
+          const summary = await tools.getSheetSummary.execute({
+            sheetName: params.sheetName,
+            sampleSize: 0,
+          });
+          if ("error" in summary) {
+            return summary;
+          }
+          return { columns: summary.columns, rowCount: summary.rowCount };
+        },
+      },
       getDataSummary: {
         description: "Get a summary of the data including row count, columns, and sample rows",
         inputSchema: z.object({

@@ -104,10 +104,29 @@ async function fetchArtifactMetadata(projectId: Id<"projects">) {
   return convex.query(anyApi.sqliteArtifacts.getLatest, { projectId });
 }
 
+async function fetchArtifactByParseOptions(projectId: Id<"projects">, parseOptionsJson: string) {
+  const convex = getConvexClient();
+  return convex.query(anyApi.sqliteArtifacts.getByParseOptionsJson, {
+    projectId,
+    parseOptionsJson,
+  });
+}
+
 export async function getLatestArtifact(
   projectId: Id<"projects">,
 ): Promise<SqliteArtifactInfo | null> {
   return (await fetchArtifactMetadata(projectId)) as SqliteArtifactInfo | null;
+}
+
+export async function getArtifactForParseOptions(
+  projectId: Id<"projects">,
+  parseOptions: ParseOptions | undefined,
+): Promise<SqliteArtifactInfo | null> {
+  const parseOptionsJson = getParseOptionsJson(parseOptions);
+  return (await fetchArtifactByParseOptions(
+    projectId,
+    parseOptionsJson,
+  )) as SqliteArtifactInfo | null;
 }
 
 async function saveArtifactMetadata(input: {
@@ -128,6 +147,14 @@ export function getLocalDatabasePath(projectId: Id<"projects">): string {
   return dbPath;
 }
 
+export function getLocalDatabasePathForArtifact(
+  projectId: Id<"projects">,
+  artifactKey: string,
+): string {
+  const baseDir = getDatabaseDirectory();
+  return path.join(baseDir, `${projectId}-${artifactKey}.db`);
+}
+
 export async function ensureLocalDatabase(projectId: Id<"projects">): Promise<SqliteArtifactInfo> {
   const artifact = await fetchArtifactMetadata(projectId);
   if (!artifact) {
@@ -136,6 +163,39 @@ export async function ensureLocalDatabase(projectId: Id<"projects">): Promise<Sq
 
   const { artifactKey, storageId, sha256, size, uploadId, parseOptionsJson } = artifact;
   const { dbPath, metaPath } = getArtifactPaths(projectId);
+  ensureDirectory(path.dirname(dbPath));
+
+  const meta = readLocalMetadata(metaPath);
+  const matches =
+    meta &&
+    meta.storageId === storageId &&
+    meta.sha256 === sha256 &&
+    meta.size === size &&
+    fs.existsSync(dbPath);
+
+  if (!matches) {
+    const buffer = await downloadFileFromConvex(storageId);
+    fs.writeFileSync(dbPath, Buffer.from(buffer));
+    writeLocalMetadata(metaPath, { artifactKey, storageId, sha256, size });
+  }
+
+  return {
+    artifactKey,
+    storageId,
+    sha256,
+    size,
+    uploadId,
+    parseOptionsJson,
+  };
+}
+
+export async function ensureLocalDatabaseForArtifact(
+  projectId: Id<"projects">,
+  artifact: SqliteArtifactInfo,
+): Promise<SqliteArtifactInfo> {
+  const { artifactKey, storageId, sha256, size, uploadId, parseOptionsJson } = artifact;
+  const dbPath = getLocalDatabasePathForArtifact(projectId, artifactKey);
+  const metaPath = path.join(getDatabaseDirectory(), `${projectId}-${artifactKey}.json`);
   ensureDirectory(path.dirname(dbPath));
 
   const meta = readLocalMetadata(metaPath);

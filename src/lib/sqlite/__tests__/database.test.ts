@@ -23,7 +23,7 @@ import {
 import type { ColumnMetadata } from "../types";
 
 const TEST_PROJECT_ID = "test-project-123";
-const TEST_DATA_DIR = path.join(process.cwd(), "data", "sqlite", "test");
+const TEST_DATA_DIR = path.join(process.cwd(), "data", "sqlite", "test-database");
 
 // Override DB directory for testing
 process.env.SQLITE_DB_DIR = TEST_DATA_DIR;
@@ -37,11 +37,11 @@ describe("SQLite Database Operations", () => {
   });
 
   after(() => {
+    resetDatabaseCache();
     // Clean up test directory
     if (fs.existsSync(TEST_DATA_DIR)) {
       fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     }
-    resetDatabaseCache();
   });
 
   describe("Database Creation and Management", () => {

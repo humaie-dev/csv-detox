@@ -14,6 +14,20 @@ export const getLatest = query({
   },
 });
 
+export const getByParseOptionsJson = query({
+  args: { projectId: v.id("projects"), parseOptionsJson: v.string() },
+  handler: async (ctx, args) => {
+    const artifacts = await ctx.db
+      .query("sqliteArtifacts")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    return (
+      artifacts.find((artifact) => artifact.parseOptionsJson === args.parseOptionsJson) ?? null
+    );
+  },
+});
+
 export const upsert = mutation({
   args: {
     projectId: v.id("projects"),

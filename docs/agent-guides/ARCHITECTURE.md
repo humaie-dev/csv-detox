@@ -125,8 +125,8 @@ CSV Detox is a **transformation pipeline engine** for cleaning and transforming 
 2. Message sent to `/api/assistant/chat` route
 3. AI SDK converts UI messages to model format
 4. Request streamed to Azure OpenAI
-5. AI calls tools (getDataSummary, etc.) as needed
-6. Tools query Convex database and SQLite
+5. AI calls tools (getDataSummary, listSheets, getSheetSummary, etc.) as needed
+6. Tools query Convex metadata and SQLite
 7. Response streamed back to UI
 8. useChat hook renders messages in real-time
 
@@ -226,11 +226,22 @@ See `convex/schema.ts` for complete type definitions and validators.
 
 **Storage modes**:
 - **Artifact-backed** (`/tmp/<projectId>.db`) — Cached per request, hydrated from Convex Storage
+- **Ephemeral sheet previews** — On-demand Excel sheet parsing into a temporary SQLite DB (not persisted)
 
 **Artifact cache behavior**:
 - Source of truth: `sqliteArtifacts` metadata + Convex storage file
 - `/tmp` cache is rehydrated when metadata mismatch is detected
 - Safe to rebuild at any time (serverless ephemeral storage)
+
+**On-demand sheet access (Excel)**:
+- The assistant can list sheets from the original upload via Convex.
+- When a user asks about a specific sheet, the assistant:
+  1. Checks if the current SQLite artifact already matches that sheet.
+  2. Looks for a cached artifact for that sheet.
+  3. If missing, parses only the requested sheet into a temporary SQLite DB.
+  4. Uses SQLite-backed tools to summarize columns/rows.
+  5. Cleans up the temporary DB after the request.
+- This keeps full-sheet data out of the prompt and relies on sampling/aggregation.
 
 **Table structure**:
 ```sql
@@ -255,6 +266,7 @@ CREATE TABLE pipeline_<id> (
 **Lifetime**:
 - In-memory databases: Request duration only
 - File-based databases: Cleaned up after request or on error
+- Temporary sheet databases: Created per request and deleted after use
 
 **Transformations**:
 - Applied as SQL UPDATE/DELETE/INSERT statements

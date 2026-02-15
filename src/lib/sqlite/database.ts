@@ -103,6 +103,11 @@ export function getDatabaseFromPath(dbPath: string, cacheKey: string): Database.
   return db;
 }
 
+export function closeDatabaseByKey(cacheKey: string): void {
+  const cache = getDatabaseCache();
+  cache.remove(cacheKey);
+}
+
 /**
  * Ensure database file is flushed to disk
  */
