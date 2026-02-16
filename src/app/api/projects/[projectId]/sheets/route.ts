@@ -3,9 +3,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
 import { listSheets } from "@/lib/parsers/excel";
 
-export async function GET(_request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   try {
-    const { projectId } = params;
+    const { projectId } = await params;
 
     // Get project metadata from Convex
     const project = await getProject(projectId as Id<"projects">);

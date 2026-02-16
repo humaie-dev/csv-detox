@@ -19,10 +19,10 @@ const requestSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string; pipelineId: string } },
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   try {
-    const { projectId, pipelineId } = params;
+    const { projectId, pipelineId } = await params;
 
     // Parse request body
     const body = await request.json();

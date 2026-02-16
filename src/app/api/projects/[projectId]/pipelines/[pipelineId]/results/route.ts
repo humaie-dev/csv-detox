@@ -20,10 +20,10 @@ const querySchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string; pipelineId: string } },
+  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
 ) {
   try {
-    const { projectId, pipelineId } = params;
+    const { projectId, pipelineId } = await params;
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
