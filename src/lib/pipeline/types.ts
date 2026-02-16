@@ -10,22 +10,25 @@ export type { ParseResult, ColumnMetadata };
 /**
  * Transformation operation types
  */
-export type TransformationType =
-  | "trim"
-  | "uppercase"
-  | "lowercase"
-  | "deduplicate"
-  | "filter"
-  | "rename_column"
-  | "remove_column"
-  | "unpivot"
-  | "pivot"
-  | "split_column"
-  | "merge_columns"
-  | "cast_column"
-  | "fill_down"
-  | "fill_across"
-  | "sort";
+export const TRANSFORMATION_TYPES = [
+  "trim",
+  "uppercase",
+  "lowercase",
+  "deduplicate",
+  "filter",
+  "rename_column",
+  "remove_column",
+  "unpivot",
+  "pivot",
+  "split_column",
+  "merge_columns",
+  "cast_column",
+  "fill_down",
+  "fill_across",
+  "sort",
+] as const;
+
+export type TransformationType = (typeof TRANSFORMATION_TYPES)[number];
 
 /**
  * Base transformation step

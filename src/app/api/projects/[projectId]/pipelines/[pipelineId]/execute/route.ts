@@ -6,8 +6,10 @@ import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
 import type { ColumnMetadata, ParseOptions, ParseResult } from "@/lib/parsers/types";
+import { transformationStepsSchema } from "@/lib/pipeline/assistantSchemas";
 import { executePipeline } from "@/lib/pipeline/executor";
 import type { TransformationStep } from "@/lib/pipeline/types";
+import { TRANSFORMATION_TYPES } from "@/lib/pipeline/types";
 import {
   ensureLocalDatabase,
   finalizeDatabaseForArtifact,
@@ -167,11 +169,29 @@ export async function POST(
     }
 
     // Convert Convex steps to TransformationStep format
-    const transformationSteps: TransformationStep[] = pipeline.steps.map((step) => ({
-      id: step.id,
-      type: step.type as TransformationStep["type"],
-      config: step.config as TransformationStep["config"],
-    }));
+    const stepValidation = transformationStepsSchema.safeParse(
+      pipeline.steps.map((step) => ({
+        id: step.id,
+        type: step.type,
+        config: step.config,
+      })),
+    );
+    if (!stepValidation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Pipeline contains invalid steps",
+          message:
+            "This pipeline contains one or more unknown or invalid transformation steps. Please remove or fix the invalid steps.",
+          allowedTypes: TRANSFORMATION_TYPES,
+          details: stepValidation.error.errors,
+          duration: Date.now() - startTime,
+        },
+        { status: 400 },
+      );
+    }
+
+    const transformationSteps: TransformationStep[] = stepValidation.data;
 
     // Execute full pipeline
     const executionResult = executePipeline(parseResult, transformationSteps);

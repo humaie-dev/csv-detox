@@ -5,6 +5,8 @@ import type { Doc, Id } from "@convex/dataModel";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { z } from "zod";
 import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
+import { transformationStepsSchema } from "@/lib/pipeline/assistantSchemas";
+import { TRANSFORMATION_TYPES } from "@/lib/pipeline/types";
 import { listUploadSheets } from "@/lib/services/sheets";
 import {
   ensureLocalDatabase,
@@ -326,7 +328,7 @@ export async function POST(req: Request) {
         description: "Create a new pipeline (requires user approval)",
         inputSchema: z.object({
           name: z.string(),
-          steps: z.array(z.unknown()).optional(),
+          steps: transformationStepsSchema.optional(),
           parseConfig: z
             .object({
               sheetName: z.string().optional(),
@@ -353,7 +355,7 @@ export async function POST(req: Request) {
         }),
         execute: async (params: {
           name: string;
-          steps?: unknown[];
+          steps?: z.infer<typeof transformationStepsSchema>;
           parseConfig?: Doc<"pipelines">["parseConfig"];
           parseSettings?: Doc<"pipelines">["parseConfig"];
           confirmed: boolean;
@@ -370,10 +372,21 @@ export async function POST(req: Request) {
             ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
             : undefined;
 
+          const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
+          if (!stepsResult.success) {
+            return {
+              error: "Invalid pipeline steps",
+              message:
+                "One or more steps are not valid. Only known transformation step types are allowed.",
+              allowedTypes: TRANSFORMATION_TYPES,
+              details: stepsResult.error.errors,
+            };
+          }
+
           const pipelineId = await convex.mutation(api.pipelines.create, {
             projectId: projectId as Id<"projects">,
             name: params.name,
-            steps: (params.steps ?? []) as Doc<"pipelines">["steps"],
+            steps: stepsResult.data as Doc<"pipelines">["steps"],
             parseConfig: normalizedParseConfig,
           });
 
@@ -384,7 +397,7 @@ export async function POST(req: Request) {
         description: "Update an existing pipeline (requires user approval)",
         inputSchema: z.object({
           pipelineId: z.string(),
-          steps: z.array(z.unknown()).optional(),
+          steps: transformationStepsSchema.optional(),
           parseConfig: z
             .object({
               sheetName: z.string().optional(),
@@ -411,7 +424,7 @@ export async function POST(req: Request) {
         }),
         execute: async (params: {
           pipelineId: string;
-          steps?: unknown[];
+          steps?: z.infer<typeof transformationStepsSchema>;
           parseConfig?: Doc<"pipelines">["parseConfig"];
           parseSettings?: Doc<"pipelines">["parseConfig"];
           confirmed: boolean;
@@ -428,9 +441,20 @@ export async function POST(req: Request) {
             ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
             : undefined;
 
+          const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
+          if (!stepsResult.success) {
+            return {
+              error: "Invalid pipeline steps",
+              message:
+                "One or more steps are not valid. Only known transformation step types are allowed.",
+              allowedTypes: TRANSFORMATION_TYPES,
+              details: stepsResult.error.errors,
+            };
+          }
+
           await convex.mutation(api.pipelines.update, {
             id: params.pipelineId as Id<"pipelines">,
-            steps: params.steps as Doc<"pipelines">["steps"] | undefined,
+            steps: stepsResult.data as Doc<"pipelines">["steps"] | undefined,
             parseConfig: normalizedParseConfig,
           });
 
@@ -552,21 +576,22 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 - Require a clear user confirmation (e.g., "Confirm: create pipeline <name>" / "Confirm: update pipeline <id>" / "Confirm: delete pipeline <id>") before proceeding.
 - When the user mentions "parseSettings", treat it as the pipeline parseConfig.
 
-**Available Transformation Types:**
-- filter_rows: Filter rows based on conditions
-- select_columns: Select specific columns
-- rename_columns: Rename columns
-- sort_rows: Sort rows by column
-- remove_duplicates: Remove duplicate rows
-- fill_nulls: Fill null values
-- drop_nulls: Drop rows with nulls
-- convert_types: Convert column types
-- add_column: Add calculated columns
-- split_column: Split column into multiple
-- merge_columns: Merge multiple columns
-- replace_values: Replace specific values
-- trim_whitespace: Remove whitespace
-- extract_pattern: Extract text patterns
+ **Available Transformation Types (tool-callable):**
+ - trim: Remove leading and trailing whitespace
+ - uppercase: Convert text to uppercase
+ - lowercase: Convert text to lowercase
+ - deduplicate: Remove duplicate rows
+ - filter: Keep only rows matching a condition
+ - rename_column: Rename a column
+ - remove_column: Remove one or more columns
+ - cast_column: Convert column values to a different data type
+ - unpivot: Convert columns into rows (wide → long)
+ - pivot: Convert rows into columns (long → wide)
+ - split_column: Split one column into multiple columns
+ - merge_columns: Combine multiple columns into one
+ - fill_down: Fill empty cells with value from above
+ - fill_across: Fill empty cells with value from left
+ - sort: Sort rows by one or more columns
 
 **Guidelines:**
 - Always sample data before making recommendations
