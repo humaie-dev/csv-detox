@@ -327,9 +327,37 @@ export async function POST(req: Request) {
         inputSchema: z.object({
           name: z.string(),
           steps: z.array(z.unknown()).optional(),
+          parseConfig: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().optional(),
+              startRow: z.number().optional(),
+              endRow: z.number().optional(),
+              startColumn: z.number().optional(),
+              endColumn: z.number().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
+          parseSettings: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().optional(),
+              startRow: z.number().optional(),
+              endRow: z.number().optional(),
+              startColumn: z.number().optional(),
+              endColumn: z.number().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
           confirmed: z.boolean().describe("Set true after user approval"),
         }),
-        execute: async (params: { name: string; steps?: unknown[]; confirmed: boolean }) => {
+        execute: async (params: {
+          name: string;
+          steps?: unknown[];
+          parseConfig?: Doc<"pipelines">["parseConfig"];
+          parseSettings?: Doc<"pipelines">["parseConfig"];
+          confirmed: boolean;
+        }) => {
           if (!params.confirmed) {
             return {
               error: "User approval required",
@@ -337,10 +365,16 @@ export async function POST(req: Request) {
             };
           }
 
+          const parseConfig = params.parseConfig ?? params.parseSettings;
+          const normalizedParseConfig = parseConfig
+            ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
+            : undefined;
+
           const pipelineId = await convex.mutation(api.pipelines.create, {
             projectId: projectId as Id<"projects">,
             name: params.name,
             steps: (params.steps ?? []) as Doc<"pipelines">["steps"],
+            parseConfig: normalizedParseConfig,
           });
 
           return { pipelineId };
@@ -390,11 +424,14 @@ export async function POST(req: Request) {
           }
 
           const parseConfig = params.parseConfig ?? params.parseSettings;
+          const normalizedParseConfig = parseConfig
+            ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
+            : undefined;
 
           await convex.mutation(api.pipelines.update, {
             id: params.pipelineId as Id<"pipelines">,
             steps: params.steps as Doc<"pipelines">["steps"] | undefined,
-            parseConfig,
+            parseConfig: normalizedParseConfig,
           });
 
           return { success: true };
