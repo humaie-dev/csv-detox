@@ -23,12 +23,12 @@ import { createPipelineTables, dropPipelineTables, getParseConfig } from "@/lib/
  */
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
+  { params }: { params: { projectId: string; pipelineId: string } },
 ) {
   const startTime = Date.now();
 
   try {
-    const { projectId, pipelineId } = await params;
+    const { projectId, pipelineId } = params;
 
     // Verify project exists
     const convex = getConvexClient();

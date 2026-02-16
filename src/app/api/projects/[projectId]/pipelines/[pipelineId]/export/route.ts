@@ -17,10 +17,10 @@ import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
+  { params }: { params: { projectId: string; pipelineId: string } },
 ) {
   try {
-    const { projectId, pipelineId } = await params;
+    const { projectId, pipelineId } = params;
     const { searchParams } = new URL(request.url);
     const exportRaw = searchParams.get("raw") === "true";
 
