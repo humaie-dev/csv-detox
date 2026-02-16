@@ -362,12 +362,24 @@ export async function POST(req: Request) {
               hasHeaders: z.boolean().optional(),
             })
             .optional(),
+          parseSettings: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().optional(),
+              startRow: z.number().optional(),
+              endRow: z.number().optional(),
+              startColumn: z.number().optional(),
+              endColumn: z.number().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
           confirmed: z.boolean().describe("Set true after user approval"),
         }),
         execute: async (params: {
           pipelineId: string;
           steps?: unknown[];
           parseConfig?: Doc<"pipelines">["parseConfig"];
+          parseSettings?: Doc<"pipelines">["parseConfig"];
           confirmed: boolean;
         }) => {
           if (!params.confirmed) {
@@ -377,10 +389,12 @@ export async function POST(req: Request) {
             };
           }
 
+          const parseConfig = params.parseConfig ?? params.parseSettings;
+
           await convex.mutation(api.pipelines.update, {
             id: params.pipelineId as Id<"pipelines">,
             steps: params.steps as Doc<"pipelines">["steps"] | undefined,
-            parseConfig: params.parseConfig,
+            parseConfig,
           });
 
           return { success: true };
@@ -499,6 +513,7 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 **Confirmation UX Pattern (Pipelines):**
 - Before calling create/update/delete pipeline tools, present a short change summary and ask for confirmation.
 - Require a clear user confirmation (e.g., "Confirm: create pipeline <name>" / "Confirm: update pipeline <id>" / "Confirm: delete pipeline <id>") before proceeding.
+- When the user mentions "parseSettings", treat it as the pipeline parseConfig.
 
 **Available Transformation Types:**
 - filter_rows: Filter rows based on conditions
