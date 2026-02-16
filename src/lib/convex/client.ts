@@ -91,8 +91,3 @@ export async function getProject(projectId: Id<"projects">) {
   const client = getConvexClient();
   return client.query(api.projects.get, { id: projectId });
 }
-
-export async function listSheets(uploadId: Id<"uploads">) {
-  const client = getConvexClient();
-  return client.action(api.parsers.listSheets, { uploadId });
-}

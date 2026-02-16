@@ -4,7 +4,7 @@
 
 import { v } from "convex/values";
 import { parseCSV } from "@/lib/parsers/csv";
-import { listSheets as listSheetsUtil, parseExcel } from "@/lib/parsers/excel";
+import { parseExcel } from "@/lib/parsers/excel";
 import type { ParseOptions, ParseResult } from "@/lib/parsers/types";
 import { ParseError } from "@/lib/parsers/types";
 import { validateCast as validateCastFn } from "@/lib/pipeline/casting/validate";
@@ -172,53 +172,6 @@ export const parseFileInternal = internalAction({
         `Failed to parse file: ${error instanceof Error ? error.message : String(error)}`,
         "PARSE_ERROR",
         error,
-      );
-    }
-  },
-});
-
-/**
- * List all sheet names in an Excel workbook
- */
-export const listSheets = action({
-  args: {
-    uploadId: v.id("uploads"),
-  },
-  handler: async (ctx, args): Promise<string[]> => {
-    try {
-      // Fetch upload record to get storage ID
-      const upload = await ctx.runQuery(internal.uploads.getUploadInternal, {
-        uploadId: args.uploadId,
-      });
-
-      if (!upload) {
-        throw new Error("Upload not found");
-      }
-
-      // Only works for Excel files
-      if (
-        upload.mimeType !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
-        upload.mimeType !== "application/vnd.ms-excel"
-      ) {
-        throw new Error("Not an Excel file");
-      }
-
-      // Fetch file from storage
-      const file = await ctx.storage.get(upload.convexStorageId);
-      if (!file) {
-        throw new Error("File not found in storage");
-      }
-
-      // Read file content as ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
-
-      // List sheets using the Excel parser utility
-      const sheets = listSheetsUtil(arrayBuffer);
-
-      return sheets;
-    } catch (error) {
-      throw new Error(
-        `Failed to list sheets: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   },

@@ -235,7 +235,7 @@ See `convex/schema.ts` for complete type definitions and validators.
 - Safe to rebuild at any time (serverless ephemeral storage)
 
 **On-demand sheet access (Excel)**:
-- The assistant can list sheets from the original upload via Convex.
+- The assistant can list sheets from the original upload via server-side services (not Convex actions).
 - When a user asks about a specific sheet, the assistant:
   1. Checks if the current SQLite artifact already matches that sheet.
   2. Looks for a cached artifact for that sheet.
@@ -243,6 +243,11 @@ See `convex/schema.ts` for complete type definitions and validators.
   4. Uses SQLite-backed tools to summarize columns/rows.
   5. Cleans up the temporary DB after the request.
 - This keeps full-sheet data out of the prompt and relies on sampling/aggregation.
+
+**Convex memory rule**:
+- Do not open uploaded files inside Convex actions.
+- Convex actions have a 64MB memory limit; large Excel files will fail when loaded into memory.
+- File access (downloads/parsing) must happen in server-side API routes or shared services.
 
 **Pipeline mutation confirmation UX**:
 - The assistant must summarize intended pipeline changes and ask for explicit confirmation.

@@ -4,12 +4,8 @@ import { api } from "@convex/api";
 import type { Doc, Id } from "@convex/dataModel";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { z } from "zod";
-import {
-  downloadFileFromConvex,
-  getConvexClient,
-  getUpload,
-  listSheets,
-} from "@/lib/convex/client";
+import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
+import { listUploadSheets } from "@/lib/services/sheets";
 import {
   ensureLocalDatabase,
   ensureLocalDatabaseForArtifact,
@@ -99,7 +95,7 @@ export async function POST(req: Request) {
             return { sheets: [], message: "No upload available for this project." };
           }
           try {
-            const sheets = await listSheets(projectUploadId as Id<"uploads">);
+            const sheets = await listUploadSheets(projectUploadId as Id<"uploads">);
             return { sheets };
           } catch (error) {
             return {

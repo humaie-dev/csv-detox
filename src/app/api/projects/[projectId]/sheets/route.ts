@@ -1,7 +1,7 @@
 import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
-import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
-import { listSheets } from "@/lib/parsers/excel";
+import { getProject } from "@/lib/convex/client";
+import { listUploadSheets } from "@/lib/services/sheets";
 
 export async function GET(
   _request: NextRequest,
@@ -17,26 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Get upload metadata
-    const upload = await getUpload(project.uploadId);
-
-    if (!upload) {
-      return NextResponse.json({ error: "Upload not found" }, { status: 404 });
-    }
-
-    // Check if it's an Excel file
-    const isExcel =
-      upload.mimeType.includes("spreadsheet") || upload.originalName.match(/\.(xlsx?|xls)$/i);
-
-    if (!isExcel) {
-      return NextResponse.json({ error: "File is not an Excel file" }, { status: 400 });
-    }
-
-    // Download file from Convex Storage
-    const fileBuffer = await downloadFileFromConvex(upload.convexStorageId);
-
-    // Get sheet names
-    const sheets = listSheets(fileBuffer);
+    const sheets = await listUploadSheets(project.uploadId);
 
     return NextResponse.json({ sheets });
   } catch (error) {
