@@ -32,12 +32,8 @@ const ParseRequestSchema = z.object({
     .optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ projectId: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: { projectId: string } }) {
   try {
-    const params = await context.params;
     const projectId = params.projectId as Id<"projects">;
 
     // Parse and validate request body
@@ -57,16 +53,28 @@ export async function POST(
         ? { ...parseOptions, sheetName: `sheet:${parseOptions.sheetIndex}` }
         : parseOptions;
 
-    // Check if sheet has changed (auto-force re-parse if so)
+    // Check if parse config has changed (auto-force re-parse if so)
     let shouldForce = force || false;
-    if (normalizedParseOptions?.sheetName && (await isProjectDataInitialized(projectId))) {
+    if (normalizedParseOptions && (await isProjectDataInitialized(projectId))) {
       try {
         await ensureLocalDatabase(projectId);
         const db = getDatabase(projectId);
         const currentConfig = getParseConfig(db);
-        if (currentConfig && currentConfig.sheetName !== normalizedParseOptions.sheetName) {
-          shouldForce = true;
-        }
+        const parseConfigKeys: Array<keyof typeof normalizedParseOptions> = [
+          "sheetName",
+          "sheetIndex",
+          "startRow",
+          "endRow",
+          "startColumn",
+          "endColumn",
+          "hasHeaders",
+          "delimiter",
+        ];
+        shouldForce = parseConfigKeys.some((key) => {
+          const currentValue = currentConfig?.[key as keyof typeof currentConfig];
+          const nextValue = normalizedParseOptions[key];
+          return currentValue !== nextValue;
+        });
       } catch (error) {
         // If we can't read config, proceed normally
         console.warn("Could not check sheet change:", error);
@@ -147,12 +155,8 @@ export async function POST(
 }
 
 // GET endpoint to check parse status
-export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ projectId: string }> },
-) {
+export async function GET(_request: NextRequest, { params }: { params: { projectId: string } }) {
   try {
-    const params = await context.params;
     const projectId = params.projectId as Id<"projects">;
 
     const initialized = await isProjectDataInitialized(projectId);

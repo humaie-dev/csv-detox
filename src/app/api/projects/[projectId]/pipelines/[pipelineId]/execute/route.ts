@@ -23,12 +23,12 @@ import { createPipelineTables, dropPipelineTables, getParseConfig } from "@/lib/
  */
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
+  { params }: { params: { projectId: string; pipelineId: string } },
 ) {
   const startTime = Date.now();
 
   try {
-    const { projectId, pipelineId } = await params;
+    const { projectId, pipelineId } = params;
 
     // Verify project exists
     const convex = getConvexClient();
@@ -74,8 +74,23 @@ export async function POST(
     const currentParseConfig = getParseConfig(db);
 
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse =
-      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
+    const parseConfigKeys: Array<keyof NonNullable<typeof pipeline.parseConfig>> = [
+      "sheetName",
+      "sheetIndex",
+      "startRow",
+      "endRow",
+      "startColumn",
+      "endColumn",
+      "hasHeaders",
+    ];
+    const needsCustomParse = Boolean(
+      pipeline.parseConfig &&
+        parseConfigKeys.some(
+          (key) =>
+            pipeline.parseConfig?.[key] !==
+            (currentParseConfig?.[key as keyof typeof currentParseConfig] ?? undefined),
+        ),
+    );
 
     let parseResult: ParseResult;
 

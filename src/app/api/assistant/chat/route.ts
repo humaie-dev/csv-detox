@@ -326,6 +326,91 @@ export async function POST(req: Request) {
           };
         },
       },
+      createPipeline: {
+        description: "Create a new pipeline (requires user approval)",
+        inputSchema: z.object({
+          name: z.string(),
+          steps: z.array(z.unknown()).optional(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: { name: string; steps?: unknown[]; confirmed: boolean }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before creating the pipeline.",
+            };
+          }
+
+          const pipelineId = await convex.mutation(api.pipelines.create, {
+            projectId: projectId as Id<"projects">,
+            name: params.name,
+            steps: (params.steps ?? []) as Doc<"pipelines">["steps"],
+          });
+
+          return { pipelineId };
+        },
+      },
+      updatePipeline: {
+        description: "Update an existing pipeline (requires user approval)",
+        inputSchema: z.object({
+          pipelineId: z.string(),
+          steps: z.array(z.unknown()).optional(),
+          parseConfig: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().optional(),
+              startRow: z.number().optional(),
+              endRow: z.number().optional(),
+              startColumn: z.number().optional(),
+              endColumn: z.number().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: {
+          pipelineId: string;
+          steps?: unknown[];
+          parseConfig?: Doc<"pipelines">["parseConfig"];
+          confirmed: boolean;
+        }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before updating the pipeline.",
+            };
+          }
+
+          await convex.mutation(api.pipelines.update, {
+            id: params.pipelineId as Id<"pipelines">,
+            steps: params.steps as Doc<"pipelines">["steps"] | undefined,
+            parseConfig: params.parseConfig,
+          });
+
+          return { success: true };
+        },
+      },
+      deletePipeline: {
+        description: "Delete a pipeline (requires user approval)",
+        inputSchema: z.object({
+          pipelineId: z.string(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: { pipelineId: string; confirmed: boolean }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before deleting the pipeline.",
+            };
+          }
+
+          await convex.mutation(api.pipelines.remove, {
+            id: params.pipelineId as Id<"pipelines">,
+          });
+
+          return { success: true };
+        },
+      },
     };
 
     const hasUiParts = Array.isArray(messages) && messages[0] && "parts" in messages[0];
@@ -413,6 +498,11 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 - Translate user requests about the file/sheets into the appropriate tool calls.
 - Use SQLite-backed tools to inspect data; do not attempt to load full sheets into context.
 - If a request requires too much data to include and cannot be answered via sampling or aggregation, clearly explain the limitation.
+- Any pipeline changes (create/update/delete) require explicit user approval before executing.
+
+**Confirmation UX Pattern (Pipelines):**
+- Before calling create/update/delete pipeline tools, present a short change summary and ask for confirmation.
+- Require a clear user confirmation (e.g., "Confirm: create pipeline <name>" / "Confirm: update pipeline <id>" / "Confirm: delete pipeline <id>") before proceeding.
 
 **Available Transformation Types:**
 - filter_rows: Filter rows based on conditions

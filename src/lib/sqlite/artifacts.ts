@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
 import type Database from "better-sqlite3";
-import { anyApi } from "convex/server";
 import { downloadFileFromConvex, getConvexClient, storeFileInConvex } from "../convex/client";
 import type { ParseOptions } from "../parsers/types";
 import { checkpointDatabase, closeDatabase, getDatabaseDirectory } from "./database";
@@ -101,12 +101,12 @@ function writeLocalMetadata(metaPath: string, metadata: LocalArtifactMetadata): 
 
 async function fetchArtifactMetadata(projectId: Id<"projects">) {
   const convex = getConvexClient();
-  return convex.query(anyApi.sqliteArtifacts.getLatest, { projectId });
+  return convex.query(api.sqliteArtifacts.getLatest, { projectId });
 }
 
 async function fetchArtifactByParseOptions(projectId: Id<"projects">, parseOptionsJson: string) {
   const convex = getConvexClient();
-  return convex.query(anyApi.sqliteArtifacts.getByParseOptionsJson, {
+  return convex.query(api.sqliteArtifacts.getByParseOptionsJson, {
     projectId,
     parseOptionsJson,
   });
@@ -139,7 +139,7 @@ async function saveArtifactMetadata(input: {
   size: number;
 }) {
   const convex = getConvexClient();
-  return convex.mutation(anyApi.sqliteArtifacts.upsert, input);
+  return convex.mutation(api.sqliteArtifacts.upsert, input);
 }
 
 export function getLocalDatabasePath(projectId: Id<"projects">): string {

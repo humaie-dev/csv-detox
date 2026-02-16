@@ -19,10 +19,10 @@ const requestSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string; pipelineId: string }> },
+  { params }: { params: { projectId: string; pipelineId: string } },
 ) {
   try {
-    const { projectId, pipelineId } = await params;
+    const { projectId, pipelineId } = params;
 
     // Parse request body
     const body = await request.json();
@@ -84,8 +84,23 @@ export async function POST(
     const currentParseConfig = getParseConfig(db);
 
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse =
-      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
+    const parseConfigKeys: Array<keyof NonNullable<typeof pipeline.parseConfig>> = [
+      "sheetName",
+      "sheetIndex",
+      "startRow",
+      "endRow",
+      "startColumn",
+      "endColumn",
+      "hasHeaders",
+    ];
+    const needsCustomParse = Boolean(
+      pipeline.parseConfig &&
+        parseConfigKeys.some(
+          (key) =>
+            pipeline.parseConfig?.[key] !==
+            (currentParseConfig?.[key as keyof typeof currentParseConfig] ?? undefined),
+        ),
+    );
 
     let parseResult: ParseResult;
 

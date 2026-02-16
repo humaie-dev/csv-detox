@@ -127,6 +127,7 @@ CSV Detox is a **transformation pipeline engine** for cleaning and transforming 
 4. Request streamed to Azure OpenAI
 5. AI calls tools (getDataSummary, listSheets, getSheetSummary, etc.) as needed
 6. Tools query Convex metadata and SQLite
+7. Pipeline changes require explicit user confirmation before tool execution
 7. Response streamed back to UI
 8. useChat hook renders messages in real-time
 
@@ -242,6 +243,10 @@ See `convex/schema.ts` for complete type definitions and validators.
   4. Uses SQLite-backed tools to summarize columns/rows.
   5. Cleans up the temporary DB after the request.
 - This keeps full-sheet data out of the prompt and relies on sampling/aggregation.
+
+**Pipeline mutation confirmation UX**:
+- The assistant must summarize intended pipeline changes and ask for explicit confirmation.
+- Create/update/delete tools require a `confirmed: true` flag after user approval.
 
 **Table structure**:
 ```sql
