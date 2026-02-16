@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { AddStepDialog } from "@/components/AddStepDialog";
 import { AssistantChat } from "@/components/AssistantChat";
 import { DataTable } from "@/components/DataTable";
@@ -53,8 +53,8 @@ import type {
   TransformationType,
 } from "@/lib/pipeline/types";
 
-export default function ProjectDetailPage({ params }: { params: { projectId: string } }) {
-  const { projectId: projectIdString } = params;
+export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId: projectIdString } = use(params);
   const projectId = projectIdString as Id<"projects">;
   const router = useRouter();
   const { toast } = useToast();

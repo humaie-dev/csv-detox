@@ -32,9 +32,12 @@ const ParseRequestSchema = z.object({
     .optional(),
 });
 
-export async function POST(request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   try {
-    const { projectId } = params;
+    const { projectId } = await params;
     const projectIdTyped = projectId as Id<"projects">;
 
     // Parse and validate request body
@@ -156,9 +159,12 @@ export async function POST(request: NextRequest, { params }: { params: { project
 }
 
 // GET endpoint to check parse status
-export async function GET(_request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   try {
-    const { projectId } = params;
+    const { projectId } = await params;
     const projectIdTyped = projectId as Id<"projects">;
 
     const initialized = await isProjectDataInitialized(projectIdTyped);

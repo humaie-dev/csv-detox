@@ -12,9 +12,12 @@ const querySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-export async function GET(request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   try {
-    const { projectId } = params;
+    const { projectId } = await params;
     const searchParams = request.nextUrl.searchParams;
 
     // Validate query parameters

@@ -6,9 +6,12 @@ import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getColumns, getDatabase } from "@/lib/sqlite/database";
 import { isProjectDataInitialized } from "@/lib/sqlite/parser";
 
-export async function GET(_request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
   try {
-    const { projectId } = params;
+    const { projectId } = await params;
 
     // Verify project exists
     const convex = getConvexClient();
