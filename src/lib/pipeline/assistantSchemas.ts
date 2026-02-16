@@ -36,8 +36,10 @@ const filterConfigSchema = z.object({
     "not_contains",
     "greater_than",
     "less_than",
+    "is_null",
+    "not_null",
   ]),
-  value: z.union([z.string(), z.number(), z.boolean()]),
+  value: z.union([z.string(), z.number(), z.boolean()]).optional(),
 });
 
 const renameColumnConfigSchema = z.object({

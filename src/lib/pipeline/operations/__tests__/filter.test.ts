@@ -229,6 +229,181 @@ describe("filter operation", () => {
     });
   });
 
+  describe("is_null operator", () => {
+    it("should filter rows where column is null", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", age: 30 },
+          { name: "Jane", age: null },
+          { name: "Bob", age: 35 },
+          { name: "Alice", age: null },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: [] },
+          { name: "age", type: "number", nonNullCount: 2, nullCount: 2, sampleValues: [] },
+        ],
+        rowCount: 4,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "age",
+        operator: "is_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 2);
+      assert.equal(result.rows[0].name, "Jane");
+      assert.equal(result.rows[1].name, "Alice");
+    });
+
+    it("should filter rows where column is undefined", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", age: 30 },
+          { name: "Jane", age: undefined },
+          { name: "Bob", age: 35 },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
+          { name: "age", type: "number", nonNullCount: 2, nullCount: 1, sampleValues: [] },
+        ],
+        rowCount: 3,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "age",
+        operator: "is_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 1);
+      assert.equal(result.rows[0].name, "Jane");
+    });
+  });
+
+  describe("not_null operator", () => {
+    it("should filter rows where column is not null", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", age: 30 },
+          { name: "Jane", age: null },
+          { name: "Bob", age: 35 },
+          { name: "Alice", age: null },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 4, nullCount: 0, sampleValues: [] },
+          { name: "age", type: "number", nonNullCount: 2, nullCount: 2, sampleValues: [] },
+        ],
+        rowCount: 4,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "age",
+        operator: "not_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 2);
+      assert.equal(result.rows[0].name, "John");
+      assert.equal(result.rows[1].name, "Bob");
+    });
+
+    it("should filter out undefined values", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", age: 30 },
+          { name: "Jane", age: undefined },
+          { name: "Bob", age: 35 },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
+          { name: "age", type: "number", nonNullCount: 2, nullCount: 1, sampleValues: [] },
+        ],
+        rowCount: 3,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "age",
+        operator: "not_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 2);
+      assert.equal(result.rows[0].name, "John");
+      assert.equal(result.rows[1].name, "Bob");
+    });
+
+    it("should keep rows with zero values (0 is not null)", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", age: 0 },
+          { name: "Jane", age: null },
+          { name: "Bob", age: 35 },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
+          { name: "age", type: "number", nonNullCount: 2, nullCount: 1, sampleValues: [] },
+        ],
+        rowCount: 3,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "age",
+        operator: "not_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 2);
+      assert.equal(result.rows[0].name, "John");
+      assert.equal(result.rows[0].age, 0);
+      assert.equal(result.rows[1].name, "Bob");
+    });
+
+    it("should keep rows with empty strings (empty string is not null)", () => {
+      const table: ParseResult = {
+        rows: [
+          { name: "John", email: "john@example.com" },
+          { name: "Jane", email: "" },
+          { name: "Bob", email: null },
+        ],
+        columns: [
+          { name: "name", type: "string", nonNullCount: 3, nullCount: 0, sampleValues: [] },
+          { name: "email", type: "string", nonNullCount: 2, nullCount: 1, sampleValues: [] },
+        ],
+        rowCount: 3,
+        warnings: [],
+      };
+
+      const config: FilterConfig = {
+        type: "filter",
+        column: "email",
+        operator: "not_null",
+      };
+
+      const { table: result } = filter(table, config);
+
+      assert.equal(result.rowCount, 2);
+      assert.equal(result.rows[0].name, "John");
+      assert.equal(result.rows[1].name, "Jane");
+      assert.equal(result.rows[1].email, "");
+    });
+  });
+
   it("should throw error for non-existent column", () => {
     const table: ParseResult = {
       rows: [{ name: "John" }],

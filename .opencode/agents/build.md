@@ -1,7 +1,7 @@
 ---
 description: Feature implementation, bug fixes, refactoring
 mode: primary
-model: github-copilot/gpt-5.2-codex
+model: github-copilot/gpt-5.1-codex
 skills:
   - ai-sdk
   - avoid-feature-creep

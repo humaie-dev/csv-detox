@@ -82,8 +82,16 @@ export interface DeduplicateConfig {
 export interface FilterConfig {
   type: "filter";
   column: string;
-  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
-  value: string | number | boolean;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "not_contains"
+    | "greater_than"
+    | "less_than"
+    | "is_null"
+    | "not_null";
+  value?: string | number | boolean; // Optional for is_null/not_null operators
 }
 
 export interface RenameColumnConfig {

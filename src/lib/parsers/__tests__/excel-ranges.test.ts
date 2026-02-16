@@ -618,3 +618,224 @@ describe("Excel parser - sheet selection with ranges", () => {
     assert.equal(result.rows[0]["50"], "80"); // Row 4, column 2 (Y column)
   });
 });
+
+describe("Excel parser - merged cells", () => {
+  it("should fill merged cells with value from top-left cell", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ["Name", "Status", "Details"],
+      ["Alice", "Active", "Info"],
+      ["Bob", "Active", "More"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge B2:B3 (Status column for Alice and Bob)
+    worksheet["!merges"] = [{ s: { r: 1, c: 1 }, e: { r: 2, c: 1 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // Both rows should have "Active" in Status column
+    assert.equal(result.rows[0].Status, "Active");
+    assert.equal(result.rows[1].Status, "Active");
+  });
+
+  it("should handle horizontal merged cells (columns)", () => {
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ["Q1", null, null, "Q2"],
+      ["Jan", "Feb", "Mar", "Apr"],
+      ["100", "200", "300", "400"],
+    ]);
+
+    // Merge A1:C1 (Q1 spans 3 columns)
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    // Write and re-read to simulate real Excel file behavior
+    const buffer1 = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const workbook2 = XLSX.read(buffer1, { type: "buffer" });
+    const buffer = XLSX.write(workbook2, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // First row headers should all be "Q1"
+    assert.equal(result.columns[0].name, "Q1");
+    assert.equal(result.columns[1].name, "Q1_1"); // Disambiguated
+    assert.equal(result.columns[2].name, "Q1_2"); // Disambiguated
+    assert.equal(result.columns[3].name, "Q2");
+  });
+
+  it("should handle rectangular merged cells (rows and columns)", () => {
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ["Region", "Sales", null, "Target"],
+      ["North", "1000", null, "1200"],
+      ["South", "800", null, "900"],
+    ]);
+
+    // Merge B1:C2 (Sales cell spans 2x2)
+    worksheet["!merges"] = [{ s: { r: 0, c: 1 }, e: { r: 1, c: 2 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    // Write and re-read to simulate real Excel file behavior
+    const buffer1 = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const workbook2 = XLSX.read(buffer1, { type: "buffer" });
+    const buffer = XLSX.write(workbook2, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // All cells in merge range should have "Sales" from top-left (B1)
+    // Note: B2 keeps its original value "1000" since it already has data
+    assert.equal(result.columns[1].name, "Sales");
+    assert.equal(result.columns[2].name, "Sales_1");
+    assert.equal(result.rows[0].Sales, "1000");
+    assert.equal(result.rows[0].Sales_1, "Sales"); // Filled from merge top-left (B1)
+  });
+
+  it("should handle multiple separate merged ranges", () => {
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ["Name", "Q1", null, "Q2", null],
+      ["Alice", "100", "200", "150", "250"],
+      ["Bob", "120", "180", "160", "240"],
+    ]);
+
+    // Merge B1:C1 (Q1) and D1:E1 (Q2)
+    worksheet["!merges"] = [
+      { s: { r: 0, c: 1 }, e: { r: 0, c: 2 } },
+      { s: { r: 0, c: 3 }, e: { r: 0, c: 4 } },
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    // Write and re-read to simulate real Excel file behavior
+    const buffer1 = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const workbook2 = XLSX.read(buffer1, { type: "buffer" });
+    const buffer = XLSX.write(workbook2, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // Headers should be filled
+    assert.equal(result.columns[1].name, "Q1");
+    assert.equal(result.columns[2].name, "Q1_1");
+    assert.equal(result.columns[3].name, "Q2");
+    assert.equal(result.columns[4].name, "Q2_1");
+  });
+
+  it("should handle merged cells with row range extraction", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [["Title Row"], ["Name", "Status"], ["Alice", "Active"], ["Bob", "Active"]];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge B3:B4 (Status for Alice and Bob)
+    worksheet["!merges"] = [{ s: { r: 2, c: 1 }, e: { r: 3, c: 1 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    // Skip title row
+    const result = parseExcel(buffer, { startRow: 2 });
+
+    // Both rows should have "Active"
+    assert.equal(result.rows[0].Status, "Active");
+    assert.equal(result.rows[1].Status, "Active");
+  });
+
+  it("should handle merged cells with column range extraction", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ["ID", "Q1", "", "Q2"],
+      ["1", "100", "200", "300"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge B1:C1 (Q1)
+    worksheet["!merges"] = [{ s: { r: 0, c: 1 }, e: { r: 0, c: 2 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    // Extract only columns 2-4 (B-D)
+    const result = parseExcel(buffer, { startColumn: 2, endColumn: 4 });
+
+    // Headers should include filled merge
+    assert.equal(result.columns[0].name, "Q1");
+    assert.equal(result.columns[1].name, "Q1_1");
+    assert.equal(result.columns[2].name, "Q2");
+  });
+
+  it("should handle empty merged cells (no value in top-left)", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ["Name", "", "", "Status"],
+      ["Alice", "X", "Y", "Active"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge B1:C1 but no value in B1 (empty merge)
+    worksheet["!merges"] = [{ s: { r: 0, c: 1 }, e: { r: 0, c: 2 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // Empty merged cells should generate default column names
+    assert.equal(result.columns[0].name, "Name");
+    assert.equal(result.columns[1].name, "Column2");
+    assert.equal(result.columns[2].name, "Column3");
+    assert.equal(result.columns[3].name, "Status");
+  });
+
+  it("should preserve data types in merged cells", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ["Name", "Score", "Grade"],
+      ["Alice", 95, "A"],
+      ["Bob", 95, "A"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge B2:B3 (Score 95 for both)
+    worksheet["!merges"] = [{ s: { r: 1, c: 1 }, e: { r: 2, c: 1 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    const result = parseExcel(buffer);
+
+    // Both should have numeric 95
+    assert.equal(result.rows[0].Score, 95);
+    assert.equal(result.rows[1].Score, 95);
+    assert.equal(typeof result.rows[0].Score, "number");
+    assert.equal(typeof result.rows[1].Score, "number");
+  });
+
+  it("should handle merged cells outside the specified range", () => {
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ["A", "B", "C", "D"],
+      ["1", "2", "3", "4"],
+      ["5", "6", "7", "8"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge A1:A2 (outside the range we'll extract)
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    // Extract only columns 2-3
+    const result = parseExcel(buffer, { startColumn: 2, endColumn: 3 });
+
+    // Should work normally, merge doesn't affect this range
+    assert.equal(result.columns[0].name, "B");
+    assert.equal(result.columns[1].name, "C");
+  });
+});

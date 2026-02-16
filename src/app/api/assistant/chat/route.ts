@@ -331,23 +331,62 @@ export async function POST(req: Request) {
           steps: transformationStepsSchema.optional(),
           parseConfig: z
             .object({
-              sheetName: z.string().optional(),
-              sheetIndex: z.number().optional(),
-              startRow: z.number().optional(),
-              endRow: z.number().optional(),
-              startColumn: z.number().optional(),
-              endColumn: z.number().optional(),
-              hasHeaders: z.boolean().optional(),
+              sheetName: z
+                .string()
+                .optional()
+                .describe("Sheet name to parse (Excel only). Omit to use first sheet."),
+              sheetIndex: z
+                .number()
+                .int()
+                .nonnegative()
+                .optional()
+                .describe("Sheet index to parse (Excel only, 0-based). Omit to use first sheet."),
+              startRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First row to parse (1-based, inclusive). Omit to start from row 1. Default: 1",
+                ),
+              endRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last row to parse (1-based, inclusive). Omit to parse until the last row. Do NOT set to 0.",
+                ),
+              startColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First column to parse (1-based, inclusive). Omit to start from column 1. Default: 1",
+                ),
+              endColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last column to parse (1-based, inclusive). Omit to parse until the last column. Do NOT set to 0.",
+                ),
+              hasHeaders: z
+                .boolean()
+                .optional()
+                .describe("Whether the first row contains headers. Default: true"),
             })
             .optional(),
           parseSettings: z
             .object({
               sheetName: z.string().optional(),
-              sheetIndex: z.number().optional(),
-              startRow: z.number().optional(),
-              endRow: z.number().optional(),
-              startColumn: z.number().optional(),
-              endColumn: z.number().optional(),
+              sheetIndex: z.number().int().nonnegative().optional(),
+              startRow: z.number().int().positive().optional(),
+              endRow: z.number().int().positive().optional(),
+              startColumn: z.number().int().positive().optional(),
+              endColumn: z.number().int().positive().optional(),
               hasHeaders: z.boolean().optional(),
             })
             .optional(),
@@ -369,7 +408,16 @@ export async function POST(req: Request) {
 
           const parseConfig = params.parseConfig ?? params.parseSettings;
           const normalizedParseConfig = parseConfig
-            ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
+            ? {
+                sheetName: parseConfig.sheetName,
+                sheetIndex: parseConfig.sheetIndex,
+                // Normalize 0 to undefined (0 is invalid, omission means "default/all")
+                startRow: parseConfig.startRow === 0 ? undefined : parseConfig.startRow,
+                endRow: parseConfig.endRow === 0 ? undefined : parseConfig.endRow,
+                startColumn: parseConfig.startColumn === 0 ? undefined : parseConfig.startColumn,
+                endColumn: parseConfig.endColumn === 0 ? undefined : parseConfig.endColumn,
+                hasHeaders: parseConfig.hasHeaders ?? true,
+              }
             : undefined;
 
           const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
@@ -400,23 +448,62 @@ export async function POST(req: Request) {
           steps: transformationStepsSchema.optional(),
           parseConfig: z
             .object({
-              sheetName: z.string().optional(),
-              sheetIndex: z.number().optional(),
-              startRow: z.number().optional(),
-              endRow: z.number().optional(),
-              startColumn: z.number().optional(),
-              endColumn: z.number().optional(),
-              hasHeaders: z.boolean().optional(),
+              sheetName: z
+                .string()
+                .optional()
+                .describe("Sheet name to parse (Excel only). Omit to use first sheet."),
+              sheetIndex: z
+                .number()
+                .int()
+                .nonnegative()
+                .optional()
+                .describe("Sheet index to parse (Excel only, 0-based). Omit to use first sheet."),
+              startRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First row to parse (1-based, inclusive). Omit to start from row 1. Default: 1",
+                ),
+              endRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last row to parse (1-based, inclusive). Omit to parse until the last row. Do NOT set to 0.",
+                ),
+              startColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First column to parse (1-based, inclusive). Omit to start from column 1. Default: 1",
+                ),
+              endColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last column to parse (1-based, inclusive). Omit to parse until the last column. Do NOT set to 0.",
+                ),
+              hasHeaders: z
+                .boolean()
+                .optional()
+                .describe("Whether the first row contains headers. Default: true"),
             })
             .optional(),
           parseSettings: z
             .object({
               sheetName: z.string().optional(),
-              sheetIndex: z.number().optional(),
-              startRow: z.number().optional(),
-              endRow: z.number().optional(),
-              startColumn: z.number().optional(),
-              endColumn: z.number().optional(),
+              sheetIndex: z.number().int().nonnegative().optional(),
+              startRow: z.number().int().positive().optional(),
+              endRow: z.number().int().positive().optional(),
+              startColumn: z.number().int().positive().optional(),
+              endColumn: z.number().int().positive().optional(),
               hasHeaders: z.boolean().optional(),
             })
             .optional(),
@@ -438,7 +525,16 @@ export async function POST(req: Request) {
 
           const parseConfig = params.parseConfig ?? params.parseSettings;
           const normalizedParseConfig = parseConfig
-            ? { ...parseConfig, hasHeaders: parseConfig.hasHeaders ?? true }
+            ? {
+                sheetName: parseConfig.sheetName,
+                sheetIndex: parseConfig.sheetIndex,
+                // Normalize 0 to undefined (0 is invalid, omission means "default/all")
+                startRow: parseConfig.startRow === 0 ? undefined : parseConfig.startRow,
+                endRow: parseConfig.endRow === 0 ? undefined : parseConfig.endRow,
+                startColumn: parseConfig.startColumn === 0 ? undefined : parseConfig.startColumn,
+                endColumn: parseConfig.endColumn === 0 ? undefined : parseConfig.endColumn,
+                hasHeaders: parseConfig.hasHeaders ?? true,
+              }
             : undefined;
 
           const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
@@ -576,12 +672,21 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 - Require a clear user confirmation (e.g., "Confirm: create pipeline <name>" / "Confirm: update pipeline <id>" / "Confirm: delete pipeline <id>") before proceeding.
 - When the user mentions "parseSettings", treat it as the pipeline parseConfig.
 
+**Parse Config Field Semantics:**
+- When specifying parseConfig for pipelines, OMIT range fields (startRow, endRow, startColumn, endColumn) to parse the entire range.
+- NEVER set range fields to 0, as this is invalid and will cause validation errors.
+- startRow: 1-based, defaults to 1 if omitted
+- endRow: 1-based inclusive, omit to parse to last row
+- startColumn: 1-based, defaults to 1 if omitted
+- endColumn: 1-based inclusive, omit to parse to last column
+- hasHeaders: Defaults to true if omitted
+
  **Available Transformation Types (tool-callable):**
  - trim: Remove leading and trailing whitespace
  - uppercase: Convert text to uppercase
  - lowercase: Convert text to lowercase
  - deduplicate: Remove duplicate rows
- - filter: Keep only rows matching a condition
+ - filter: Keep only rows matching a condition (operators: equals, not_equals, contains, not_contains, greater_than, less_than, is_null, not_null)
  - rename_column: Rename a column
  - remove_column: Remove one or more columns
  - cast_column: Convert column values to a different data type
