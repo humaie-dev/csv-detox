@@ -554,7 +554,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
         description: `Now showing data from "${sheetName}"`,
       });
 
-      // Reload preview will happen automatically via useEffect
+      // Reload preview for the newly parsed sheet
+      await loadPreviewData();
     } catch (error) {
       toast({
         title: "Error",
