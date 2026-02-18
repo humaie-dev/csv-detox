@@ -58,12 +58,24 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const isLoading = status === "submitted" || status === "streaming";
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1]?.id : null;
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, []);
+    if (!lastMessageId && !isLoading) return;
+    if (!scrollRef.current) return;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "end",
+      });
+    });
+  }, [lastMessageId, isLoading]);
 
   const getMessageText = (message: UIMessage) => {
     const legacyMessage = message as UIMessage & { content?: string };
