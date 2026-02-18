@@ -299,7 +299,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
     }
   };
 
-  const _handleDeletePipeline = async (pipelineId: Id<"pipelines">, name: string) => {
+  const handleDeletePipeline = async (pipelineId: Id<"pipelines">, name: string) => {
     if (!confirm(`Are you sure you want to delete pipeline "${name}"?`)) {
       return;
     }
@@ -314,6 +314,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       if (selectedPipelineId === pipelineId) {
         setSelectedPipelineId(null);
         setSelectedStepIndex(null);
+        setIsAddStepDialogOpen(false);
+        setIsSettingsDialogOpen(false);
       }
     } catch (error) {
       toast({
@@ -733,6 +735,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold">Pipeline Steps</h2>
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        aria-label={`Delete pipeline ${selectedPipeline.name}`}
+                        onClick={() =>
+                          handleDeletePipeline(selectedPipeline._id, selectedPipeline.name)
+                        }
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
