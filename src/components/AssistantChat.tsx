@@ -4,11 +4,18 @@ import { useChat } from "@ai-sdk/react";
 import type { Id } from "@convex/dataModel";
 import { DefaultChatTransport, getToolName, isTextUIPart, isToolUIPart, type UIMessage } from "ai";
 import { Loader2, Send, Sparkles } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface AssistantChatProps {
@@ -26,6 +33,7 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
   const projectIdRef = useRef(projectId);
   const pipelineIdRef = useRef(pipelineId);
   const transportRef = useRef<DefaultChatTransport<UIMessage> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     projectIdRef.current = projectId;
@@ -81,16 +89,37 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
     return Array.from(new Set(toolNames));
   };
 
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const autosizeTextarea = (element: HTMLTextAreaElement) => {
+    element.style.height = "auto";
+    element.style.height = `${element.scrollHeight}px`;
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
+    autosizeTextarea(event.target);
+  };
+
+  const submitMessage = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+    setInput("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+    await sendMessage({ text: trimmed });
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
-    setInput("");
-    await sendMessage({ text: trimmed });
+    await submitMessage();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter") return;
+    if (event.shiftKey) return;
+    if (event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    void submitMessage();
   };
 
   return (
@@ -165,12 +194,15 @@ export function AssistantChat({ projectId, pipelineId, className }: AssistantCha
 
         <div className="border-t px-4 py-4">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
-            <Input
+            <Textarea
+              ref={textareaRef}
               value={input}
               onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
               placeholder="Ask a question..."
               disabled={isLoading}
-              className="flex-1"
+              rows={1}
+              className="max-h-40 flex-1 resize-none overflow-y-auto"
             />
             <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
               {isLoading ? (
