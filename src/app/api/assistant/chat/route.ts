@@ -1,8 +1,27 @@
+import crypto from "node:crypto";
 import { createAzure } from "@ai-sdk/azure";
+import { api } from "@convex/api";
+import type { Doc, Id } from "@convex/dataModel";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { z } from "zod";
-import { getConvexClient } from "@/lib/convex/client";
-import { getDatabase } from "@/lib/sqlite/database";
+import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
+import { transformationStepsSchema } from "@/lib/pipeline/assistantSchemas";
+import { TRANSFORMATION_TYPES } from "@/lib/pipeline/types";
+import { listUploadSheets } from "@/lib/services/sheets";
+import {
+  ensureLocalDatabase,
+  ensureLocalDatabaseForArtifact,
+  getArtifactForParseOptions,
+  getLocalDatabasePathForArtifact,
+  getParseOptionsJson,
+} from "@/lib/sqlite/artifacts";
+import {
+  closeDatabaseByKey,
+  deleteDatabase,
+  getDatabase,
+  getDatabaseFromPath,
+} from "@/lib/sqlite/database";
+import { isProjectDataInitialized, parseAndStoreFile } from "@/lib/sqlite/parser";
 import {
   getColumnStats,
   getDataSummary,
@@ -11,8 +30,7 @@ import {
   sampleRows,
   searchColumn,
 } from "@/lib/sqlite/sampling";
-import { api } from "../../../../../convex/_generated/api";
-import type { Doc, Id } from "../../../../../convex/_generated/dataModel";
+import { getParseConfig } from "@/lib/sqlite/schema";
 
 // Initialize Azure OpenAI
 const azure = createAzure({
@@ -54,12 +72,141 @@ export async function POST(req: Request) {
     }
 
     // Get database
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
+    if (!initialized) {
+      return Response.json(
+        { error: "Project data not initialized. Please parse the file first." },
+        { status: 400 },
+      );
+    }
+
+    await ensureLocalDatabase(projectIdTyped);
     const db = getDatabase(projectId);
+    const projectUploadId = project.uploadId;
 
     // Build system context
     const systemContext = buildSystemContext(project, pipelines, selectedPipeline);
 
     const tools = {
+      listSheets: {
+        description: "List sheet names in the uploaded Excel workbook",
+        inputSchema: z.object({}),
+        execute: async () => {
+          if (!projectUploadId) {
+            return { sheets: [], message: "No upload available for this project." };
+          }
+          try {
+            const sheets = await listUploadSheets(projectUploadId as Id<"uploads">);
+            return { sheets };
+          } catch (error) {
+            return {
+              sheets: [],
+              message:
+                error instanceof Error ? error.message : "Unable to list sheets for this file.",
+            };
+          }
+        },
+      },
+      getSheetSummary: {
+        description:
+          "Get summary data for a specific sheet in the uploaded file (parses on-demand)",
+        inputSchema: z.object({
+          sheetName: z.string(),
+          sampleSize: z.number().optional(),
+        }),
+        execute: async (params: { sheetName: string; sampleSize?: number }) => {
+          if (!projectUploadId) {
+            return { error: "No upload available for this project." };
+          }
+
+          const upload = await getUpload(projectUploadId as Id<"uploads">);
+          if (!upload) {
+            return { error: "Upload not found." };
+          }
+
+          const isExcel =
+            upload.mimeType ===
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+            upload.mimeType === "application/vnd.ms-excel";
+
+          if (!isExcel) {
+            return {
+              error: "This file is not an Excel workbook. CSV files do not have sheets.",
+            };
+          }
+
+          const parseOptions = {
+            ...upload.parseConfig,
+            sheetName: params.sheetName,
+          };
+          const parseOptionsJson = getParseOptionsJson(parseOptions);
+
+          const currentConfig = getParseConfig(db);
+          if (currentConfig?.sheetName === params.sheetName) {
+            const sampleSize = params.sampleSize ?? 5;
+            return getDataSummary(db, "raw_data", sampleSize);
+          }
+
+          const artifact = await getArtifactForParseOptions(projectIdTyped, parseOptions);
+          if (artifact) {
+            await ensureLocalDatabaseForArtifact(projectIdTyped, artifact);
+            const cacheKey = `${projectId}-sheet-${parseOptionsJson}`;
+            const sheetDb = getDatabaseFromPath(
+              getLocalDatabasePathForArtifact(projectIdTyped, artifact.artifactKey),
+              cacheKey,
+            );
+            try {
+              const sampleSize = params.sampleSize ?? 5;
+              return getDataSummary(sheetDb, "raw_data", sampleSize);
+            } finally {
+              closeDatabaseByKey(cacheKey);
+            }
+          }
+
+          const fileBuffer = await downloadFileFromConvex(upload.convexStorageId);
+          const parseHash = crypto
+            .createHash("sha256")
+            .update(parseOptionsJson)
+            .digest("hex")
+            .slice(0, 12);
+          const tempProjectId = `${projectId}-sheet-${parseHash}`;
+
+          await parseAndStoreFile(
+            tempProjectId as Id<"projects">,
+            fileBuffer,
+            upload.originalName,
+            upload.mimeType,
+            parseOptions,
+          );
+
+          const tempDb = getDatabase(tempProjectId);
+          try {
+            const sampleSize = params.sampleSize ?? 5;
+            return getDataSummary(tempDb, "raw_data", sampleSize);
+          } finally {
+            closeDatabaseByKey(tempProjectId);
+            deleteDatabase(tempProjectId);
+          }
+        },
+      },
+      getSheetColumnInfo: {
+        description:
+          "Get column metadata for a specific sheet in the uploaded file (parses on-demand)",
+        inputSchema: z.object({
+          sheetName: z.string(),
+        }),
+        execute: async (params: { sheetName: string }) => {
+          const summary = await tools.getSheetSummary.execute({
+            sheetName: params.sheetName,
+            sampleSize: 0,
+          });
+          if ("error" in summary) {
+            return summary;
+          }
+          return { columns: summary.columns, rowCount: summary.rowCount };
+        },
+      },
       getDataSummary: {
         description: "Get a summary of the data including row count, columns, and sample rows",
         inputSchema: z.object({
@@ -177,6 +324,260 @@ export async function POST(req: Request) {
           };
         },
       },
+      createPipeline: {
+        description: "Create a new pipeline (requires user approval)",
+        inputSchema: z.object({
+          name: z.string(),
+          steps: transformationStepsSchema.optional(),
+          parseConfig: z
+            .object({
+              sheetName: z
+                .string()
+                .optional()
+                .describe("Sheet name to parse (Excel only). Omit to use first sheet."),
+              sheetIndex: z
+                .number()
+                .int()
+                .nonnegative()
+                .optional()
+                .describe("Sheet index to parse (Excel only, 0-based). Omit to use first sheet."),
+              startRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First row to parse (1-based, inclusive). Omit to start from row 1. Default: 1",
+                ),
+              endRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last row to parse (1-based, inclusive). Omit to parse until the last row. Do NOT set to 0.",
+                ),
+              startColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First column to parse (1-based, inclusive). Omit to start from column 1. Default: 1",
+                ),
+              endColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last column to parse (1-based, inclusive). Omit to parse until the last column. Do NOT set to 0.",
+                ),
+              hasHeaders: z
+                .boolean()
+                .optional()
+                .describe("Whether the first row contains headers. Default: true"),
+            })
+            .optional(),
+          parseSettings: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().int().nonnegative().optional(),
+              startRow: z.number().int().positive().optional(),
+              endRow: z.number().int().positive().optional(),
+              startColumn: z.number().int().positive().optional(),
+              endColumn: z.number().int().positive().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: {
+          name: string;
+          steps?: z.infer<typeof transformationStepsSchema>;
+          parseConfig?: Doc<"pipelines">["parseConfig"];
+          parseSettings?: Doc<"pipelines">["parseConfig"];
+          confirmed: boolean;
+        }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before creating the pipeline.",
+            };
+          }
+
+          const parseConfig = params.parseConfig ?? params.parseSettings;
+          const normalizedParseConfig = parseConfig
+            ? {
+                sheetName: parseConfig.sheetName,
+                sheetIndex: parseConfig.sheetIndex,
+                // Normalize 0 to undefined (0 is invalid, omission means "default/all")
+                startRow: parseConfig.startRow === 0 ? undefined : parseConfig.startRow,
+                endRow: parseConfig.endRow === 0 ? undefined : parseConfig.endRow,
+                startColumn: parseConfig.startColumn === 0 ? undefined : parseConfig.startColumn,
+                endColumn: parseConfig.endColumn === 0 ? undefined : parseConfig.endColumn,
+                hasHeaders: parseConfig.hasHeaders ?? true,
+              }
+            : undefined;
+
+          const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
+          if (!stepsResult.success) {
+            return {
+              error: "Invalid pipeline steps",
+              message:
+                "One or more steps are not valid. Only known transformation step types are allowed.",
+              allowedTypes: TRANSFORMATION_TYPES,
+              details: stepsResult.error.errors,
+            };
+          }
+
+          const pipelineId = await convex.mutation(api.pipelines.create, {
+            projectId: projectId as Id<"projects">,
+            name: params.name,
+            steps: stepsResult.data as Doc<"pipelines">["steps"],
+            parseConfig: normalizedParseConfig,
+          });
+
+          return { pipelineId };
+        },
+      },
+      updatePipeline: {
+        description: "Update an existing pipeline (requires user approval)",
+        inputSchema: z.object({
+          pipelineId: z.string(),
+          steps: transformationStepsSchema.optional(),
+          parseConfig: z
+            .object({
+              sheetName: z
+                .string()
+                .optional()
+                .describe("Sheet name to parse (Excel only). Omit to use first sheet."),
+              sheetIndex: z
+                .number()
+                .int()
+                .nonnegative()
+                .optional()
+                .describe("Sheet index to parse (Excel only, 0-based). Omit to use first sheet."),
+              startRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First row to parse (1-based, inclusive). Omit to start from row 1. Default: 1",
+                ),
+              endRow: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last row to parse (1-based, inclusive). Omit to parse until the last row. Do NOT set to 0.",
+                ),
+              startColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "First column to parse (1-based, inclusive). Omit to start from column 1. Default: 1",
+                ),
+              endColumn: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                  "Last column to parse (1-based, inclusive). Omit to parse until the last column. Do NOT set to 0.",
+                ),
+              hasHeaders: z
+                .boolean()
+                .optional()
+                .describe("Whether the first row contains headers. Default: true"),
+            })
+            .optional(),
+          parseSettings: z
+            .object({
+              sheetName: z.string().optional(),
+              sheetIndex: z.number().int().nonnegative().optional(),
+              startRow: z.number().int().positive().optional(),
+              endRow: z.number().int().positive().optional(),
+              startColumn: z.number().int().positive().optional(),
+              endColumn: z.number().int().positive().optional(),
+              hasHeaders: z.boolean().optional(),
+            })
+            .optional(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: {
+          pipelineId: string;
+          steps?: z.infer<typeof transformationStepsSchema>;
+          parseConfig?: Doc<"pipelines">["parseConfig"];
+          parseSettings?: Doc<"pipelines">["parseConfig"];
+          confirmed: boolean;
+        }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before updating the pipeline.",
+            };
+          }
+
+          const parseConfig = params.parseConfig ?? params.parseSettings;
+          const normalizedParseConfig = parseConfig
+            ? {
+                sheetName: parseConfig.sheetName,
+                sheetIndex: parseConfig.sheetIndex,
+                // Normalize 0 to undefined (0 is invalid, omission means "default/all")
+                startRow: parseConfig.startRow === 0 ? undefined : parseConfig.startRow,
+                endRow: parseConfig.endRow === 0 ? undefined : parseConfig.endRow,
+                startColumn: parseConfig.startColumn === 0 ? undefined : parseConfig.startColumn,
+                endColumn: parseConfig.endColumn === 0 ? undefined : parseConfig.endColumn,
+                hasHeaders: parseConfig.hasHeaders ?? true,
+              }
+            : undefined;
+
+          const stepsResult = transformationStepsSchema.safeParse(params.steps ?? []);
+          if (!stepsResult.success) {
+            return {
+              error: "Invalid pipeline steps",
+              message:
+                "One or more steps are not valid. Only known transformation step types are allowed.",
+              allowedTypes: TRANSFORMATION_TYPES,
+              details: stepsResult.error.errors,
+            };
+          }
+
+          await convex.mutation(api.pipelines.update, {
+            id: params.pipelineId as Id<"pipelines">,
+            steps: stepsResult.data as Doc<"pipelines">["steps"] | undefined,
+            parseConfig: normalizedParseConfig,
+          });
+
+          return { success: true };
+        },
+      },
+      deletePipeline: {
+        description: "Delete a pipeline (requires user approval)",
+        inputSchema: z.object({
+          pipelineId: z.string(),
+          confirmed: z.boolean().describe("Set true after user approval"),
+        }),
+        execute: async (params: { pipelineId: string; confirmed: boolean }) => {
+          if (!params.confirmed) {
+            return {
+              error: "User approval required",
+              message: "Ask the user to confirm before deleting the pipeline.",
+            };
+          }
+
+          await convex.mutation(api.pipelines.remove, {
+            id: params.pipelineId as Id<"pipelines">,
+          });
+
+          return { success: true };
+        },
+      },
     };
 
     const hasUiParts = Array.isArray(messages) && messages[0] && "parts" in messages[0];
@@ -221,14 +622,27 @@ export async function POST(req: Request) {
  * Build system context for the AI assistant
  */
 function buildSystemContext(
-  project: Doc<"projects">,
+  project: ProjectWithUpload,
   pipelines: Doc<"pipelines">[],
   selectedPipeline: Doc<"pipelines"> | null,
 ): string {
+  const upload = project.upload ?? null;
+  const fileContext = upload
+    ? `**Uploaded File Context:**
+- Original name: ${upload.originalName}
+- File type: ${upload.mimeType}
+- Size: ${upload.size} bytes
+- Storage id: ${upload.convexStorageId}
+- Parse config: ${upload.parseConfig ? JSON.stringify(upload.parseConfig) : "none"}
+`
+    : "**Uploaded File Context:** none";
+
   const context = `You are an AI assistant for CSV Detox, a data transformation tool. You're helping the user analyze and transform their data.
 
 **Current Project:**
 - Name: ${project.name}
+
+${fileContext}
 
 **Available Pipelines:** ${pipelines.length}
 ${pipelines.map((p, i) => `${i + 1}. ${p.name} (${p.steps.length} steps)`).join("\n")}
@@ -246,21 +660,43 @@ ${selectedPipeline.steps.map((s, i) => `  ${i + 1}. ${s.type}`).join("\n")}`
 2. **Pipeline Assistance:** Help users understand pipelines and suggest transformations
 3. **Data Insights:** Answer questions about the data structure and content
 
-**Available Transformation Types:**
-- filter_rows: Filter rows based on conditions
-- select_columns: Select specific columns
-- rename_columns: Rename columns
-- sort_rows: Sort rows by column
-- remove_duplicates: Remove duplicate rows
-- fill_nulls: Fill null values
-- drop_nulls: Drop rows with nulls
-- convert_types: Convert column types
-- add_column: Add calculated columns
-- split_column: Split column into multiple
-- merge_columns: Merge multiple columns
-- replace_values: Replace specific values
-- trim_whitespace: Remove whitespace
-- extract_pattern: Extract text patterns
+**User Context Rules:**
+- The user always speaks in the context of the original uploaded file, not SQLite tables.
+- Translate user requests about the file/sheets into the appropriate tool calls.
+- Use SQLite-backed tools to inspect data; do not attempt to load full sheets into context.
+- If a request requires too much data to include and cannot be answered via sampling or aggregation, clearly explain the limitation.
+- Any pipeline changes (create/update/delete) require explicit user approval before executing.
+
+**Confirmation UX Pattern (Pipelines):**
+- Before calling create/update/delete pipeline tools, present a short change summary and ask for confirmation.
+- Require a clear user confirmation (e.g., "Confirm: create pipeline <name>" / "Confirm: update pipeline <id>" / "Confirm: delete pipeline <id>") before proceeding.
+- When the user mentions "parseSettings", treat it as the pipeline parseConfig.
+
+**Parse Config Field Semantics:**
+- When specifying parseConfig for pipelines, OMIT range fields (startRow, endRow, startColumn, endColumn) to parse the entire range.
+- NEVER set range fields to 0, as this is invalid and will cause validation errors.
+- startRow: 1-based, defaults to 1 if omitted
+- endRow: 1-based inclusive, omit to parse to last row
+- startColumn: 1-based, defaults to 1 if omitted
+- endColumn: 1-based inclusive, omit to parse to last column
+- hasHeaders: Defaults to true if omitted
+
+ **Available Transformation Types (tool-callable):**
+ - trim: Remove leading and trailing whitespace
+ - uppercase: Convert text to uppercase
+ - lowercase: Convert text to lowercase
+ - deduplicate: Remove duplicate rows
+ - filter: Keep only rows matching a condition (operators: equals, not_equals, contains, not_contains, greater_than, less_than, is_null, not_null)
+ - rename_column: Rename a column
+ - remove_column: Remove one or more columns
+ - cast_column: Convert column values to a different data type
+ - unpivot: Convert columns into rows (wide → long)
+ - pivot: Convert rows into columns (long → wide)
+ - split_column: Split one column into multiple columns
+ - merge_columns: Combine multiple columns into one
+ - fill_down: Fill empty cells with value from above
+ - fill_across: Fill empty cells with value from left
+ - sort: Sort rows by one or more columns
 
 **Guidelines:**
 - Always sample data before making recommendations
@@ -273,3 +709,13 @@ When the user asks for help with transformations, analyze their data first, then
 
   return context;
 }
+
+type ProjectWithUpload = Doc<"projects"> & {
+  upload?: {
+    originalName: string;
+    mimeType: string;
+    size: number;
+    convexStorageId: Id<"_storage">;
+    parseConfig?: Doc<"uploads">["parseConfig"];
+  } | null;
+};

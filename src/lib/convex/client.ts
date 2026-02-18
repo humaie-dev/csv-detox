@@ -3,15 +3,16 @@
  * This allows API routes to fetch data from Convex
  */
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 
-// Get Convex URL from environment
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
-
-if (!CONVEX_URL) {
-  throw new Error("NEXT_PUBLIC_CONVEX_URL environment variable is required");
+function getConvexUrl(): string {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL environment variable is required");
+  }
+  return url;
 }
 
 // Create singleton client
@@ -19,10 +20,8 @@ let convexClient: ConvexHttpClient | null = null;
 
 export function getConvexClient(): ConvexHttpClient {
   if (!convexClient) {
-    if (!CONVEX_URL) {
-      throw new Error("NEXT_PUBLIC_CONVEX_URL is not defined");
-    }
-    convexClient = new ConvexHttpClient(CONVEX_URL);
+    const url = getConvexUrl();
+    convexClient = new ConvexHttpClient(url);
   }
   return convexClient;
 }
@@ -48,6 +47,33 @@ export async function downloadFileFromConvex(storageId: Id<"_storage">): Promise
   }
 
   return response.arrayBuffer();
+}
+
+/**
+ * Store a file in Convex Storage
+ */
+export async function storeFileInConvex(
+  fileBuffer: ArrayBuffer,
+  contentType: string,
+  _sha256?: string,
+): Promise<Id<"_storage">> {
+  const client = getConvexClient();
+
+  const uploadUrl = await client.mutation(api.uploads.generateUploadUrl, {});
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: fileBuffer,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload file: ${response.statusText}`);
+  }
+
+  const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+  return storageId;
 }
 
 /**

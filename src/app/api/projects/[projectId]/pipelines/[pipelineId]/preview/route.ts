@@ -1,15 +1,19 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
 import type { ParseOptions, ParseResult } from "@/lib/parsers/types";
+import { transformationStepsSchema } from "@/lib/pipeline/assistantSchemas";
 import { executePipeline, executeUntilStep } from "@/lib/pipeline/executor";
 import type { ExecutionResult, TransformationStep } from "@/lib/pipeline/types";
+import { TRANSFORMATION_TYPES } from "@/lib/pipeline/types";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
-import { getParseConfig, isInitialized } from "@/lib/sqlite/schema";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
+import { getParseConfig } from "@/lib/sqlite/schema";
 
 const requestSchema = z.object({
   upToStep: z.number().int().min(-1).nullable().optional(), // -1 means raw data, null/undefined means all steps
@@ -66,10 +70,8 @@ export async function POST(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
@@ -77,12 +79,30 @@ export async function POST(
       );
     }
 
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
+
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);
 
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse =
-      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
+    const parseConfigKeys: Array<keyof NonNullable<typeof pipeline.parseConfig>> = [
+      "sheetName",
+      "sheetIndex",
+      "startRow",
+      "endRow",
+      "startColumn",
+      "endColumn",
+      "hasHeaders",
+    ];
+    const needsCustomParse = Boolean(
+      pipeline.parseConfig &&
+        parseConfigKeys.some(
+          (key) =>
+            pipeline.parseConfig?.[key] !==
+            (currentParseConfig?.[key as keyof typeof currentParseConfig] ?? undefined),
+        ),
+    );
 
     let parseResult: ParseResult;
 
@@ -146,12 +166,28 @@ export async function POST(
       });
     }
 
+    const stepValidation = transformationStepsSchema.safeParse(
+      pipeline.steps.map((step) => ({
+        id: step.id,
+        type: step.type,
+        config: step.config,
+      })),
+    );
+    if (!stepValidation.success) {
+      return NextResponse.json(
+        {
+          error: "Pipeline contains invalid steps",
+          message:
+            "This pipeline contains one or more unknown or invalid transformation steps. Please remove or fix the invalid steps.",
+          allowedTypes: TRANSFORMATION_TYPES,
+          details: stepValidation.error.errors,
+        },
+        { status: 400 },
+      );
+    }
+
     // Convert Convex steps to TransformationStep format
-    const transformationSteps: TransformationStep[] = pipeline.steps.map((step) => ({
-      id: step.id,
-      type: step.type as TransformationStep["type"],
-      config: step.config as TransformationStep["config"],
-    }));
+    const transformationSteps: TransformationStep[] = stepValidation.data;
 
     // Execute pipeline
     let executionResult: ExecutionResult;

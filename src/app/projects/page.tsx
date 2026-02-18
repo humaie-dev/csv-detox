@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@convex/api";
 import { useQuery } from "convex/react";
 import { Calendar, FileSpreadsheet, Layers, Plus } from "lucide-react";
 import Link from "next/link";
@@ -7,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "../../../convex/_generated/api";
 
 export default function ProjectsPage() {
   const projects = useQuery(api.projects.list);

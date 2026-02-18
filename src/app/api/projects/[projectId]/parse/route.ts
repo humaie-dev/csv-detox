@@ -3,14 +3,15 @@
  * Parse uploaded file and store in SQLite database
  */
 
+import type { Id } from "@convex/dataModel";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { downloadFileFromConvex, getProject, getUpload } from "@/lib/convex/client";
 import type { ParseOptions } from "@/lib/parsers/types";
-import { getDatabase } from "@/lib/sqlite/database";
-import { isProjectDataInitialized, parseAndStoreFile } from "@/lib/sqlite/parser";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
+import { getColumns, getDatabase, getRowCount } from "@/lib/sqlite/database";
+import { isProjectDataInitialized, parseStoreAndPersist } from "@/lib/sqlite/parser";
 import { getParseConfig } from "@/lib/sqlite/schema";
-import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 // Validation schema for request body
 const ParseRequestSchema = z.object({
@@ -33,11 +34,11 @@ const ParseRequestSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string }> },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
-    const params = await context.params;
-    const projectId = params.projectId as Id<"projects">;
+    const { projectId } = await params;
+    const projectIdTyped = projectId as Id<"projects">;
 
     // Parse and validate request body
     const body = await request.json();
@@ -51,16 +52,33 @@ export async function POST(
     }
 
     const { force, parseOptions } = parsed.data;
+    const normalizedParseOptions =
+      parseOptions?.sheetIndex !== undefined && parseOptions.sheetName === undefined
+        ? { ...parseOptions, sheetName: `sheet:${parseOptions.sheetIndex}` }
+        : parseOptions;
 
-    // Check if sheet has changed (auto-force re-parse if so)
+    // Check if parse config has changed (auto-force re-parse if so)
     let shouldForce = force || false;
-    if (parseOptions?.sheetName && isProjectDataInitialized(projectId)) {
+    if (normalizedParseOptions && (await isProjectDataInitialized(projectIdTyped))) {
       try {
+        await ensureLocalDatabase(projectIdTyped);
         const db = getDatabase(projectId);
         const currentConfig = getParseConfig(db);
-        if (currentConfig && currentConfig.sheetName !== parseOptions.sheetName) {
-          shouldForce = true;
-        }
+        const parseConfigKeys: Array<keyof typeof normalizedParseOptions> = [
+          "sheetName",
+          "sheetIndex",
+          "startRow",
+          "endRow",
+          "startColumn",
+          "endColumn",
+          "hasHeaders",
+          "delimiter",
+        ];
+        shouldForce = parseConfigKeys.some((key) => {
+          const currentValue = currentConfig?.[key as keyof typeof currentConfig];
+          const nextValue = normalizedParseOptions[key];
+          return currentValue !== nextValue;
+        });
       } catch (error) {
         // If we can't read config, proceed normally
         console.warn("Could not check sheet change:", error);
@@ -68,7 +86,8 @@ export async function POST(
     }
 
     // Check if already initialized (unless force=true or sheet changed)
-    if (!shouldForce && isProjectDataInitialized(projectId)) {
+    if (!shouldForce && (await isProjectDataInitialized(projectIdTyped))) {
+      await ensureLocalDatabase(projectIdTyped);
       return NextResponse.json(
         {
           success: true,
@@ -80,7 +99,7 @@ export async function POST(
     }
 
     // Get project metadata from Convex
-    const project = await getProject(projectId);
+    const project = await getProject(projectIdTyped);
 
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -99,13 +118,14 @@ export async function POST(
     // Merge parse options (request options override upload options)
     const finalParseOptions: ParseOptions = {
       ...upload.parseConfig,
-      ...parseOptions,
+      ...normalizedParseOptions,
     };
 
     // Parse and store in SQLite
     const startTime = Date.now();
-    const result = await parseAndStoreFile(
-      projectId,
+    await parseStoreAndPersist(
+      projectIdTyped,
+      project.uploadId,
       fileBuffer,
       upload.originalName,
       upload.mimeType,
@@ -113,11 +133,16 @@ export async function POST(
     );
     const duration = Date.now() - startTime;
 
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
+    const columns = getColumns(db);
+    const rowCount = getRowCount(db);
+
     return NextResponse.json({
       success: true,
-      rowCount: result.rowCount,
-      columnCount: result.columns.length,
-      columns: result.columns,
+      rowCount,
+      columnCount: columns.length,
+      columns,
       parseTimeMs: duration,
     });
   } catch (error) {
@@ -136,13 +161,16 @@ export async function POST(
 // GET endpoint to check parse status
 export async function GET(
   _request: NextRequest,
-  context: { params: Promise<{ projectId: string }> },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
-    const params = await context.params;
-    const projectId = params.projectId as Id<"projects">;
+    const { projectId } = await params;
+    const projectIdTyped = projectId as Id<"projects">;
 
-    const initialized = isProjectDataInitialized(projectId);
+    const initialized = await isProjectDataInitialized(projectIdTyped);
+    if (initialized) {
+      await ensureLocalDatabase(projectIdTyped);
+    }
 
     return NextResponse.json({
       initialized,

@@ -6,4 +6,4 @@ default_agent: build
 # Global settings
 settings:
   guides_directory: docs/agent-guides
-  skills_directory: .opencode/skills
+  skills_directory: .agents/skills

@@ -25,6 +25,81 @@ export function listSheets(buffer: ArrayBuffer): string[] {
 }
 
 /**
+ * Fill merged cell values from top-left cell to all covered cells
+ * Handles both dense (array-based) and sparse (object-based) worksheet formats
+ */
+function fillMergedCells(worksheet: XLSX.WorkSheet, range: XLSX.Range): void {
+  // Check if there are any merged ranges
+  if (!worksheet["!merges"] || worksheet["!merges"].length === 0) {
+    return;
+  }
+
+  // Check if worksheet is in dense mode (array-based) or sparse mode (object-based)
+  const isDense = Array.isArray(worksheet);
+
+  // Process each merge range
+  for (const merge of worksheet["!merges"]) {
+    // Check if merge intersects with the current data range
+    if (
+      merge.s.r > range.e.r ||
+      merge.e.r < range.s.r ||
+      merge.s.c > range.e.c ||
+      merge.e.c < range.s.c
+    ) {
+      continue; // Skip merges outside the range
+    }
+
+    // Get the top-left cell value
+    const topLeftCell = isDense
+      ? (worksheet as unknown[][])[merge.s.r]?.[merge.s.c]
+      : worksheet[XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c })];
+
+    // If top-left cell has no value, skip this merge
+    // (we can't fill covered cells with an empty/undefined value)
+    if (!topLeftCell) {
+      continue;
+    }
+
+    // Fill all cells in the merge range with the top-left cell value
+    // Only fill empty cells - don't overwrite existing values
+    for (let r = merge.s.r; r <= merge.e.r; r++) {
+      for (let c = merge.s.c; c <= merge.e.c; c++) {
+        // Skip the top-left cell itself
+        if (r === merge.s.r && c === merge.s.c) {
+          continue;
+        }
+
+        // Check if the cell already has a value
+        const existingCell = isDense
+          ? (worksheet as unknown[][])[r]?.[c]
+          : worksheet[XLSX.utils.encode_cell({ r, c })];
+
+        // Only fill if the cell is empty or has an empty string value
+        if (
+          !existingCell ||
+          existingCell.v === "" ||
+          existingCell.v === null ||
+          existingCell.v === undefined
+        ) {
+          // Copy the top-left cell to this position
+          // Create a new object to avoid reference issues
+          if (isDense) {
+            // In dense mode, ensure the row array exists
+            const ws = worksheet as unknown[][];
+            if (!ws[r]) ws[r] = [];
+            ws[r][c] = { ...topLeftCell };
+          } else {
+            // In sparse mode, use cell address
+            const cellAddr = XLSX.utils.encode_cell({ r, c });
+            worksheet[cellAddr] = { ...topLeftCell };
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
  * Parse Excel content into structured data
  */
 export function parseExcel(buffer: ArrayBuffer, options: ParseOptions = {}): ParseResult {
@@ -129,6 +204,9 @@ export function parseExcel(buffer: ArrayBuffer, options: ParseOptions = {}): Par
       throw new ParseError("No data in specified range", "EMPTY_RANGE");
     }
 
+    // Fill merged cells with values from top-left cell
+    fillMergedCells(worksheet, range);
+
     // Convert range to array of arrays
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
       range: range,
@@ -165,21 +243,25 @@ export function parseExcel(buffer: ArrayBuffer, options: ParseOptions = {}): Par
       throw new ParseError("No columns found in specified range", "NO_COLUMNS");
     }
 
-    // Check for duplicate headers
-    const headerSet = new Set<string>();
+    // Deduplicate headers by adding suffixes (_1, _2, etc.)
+    const headerCounts = new Map<string, number>();
+    const warnings: string[] = [];
     const duplicates: string[] = [];
-    headers.forEach((header) => {
-      if (headerSet.has(header)) {
+
+    headers = headers.map((header) => {
+      const count = headerCounts.get(header) || 0;
+      headerCounts.set(header, count + 1);
+
+      if (count > 0) {
         duplicates.push(header);
+        return `${header}_${count}`;
       }
-      headerSet.add(header);
+      return header;
     });
 
-    const warnings: string[] = [];
     if (duplicates.length > 0) {
       warnings.push(
-        `Duplicate column names found: ${duplicates.join(", ")}. ` +
-          `Later columns will overwrite earlier ones.`,
+        `Duplicate column names found and disambiguated: ${[...new Set(duplicates)].join(", ")}`,
       );
     }
 

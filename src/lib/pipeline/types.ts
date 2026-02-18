@@ -10,22 +10,25 @@ export type { ParseResult, ColumnMetadata };
 /**
  * Transformation operation types
  */
-export type TransformationType =
-  | "trim"
-  | "uppercase"
-  | "lowercase"
-  | "deduplicate"
-  | "filter"
-  | "rename_column"
-  | "remove_column"
-  | "unpivot"
-  | "pivot"
-  | "split_column"
-  | "merge_columns"
-  | "cast_column"
-  | "fill_down"
-  | "fill_across"
-  | "sort";
+export const TRANSFORMATION_TYPES = [
+  "trim",
+  "uppercase",
+  "lowercase",
+  "deduplicate",
+  "filter",
+  "rename_column",
+  "remove_column",
+  "unpivot",
+  "pivot",
+  "split_column",
+  "merge_columns",
+  "cast_column",
+  "fill_down",
+  "fill_across",
+  "sort",
+] as const;
+
+export type TransformationType = (typeof TRANSFORMATION_TYPES)[number];
 
 /**
  * Base transformation step
@@ -79,8 +82,16 @@ export interface DeduplicateConfig {
 export interface FilterConfig {
   type: "filter";
   column: string;
-  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
-  value: string | number | boolean;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "not_contains"
+    | "greater_than"
+    | "less_than"
+    | "is_null"
+    | "not_null";
+  value?: string | number | boolean; // Optional for is_null/not_null operators
 }
 
 export interface RenameColumnConfig {

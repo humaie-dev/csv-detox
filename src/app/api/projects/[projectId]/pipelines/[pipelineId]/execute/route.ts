@@ -1,20 +1,23 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import type Database from "better-sqlite3";
 import { type NextRequest, NextResponse } from "next/server";
 import { downloadFileFromConvex, getConvexClient, getUpload } from "@/lib/convex/client";
 import { parseCSV } from "@/lib/parsers/csv";
 import { parseExcel } from "@/lib/parsers/excel";
 import type { ColumnMetadata, ParseOptions, ParseResult } from "@/lib/parsers/types";
+import { transformationStepsSchema } from "@/lib/pipeline/assistantSchemas";
 import { executePipeline } from "@/lib/pipeline/executor";
 import type { TransformationStep } from "@/lib/pipeline/types";
-import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import { TRANSFORMATION_TYPES } from "@/lib/pipeline/types";
 import {
-  createPipelineTables,
-  dropPipelineTables,
-  getParseConfig,
-  isInitialized,
-} from "@/lib/sqlite/schema";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
+  ensureLocalDatabase,
+  finalizeDatabaseForArtifact,
+  storeDatabaseArtifact,
+} from "@/lib/sqlite/artifacts";
+import { getColumns, getDatabase, getRawData, getRowCount } from "@/lib/sqlite/database";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
+import { createPipelineTables, dropPipelineTables, getParseConfig } from "@/lib/sqlite/schema";
 
 /**
  * Execute full pipeline and store results in SQLite
@@ -57,10 +60,8 @@ export async function POST(
     }
 
     // Get database
-    const db = getDatabase(projectId);
-
-    // Check if data is initialized
-    const initialized = isInitialized(db);
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
     if (!initialized) {
       return NextResponse.json(
         { error: "Project data not initialized. Please parse the file first." },
@@ -68,12 +69,30 @@ export async function POST(
       );
     }
 
+    await ensureLocalDatabase(projectIdTyped);
+    const db = getDatabase(projectId);
+
     // Get current project parse config
     const currentParseConfig = getParseConfig(db);
 
     // Check if pipeline has custom parseConfig that differs from project default
-    const needsCustomParse =
-      pipeline.parseConfig && pipeline.parseConfig.sheetName !== currentParseConfig?.sheetName;
+    const parseConfigKeys: Array<keyof NonNullable<typeof pipeline.parseConfig>> = [
+      "sheetName",
+      "sheetIndex",
+      "startRow",
+      "endRow",
+      "startColumn",
+      "endColumn",
+      "hasHeaders",
+    ];
+    const needsCustomParse = Boolean(
+      pipeline.parseConfig &&
+        parseConfigKeys.some(
+          (key) =>
+            pipeline.parseConfig?.[key] !==
+            (currentParseConfig?.[key as keyof typeof currentParseConfig] ?? undefined),
+        ),
+    );
 
     let parseResult: ParseResult;
 
@@ -131,6 +150,14 @@ export async function POST(
 
       const duration = Date.now() - startTime;
 
+      finalizeDatabaseForArtifact(projectIdTyped, db);
+      await storeDatabaseArtifact({
+        projectId: projectIdTyped,
+        uploadId: project.uploadId,
+        parseOptions: undefined,
+        databaseProjectId: projectId,
+      });
+
       return NextResponse.json({
         success: true,
         rowCount: parseResult.rowCount,
@@ -142,11 +169,29 @@ export async function POST(
     }
 
     // Convert Convex steps to TransformationStep format
-    const transformationSteps: TransformationStep[] = pipeline.steps.map((step) => ({
-      id: step.id,
-      type: step.type as TransformationStep["type"],
-      config: step.config as TransformationStep["config"],
-    }));
+    const stepValidation = transformationStepsSchema.safeParse(
+      pipeline.steps.map((step) => ({
+        id: step.id,
+        type: step.type,
+        config: step.config,
+      })),
+    );
+    if (!stepValidation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Pipeline contains invalid steps",
+          message:
+            "This pipeline contains one or more unknown or invalid transformation steps. Please remove or fix the invalid steps.",
+          allowedTypes: TRANSFORMATION_TYPES,
+          details: stepValidation.error.errors,
+          duration: Date.now() - startTime,
+        },
+        { status: 400 },
+      );
+    }
+
+    const transformationSteps: TransformationStep[] = stepValidation.data;
 
     // Execute full pipeline
     const executionResult = executePipeline(parseResult, transformationSteps);
@@ -174,6 +219,14 @@ export async function POST(
 
     // Store results in SQLite
     storePipelineResults(db, pipelineId, executionResult.table.rows, executionResult.table.columns);
+
+    finalizeDatabaseForArtifact(projectIdTyped, db);
+    await storeDatabaseArtifact({
+      projectId: projectIdTyped,
+      uploadId: project.uploadId,
+      parseOptions: undefined,
+      databaseProjectId: projectId,
+    });
 
     const duration = Date.now() - startTime;
 

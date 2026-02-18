@@ -3,6 +3,7 @@
  */
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import Database from "better-sqlite3";
 import { getDatabaseCache } from "./cache";
@@ -10,14 +11,16 @@ import { initializeSchema } from "./schema";
 import type { ColumnMetadata, RawDataRow } from "./types";
 
 // Database directory (configurable via env)
-const DB_DIR = process.env.SQLITE_DB_DIR || path.join(process.cwd(), "data", "sqlite");
+function resolveDatabaseDirectory(): string {
+  return process.env.SQLITE_DB_DIR || path.join(os.tmpdir(), "csvdetox-sqlite");
+}
 
 /**
  * Ensure database directory exists
  */
-function ensureDbDirectory(): void {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+function ensureDbDirectory(dbDir: string): void {
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
   }
 }
 
@@ -25,8 +28,18 @@ function ensureDbDirectory(): void {
  * Get database file path for a project
  */
 export function getDatabasePath(projectId: string): string {
-  ensureDbDirectory();
-  return path.join(DB_DIR, `${projectId}.db`);
+  const dbDir = resolveDatabaseDirectory();
+  ensureDbDirectory(dbDir);
+  return path.join(dbDir, `${projectId}.db`);
+}
+
+/**
+ * Get database directory
+ */
+export function getDatabaseDirectory(): string {
+  const dbDir = resolveDatabaseDirectory();
+  ensureDbDirectory(dbDir);
+  return dbDir;
 }
 
 /**
@@ -65,6 +78,48 @@ export function getDatabase(projectId: string): Database.Database {
 }
 
 /**
+ * Open database from an explicit file path
+ */
+export function getDatabaseFromPath(dbPath: string, cacheKey: string): Database.Database {
+  const cache = getDatabaseCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const isNewDb = !fs.existsSync(dbPath);
+  const db = new Database(dbPath, {
+    readonly: false,
+    fileMustExist: false,
+    timeout: 5000,
+    verbose: process.env.NODE_ENV === "development" ? console.info : undefined,
+  });
+
+  if (isNewDb) {
+    initializeSchema(db);
+  }
+
+  cache.set(cacheKey, db);
+  return db;
+}
+
+export function closeDatabaseByKey(cacheKey: string): void {
+  const cache = getDatabaseCache();
+  cache.remove(cacheKey);
+}
+
+/**
+ * Ensure database file is flushed to disk
+ */
+export function checkpointDatabase(db: Database.Database): void {
+  try {
+    db.pragma("wal_checkpoint(TRUNCATE)");
+  } catch (error) {
+    console.warn("Failed to checkpoint WAL:", error);
+  }
+}
+
+/**
  * Close database and remove from cache
  */
 export function closeDatabase(projectId: string): void {
@@ -81,18 +136,17 @@ export function deleteDatabase(projectId: string): void {
 
   // Delete file
   const dbPath = getDatabasePath(projectId);
+  const walPath = `${dbPath}-wal`;
+  const shmPath = `${dbPath}-shm`;
+
+  if (fs.existsSync(walPath)) {
+    fs.unlinkSync(walPath);
+  }
+  if (fs.existsSync(shmPath)) {
+    fs.unlinkSync(shmPath);
+  }
   if (fs.existsSync(dbPath)) {
     fs.unlinkSync(dbPath);
-
-    // Also delete WAL and SHM files if they exist
-    const walPath = `${dbPath}-wal`;
-    const shmPath = `${dbPath}-shm`;
-    if (fs.existsSync(walPath)) {
-      fs.unlinkSync(walPath);
-    }
-    if (fs.existsSync(shmPath)) {
-      fs.unlinkSync(shmPath);
-    }
   }
 }
 

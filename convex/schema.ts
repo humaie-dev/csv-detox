@@ -57,4 +57,17 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_created", ["createdAt"]),
+
+  sqliteArtifacts: defineTable({
+    projectId: v.id("projects"),
+    uploadId: v.id("uploads"),
+    storageId: v.id("_storage"),
+    artifactKey: v.string(),
+    parseOptionsJson: v.string(),
+    sha256: v.string(),
+    size: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_created", ["projectId", "createdAt"]),
 });

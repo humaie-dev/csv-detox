@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useMutation } from "convex/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -17,8 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 
 type ParseConfig = {
   sheetName?: string;

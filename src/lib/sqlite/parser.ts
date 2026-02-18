@@ -3,11 +3,16 @@
  * Parses CSV/Excel files and stores results in SQLite database
  */
 
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@convex/dataModel";
 import { parseCSV } from "../parsers/csv";
 import { parseExcel } from "../parsers/excel";
 import type { ParseOptions, ParseResult } from "../parsers/types";
 import { ParseError } from "../parsers/types";
+import {
+  finalizeDatabaseForArtifact,
+  getLatestArtifact,
+  storeDatabaseArtifact,
+} from "../sqlite/artifacts";
 import {
   clearAllData,
   databaseExists,
@@ -122,13 +127,49 @@ export async function parseAndStoreFile(
 }
 
 /**
+ * Parse file, store in SQLite, and persist database as Convex artifact
+ */
+export async function parseStoreAndPersist(
+  projectId: Id<"projects">,
+  uploadId: Id<"uploads">,
+  fileBuffer: ArrayBuffer,
+  originalName: string,
+  mimeType: string,
+  parseOptions?: ParseOptions,
+): Promise<{ rowCount: number; columns: SQLiteColumnMetadata[] }> {
+  const result = await parseAndStoreFile(
+    projectId,
+    fileBuffer,
+    originalName,
+    mimeType,
+    parseOptions,
+  );
+
+  const db = getDatabase(projectId);
+  finalizeDatabaseForArtifact(projectId, db);
+  await storeDatabaseArtifact({
+    projectId,
+    uploadId,
+    parseOptions,
+    databaseProjectId: projectId,
+  });
+
+  return result;
+}
+
+/**
  * Check if project database has been initialized with data
  */
-export function isProjectDataInitialized(projectId: Id<"projects">): boolean {
-  if (!databaseExists(projectId)) {
+export async function isProjectDataInitialized(projectId: Id<"projects">): Promise<boolean> {
+  if (databaseExists(projectId)) {
+    const db = getDatabase(projectId);
+    return isInitialized(db);
+  }
+
+  if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return false;
   }
 
-  const db = getDatabase(projectId);
-  return isInitialized(db);
+  const artifact = await getLatestArtifact(projectId);
+  return Boolean(artifact);
 }

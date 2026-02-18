@@ -50,6 +50,25 @@ export function initializeSchema(db: Database): void {
 }
 
 /**
+ * Prepare database for export to a single file
+ */
+export function prepareDatabaseForExport(db: Database): void {
+  db.pragma("journal_mode = DELETE");
+  db.pragma("synchronous = FULL");
+  db.pragma("wal_checkpoint(TRUNCATE)");
+  db.exec("VACUUM");
+}
+
+/**
+ * Check if database has any data
+ */
+export function hasDatabaseData(db: Database): boolean {
+  const stmt = db.prepare(`SELECT COUNT(*) as count FROM raw_data`);
+  const result = stmt.get() as { count: number };
+  return result.count > 0;
+}
+
+/**
  * Sanitize pipeline ID for use in table names
  * SQLite table names can't contain hyphens
  */
@@ -122,9 +141,7 @@ export function getParseConfig(db: Database): ParseConfig | null {
  * Check if database has been initialized with data
  */
 export function isInitialized(db: Database): boolean {
-  const stmt = db.prepare(`SELECT COUNT(*) as count FROM raw_data`);
-  const result = stmt.get() as { count: number };
-  return result.count > 0;
+  return hasDatabaseData(db);
 }
 
 /**

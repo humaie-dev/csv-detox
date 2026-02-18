@@ -24,6 +24,7 @@ out/
 # Build output
 dist/
 build/
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -34,3 +35,6 @@ public/duckdb/
 .vercel
 
 data/sqlite/
+
+playwright-report
+test-results

@@ -1,10 +1,12 @@
+import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import type Database from "better-sqlite3";
 import { type NextRequest, NextResponse } from "next/server";
 import { getConvexClient } from "@/lib/convex/client";
+import { ensureLocalDatabase } from "@/lib/sqlite/artifacts";
 import { getDatabase } from "@/lib/sqlite/database";
+import { isProjectDataInitialized } from "@/lib/sqlite/parser";
 import type { ColumnMetadata, RawDataRow } from "@/lib/sqlite/types";
-import { api } from "../../../../../../../../convex/_generated/api";
-import type { Id } from "../../../../../../../../convex/_generated/dataModel";
 
 /**
  * Export pipeline results or raw data as CSV
@@ -50,6 +52,16 @@ export async function GET(
     }
 
     // Get database
+    const projectIdTyped = projectId as Id<"projects">;
+    const initialized = await isProjectDataInitialized(projectIdTyped);
+    if (!initialized) {
+      return NextResponse.json(
+        { error: "Project data not initialized. Please parse the file first." },
+        { status: 400 },
+      );
+    }
+
+    await ensureLocalDatabase(projectIdTyped);
     const db = getDatabase(projectId);
 
     // Determine table name and columns

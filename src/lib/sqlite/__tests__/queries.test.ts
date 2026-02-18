@@ -19,7 +19,7 @@ import {
 } from "../queries";
 
 const TEST_PROJECT_ID = "test-query-project";
-const TEST_DATA_DIR = path.join(process.cwd(), "data", "sqlite", "test");
+const TEST_DATA_DIR = path.join(process.cwd(), "data", "sqlite", "test-queries");
 
 process.env.SQLITE_DB_DIR = TEST_DATA_DIR;
 
@@ -51,10 +51,10 @@ describe("SQLite Query Operations", () => {
 
   after(() => {
     deleteDatabase(TEST_PROJECT_ID);
+    resetDatabaseCache();
     if (fs.existsSync(TEST_DATA_DIR)) {
       fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     }
-    resetDatabaseCache();
   });
 
   describe("Random Sampling", () => {

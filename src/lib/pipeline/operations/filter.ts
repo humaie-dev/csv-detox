@@ -57,6 +57,12 @@ export function filter(
         }
         return false;
 
+      case "is_null":
+        return value === null || value === undefined;
+
+      case "not_null":
+        return value !== null && value !== undefined;
+
       default:
         throw new Error(`Unknown operator: ${config.operator}`);
     }

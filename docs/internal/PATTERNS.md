@@ -56,6 +56,14 @@ Update only after asking and receiving approval for new patterns/libraries.
   
 - **Postgres** available via Convex dashboard for future relational features (not currently used)
 
+- **Convex imports**
+  - Prefer the `@convex/*` alias for Convex generated imports instead of relative paths.
+  - Example:
+    ```typescript
+    import { api } from "@convex/api";
+    import type { Id, Doc } from "@convex/dataModel";
+    ```
+
 ### File Upload Pattern
 
 **When to use this pattern**: Every file upload must follow this 3-step process.
